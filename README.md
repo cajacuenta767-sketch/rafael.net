@@ -4,8 +4,6 @@ Aplicación Flutter para Android y iOS preparada para los flujos de cliente y
 yonke de la API Refanet.
 
 ## Estado
-
-La infraestructura, navegación y módulos HTTP ya están separados. La API aún
 está en desarrollo, por lo que las respuestas permanecen flexibles hasta que el
 contrato OpenAPI defina modelos y errores estables.
 
