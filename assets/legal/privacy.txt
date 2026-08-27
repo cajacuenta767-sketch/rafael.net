@@ -1,0 +1,196 @@
+AVISO DE PRIVACIDAD INTEGRAL DE refaNet
+Última actualización: 26 de agosto de 2026
+
+refaNet, en adelante “refaNet”, es una plataforma digital destinada a facilitar la búsqueda, solicitud, cotización y comercialización de refacciones y autopartes entre clientes y establecimientos dedicados a la venta de autopartes usadas, nuevas o reacondicionadas, denominados en la plataforma como “Yonkes”.
+Para efectos de la legislación mexicana en materia de protección de datos personales, refaNet será responsable del tratamiento de los datos personales que sean proporcionados por los usuarios a través de la aplicación móvil, sitio web, formularios, servicios de autenticación y demás medios habilitados por la plataforma.
+
+1. Datos personales que podemos recopilar
+Dependiendo de la forma en que utilices refaNet, podremos recopilar las siguientes categorías de datos personales:
+Datos de identificación
+Nombre y apellidos.
+Identificador de usuario.
+Identificador único de cuenta.
+Fotografía de perfil, cuando sea proporcionada mediante un servicio de autenticación.
+Datos de contacto
+Número de teléfono celular.
+Correo electrónico.
+Datos necesarios para establecer comunicación entre el usuario y refaNet.
+Datos de acceso y autenticación
+Cuando utilices servicios de terceros para iniciar sesión, como Google o Apple, podremos recibir los datos que dichos proveedores autoricen compartir conforme a sus propias políticas de privacidad.
+Estos datos pueden incluir nombre, correo electrónico, identificador de cuenta y, cuando corresponda, fotografía de perfil.
+refaNet no recibe ni almacena las contraseñas utilizadas directamente en las cuentas de Google o Apple.
+Datos relacionados con solicitudes de refacciones
+Cuando un cliente genere una solicitud, podremos recopilar:
+Descripción de la refacción solicitada.
+Marca.
+Modelo.
+Año.
+Número de parte, cuando sea proporcionado.
+Comentarios.
+Ciudad o zona relacionada con la solicitud.
+Fotografías o imágenes de la pieza, vehículo o información proporcionada por el usuario.
+Información relacionada con cotizaciones recibidas.
+Datos relacionados con Yonkes
+Los usuarios que se registren como Yonkes podrán proporcionar información adicional, incluyendo:
+Nombre comercial.
+Nombre del responsable.
+Correo electrónico.
+Número telefónico.
+Ciudad.
+Información de cobertura.
+Información necesaria para gestionar solicitudes y cotizaciones dentro de la plataforma.
+Datos técnicos
+De manera automática, refaNet puede recopilar información técnica necesaria para operar y proteger la plataforma, incluyendo:
+Dirección IP.
+Tipo de dispositivo.
+Sistema operativo.
+Modelo del dispositivo.
+Versión de la aplicación.
+Identificadores técnicos.
+Tokens necesarios para recibir notificaciones.
+Información de actividad dentro de la aplicación.
+
+2. Finalidades del tratamiento
+Los datos personales serán utilizados para las siguientes finalidades:
+Finalidades primarias
+Crear y administrar la cuenta del usuario.
+Identificar y autenticar al usuario.
+Permitir el acceso a la plataforma.
+Enviar códigos de verificación mediante SMS u otros mecanismos de autenticación.
+Gestionar solicitudes de refacciones.
+Enviar solicitudes a Yonkes que tengan cobertura en la ciudad correspondiente.
+Permitir que los Yonkes reciban y respondan solicitudes.
+Gestionar cotizaciones.
+Permitir la comunicación relacionada con solicitudes y cotizaciones.
+Enviar notificaciones relacionadas con la actividad de la cuenta.
+Procesar y almacenar imágenes proporcionadas por el usuario.
+Mantener la seguridad de las cuentas.
+Detectar actividades fraudulentas, abusivas o no autorizadas.
+Cumplir obligaciones legales.
+Atender solicitudes, aclaraciones, soporte técnico y reclamaciones.
+Finalidades secundarias
+Con tu consentimiento, refaNet podrá utilizar determinados datos para:
+Enviar información sobre nuevas funciones.
+Informar sobre promociones, servicios o novedades de refaNet.
+Realizar análisis estadísticos y de uso de la plataforma.
+Mejorar la experiencia del usuario.
+Realizar estudios internos sobre el funcionamiento de la plataforma.
+Si no deseas que tus datos sean utilizados para finalidades secundarias, podrás manifestarlo mediante los mecanismos de contacto indicados en este Aviso de Privacidad.
+
+3. Número telefónico y códigos de verificación
+Cuando el usuario decida registrarse o iniciar sesión utilizando su número celular, refaNet podrá utilizar dicho número para enviar códigos de verificación de un solo uso (OTP).
+El código será utilizado exclusivamente para verificar la identidad y permitir el acceso correspondiente a la cuenta.
+El número telefónico podrá ser procesado mediante proveedores tecnológicos especializados en servicios de mensajería y autenticación.
+refaNet no vende números telefónicos de sus usuarios.
+
+4. Inicio de sesión con Google y Apple
+refaNet puede permitir el inicio de sesión mediante proveedores externos como Google y Apple.
+Al utilizar estos servicios, el usuario autoriza que el proveedor correspondiente comparta con refaNet los datos permitidos conforme a la configuración de su cuenta y a las políticas aplicables del proveedor.
+El tratamiento de los datos realizado directamente por Google o Apple se encuentra sujeto a sus respectivos avisos y políticas de privacidad.
+
+5. Imágenes proporcionadas por los usuarios
+Los usuarios podrán cargar fotografías relacionadas con las solicitudes de refacciones.
+Estas imágenes podrán ser almacenadas y mostradas a los Yonkes que reciban la solicitud correspondiente, con el propósito de facilitar la identificación de la refacción solicitada.
+El usuario deberá evitar proporcionar fotografías que contengan información personal innecesaria, documentos oficiales, datos bancarios, contraseñas u otra información confidencial que no sea necesaria para realizar la solicitud.
+
+6. Compartición de información entre usuarios
+Para permitir el funcionamiento de refaNet, determinados datos podrán ser visibles para otros usuarios de la plataforma cuando resulte necesario para prestar el servicio.
+Por ejemplo, una solicitud podrá contener información como:
+Nombre del solicitante, cuando corresponda.
+Ciudad.
+Descripción de la refacción.
+Marca, modelo y año.
+Imágenes.
+Información necesaria para generar y gestionar una cotización.
+Los datos que no sean necesarios para la operación de la solicitud no deberán hacerse públicos.
+refaNet procurará limitar la información compartida al mínimo necesario para proporcionar el servicio.
+
+7. Proveedores de servicios
+refaNet podrá utilizar proveedores tecnológicos nacionales o extranjeros para prestar determinados servicios, incluyendo:
+Servicios de almacenamiento.
+Servicios de mensajería SMS.
+Servicios de autenticación.
+Servicios de notificaciones push.
+Servicios de infraestructura tecnológica.
+Servicios de análisis y seguridad.
+Servicios de alojamiento de bases de datos.
+Estos proveedores únicamente deberán utilizar la información necesaria para proporcionar los servicios contratados por refaNet y estarán sujetos a las obligaciones de confidencialidad y protección de datos correspondientes.
+
+8. Transferencias de datos personales
+refaNet podrá realizar transferencias de datos personales cuando sean necesarias para proporcionar los servicios solicitados por el usuario, cumplir obligaciones legales o cuando exista una base jurídica que permita dicha transferencia.
+Cuando sea necesario realizar transferencias internacionales mediante proveedores tecnológicos, refaNet procurará implementar las medidas necesarias para proteger los datos personales conforme a la legislación aplicable.
+
+9. Seguridad de la información
+refaNet implementará medidas administrativas, técnicas y físicas razonables para proteger los datos personales contra:
+Daño.
+Pérdida.
+Alteración.
+Destrucción.
+Acceso no autorizado.
+Uso o tratamiento no autorizado.
+No obstante, ningún sistema de almacenamiento o transmisión de información por Internet puede garantizar seguridad absoluta.
+Por ello, el usuario también deberá proteger sus credenciales y evitar compartir códigos de acceso con terceros.
+
+10. Conservación de los datos
+Los datos personales serán conservados durante el tiempo necesario para cumplir con las finalidades descritas en este Aviso de Privacidad.
+Cuando los datos ya no sean necesarios para dichas finalidades y no exista una obligación legal de conservarlos, refaNet podrá proceder a su eliminación, bloqueo o anonimización conforme a sus procedimientos internos y a la legislación aplicable.
+
+11. Derechos ARCO
+El titular de los datos personales tiene derecho a ejercer sus derechos de:
+Acceso: conocer qué datos personales tenemos y cómo los utilizamos.
+Rectificación: solicitar la corrección de datos personales cuando sean incorrectos, incompletos o estén desactualizados.
+Cancelación: solicitar la eliminación de sus datos personales cuando considere que no están siendo tratados conforme a la legislación aplicable.
+Oposición: solicitar que sus datos personales no sean utilizados para determinadas finalidades.
+
+12. Ejercicio de derechos ARCO
+El usuario podrá solicitar el ejercicio de sus derechos ARCO mediante una solicitud dirigida a refaNet.
+La solicitud deberá contener, cuando menos:
+Nombre del titular.
+Medio para recibir la respuesta.
+Descripción clara del derecho que desea ejercer.
+Descripción de los datos personales relacionados con la solicitud.
+Cualquier información que permita localizar los datos correspondientes.
+Documento o mecanismo que permita acreditar la identidad del titular.
+refaNet analizará la solicitud y dará respuesta dentro de los plazos establecidos por la legislación aplicable.
+Correo para solicitudes de privacidad:
+[CORREO DE PRIVACIDAD DE refaNet]
+
+13. Revocación del consentimiento
+El titular podrá solicitar la revocación de su consentimiento para el tratamiento de sus datos personales cuando sea legalmente procedente.
+La revocación podrá limitar o impedir el funcionamiento de determinadas características de refaNet cuando dichas características requieran necesariamente del tratamiento de determinados datos personales.
+
+14. Limitación del uso o divulgación
+El usuario podrá solicitar mecanismos para limitar el uso o divulgación de sus datos personales para determinadas finalidades, particularmente aquellas de carácter secundario.
+Las solicitudes podrán realizarse mediante el correo electrónico destinado para asuntos de privacidad.
+
+15. Cookies y tecnologías similares
+El sitio web y las aplicaciones de refaNet podrán utilizar cookies, identificadores y tecnologías similares necesarias para:
+Mantener sesiones.
+Recordar preferencias.
+Mejorar la seguridad.
+Analizar el funcionamiento de la plataforma.
+Mejorar la experiencia del usuario.
+El usuario podrá configurar determinadas opciones de su navegador o dispositivo para limitar el uso de estas tecnologías, aunque esto podría afectar algunas funciones de la plataforma.
+
+16. Menores de edad
+refaNet no está dirigida deliberadamente a menores de edad.
+Si se detecta que se han recopilado datos personales de un menor sin contar con las autorizaciones correspondientes, refaNet podrá tomar medidas para eliminar dicha información cuando resulte procedente.
+
+17. Actualizaciones al Aviso de Privacidad
+refaNet podrá modificar o actualizar este Aviso de Privacidad para reflejar cambios legales, tecnológicos, operativos o relacionados con los servicios ofrecidos.
+Las modificaciones serán publicadas dentro de la aplicación, sitio web o medios electrónicos correspondientes.
+La fecha de la última actualización aparecerá al inicio de este documento.
+
+18. Responsable del tratamiento
+El responsable del tratamiento de los datos personales será:
+refaNet
+Domicilio: [DOMICILIO FISCAL O DOMICILIO DEL RESPONSABLE]
+Correo electrónico: [CORREO DE PRIVACIDAD]
+Teléfono: [TELÉFONO DE CONTACTO]
+
+19. Consentimiento
+Al registrarse, utilizar la plataforma o proporcionar voluntariamente sus datos personales, el usuario reconoce haber leído el presente Aviso de Privacidad y, cuando legalmente sea necesario, manifiesta su consentimiento para el tratamiento de sus datos personales conforme a las finalidades aquí descritas.
+Cuando determinadas finalidades requieran un consentimiento específico, refaNet solicitará dicho consentimiento mediante los mecanismos correspondientes.
+
+refaNet
+Conectamos clientes con Yonkes para encontrar las refacciones que necesitan.

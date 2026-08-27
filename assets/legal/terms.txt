@@ -1,0 +1,272 @@
+TÉRMINOS Y CONDICIONES DE USO DE refaNet
+Última actualización: 26 de agosto de 2026
+
+Bienvenido a refaNet, la Red Nacional de Autopartes Usadas.
+Estos Términos y Condiciones regulan el acceso y uso de la plataforma refaNet por parte de personas que utilizan el servicio para buscar, solicitar, cotizar y adquirir autopartes usadas o nuevas ofrecidas por vendedores independientes, yonkes, deshuesaderos y establecimientos afiliados.
+Al registrarte, acceder o utilizar refaNet, manifiestas que has leído, entendido y aceptado estos Términos y Condiciones.
+Si no estás de acuerdo con ellos, deberás abstenerte de utilizar la plataforma.
+
+1. ¿QUÉ ES refaNet?
+refaNet es una plataforma tecnológica que permite a los usuarios solicitar autopartes y recibir cotizaciones de vendedores afiliados.
+A través de refaNet, un cliente puede:
+Crear una cuenta.
+Buscar o solicitar autopartes.
+Indicar marca, modelo, año y características de la pieza.
+Agregar fotografías de la pieza requerida.
+Seleccionar una ciudad o zona.
+Recibir cotizaciones de vendedores afiliados.
+Revisar información de las cotizaciones.
+Comunicarse con los vendedores mediante las funciones disponibles.
+Seleccionar una cotización de su interés.
+refaNet no es fabricante de las autopartes, ni necesariamente propietario de las piezas publicadas u ofrecidas por los vendedores.
+Salvo que expresamente se indique lo contrario, la relación de compraventa se establece directamente entre el cliente y el vendedor que ofrece la autoparte.
+
+2. REQUISITOS PARA REGISTRARSE
+Para utilizar determinadas funciones de refaNet, el usuario deberá proporcionar información correcta y actualizada.
+El registro podrá realizarse mediante:
+Número de teléfono celular y código de verificación SMS.
+Google.
+Apple.
+Cualquier otro método de autenticación que refaNet habilite posteriormente.
+El usuario es responsable de mantener bajo su control el número telefónico, cuenta de Google, cuenta de Apple o cualquier otro mecanismo utilizado para acceder a refaNet.
+No está permitido utilizar información falsa, suplantar a otra persona o crear cuentas con la finalidad de engañar a otros usuarios.
+
+3. VERIFICACIÓN MEDIANTE TELÉFONO CELULAR
+Cuando el usuario elija registrarse o iniciar sesión mediante número celular, refaNet podrá enviar un código temporal de verificación mediante SMS.
+El código:
+Es personal.
+Es temporal.
+No deberá compartirse con terceros.
+Podrá tener una vigencia limitada.
+Podrá estar sujeto a límites de intentos y solicitudes.
+refaNet podrá bloquear temporalmente nuevos intentos cuando detecte solicitudes excesivas, automatizadas o sospechosas.
+El usuario reconoce que la entrega del SMS puede depender de operadores de telefonía y proveedores externos, por lo que refaNet no garantiza que todos los mensajes sean entregados inmediatamente.
+
+4. INFORMACIÓN PROPORCIONADA POR EL CLIENTE
+El cliente se compromete a proporcionar información verdadera, completa y actualizada.
+Cuando cree una solicitud de autoparte, deberá proporcionar, en la medida de lo posible:
+Marca.
+Modelo.
+Año.
+Número de parte, cuando se conozca.
+Descripción de la pieza.
+Fotografías.
+Ciudad o ubicación requerida.
+Cualquier otra información necesaria para identificar correctamente la autoparte.
+El cliente es responsable de verificar que la información proporcionada sea correcta.
+Una información incorrecta puede provocar que los vendedores proporcionen cotizaciones de piezas diferentes a las que realmente necesita el cliente.
+
+5. FOTOGRAFÍAS E IMÁGENES
+El cliente podrá cargar fotografías para ayudar a los vendedores a identificar la autoparte solicitada.
+El usuario declara que tiene derecho a utilizar las imágenes que cargue en refaNet.
+No deberá cargar fotografías que:
+Contengan material ilegal.
+Infrinjan derechos de terceros.
+Contengan información personal innecesaria.
+Contengan contenido ofensivo, sexual o violento.
+Se utilicen para engañar o defraudar.
+refaNet podrá retirar imágenes que infrinjan estos Términos.
+
+6. SOLICITUDES DE AUTOPARTES
+Al crear una solicitud, el cliente autoriza a refaNet a compartir la información necesaria con vendedores afiliados que puedan atender dicha solicitud.
+El objetivo de compartir la solicitud es permitir que los vendedores puedan analizarla y presentar una cotización.
+El cliente entiende que crear una solicitud no garantiza que exista una pieza disponible ni que recibirá una cotización.
+
+7. COTIZACIONES
+Las cotizaciones son proporcionadas por los vendedores.
+Cada vendedor es responsable de la información que proporcione respecto de:
+Precio.
+Disponibilidad.
+Estado de la pieza.
+Marca.
+Modelo.
+Compatibilidad.
+Número de parte.
+Garantía.
+Tiempo de entrega.
+Costo de envío.
+Condiciones de venta.
+El cliente deberá revisar cuidadosamente la información de una cotización antes de aceptar cualquier operación.
+Una cotización puede modificarse o dejar de estar disponible antes de concretarse la compraventa.
+
+8. AUTOPARTES USADAS
+Las autopartes usadas pueden presentar desgaste, reparaciones, modificaciones, diferencias estéticas o condiciones propias de su uso anterior.
+El cliente deberá solicitar al vendedor toda la información necesaria antes de comprar.
+Cuando corresponda, el vendedor deberá indicar las condiciones de la pieza, así como cualquier garantía que ofrezca.
+refaNet no garantiza que una autoparte usada sea compatible con un vehículo determinado únicamente por la información proporcionada en la solicitud.
+La responsabilidad de confirmar la compatibilidad deberá determinarse conforme a las condiciones de la operación y a la información proporcionada por el vendedor.
+
+9. RELACIÓN ENTRE CLIENTE Y VENDEDOR
+El vendedor es responsable de la autoparte que ofrece y de las condiciones particulares de la compraventa.
+refaNet actúa como plataforma tecnológica de intermediación y comunicación.
+Salvo que refaNet indique expresamente lo contrario, refaNet no:
+Fabrica las autopartes.
+Es propietaria de las autopartes ofrecidas.
+Garantiza la disponibilidad de una pieza.
+Determina el precio de las autopartes.
+Garantiza la compatibilidad de una pieza con un vehículo.
+Garantiza las condiciones mecánicas de una pieza.
+Actúa como representante legal del vendedor.
+
+10. PAGOS
+Cuando una operación implique pago dentro o fuera de la plataforma, las condiciones correspondientes serán informadas al usuario.
+El cliente deberá verificar:
+Precio total.
+Costos de envío.
+Impuestos, cuando correspondan.
+Forma de pago.
+Condiciones de devolución.
+Garantía.
+Tiempo estimado de entrega.
+El cliente no deberá realizar pagos a cuentas o personas que no estén relacionadas con la operación correspondiente.
+refaNet podrá implementar posteriormente sistemas de pago dentro de la plataforma y establecer términos adicionales para dichos servicios.
+
+11. ENVÍOS Y ENTREGA
+Cuando el vendedor ofrezca servicio de envío, deberá informar las condiciones correspondientes.
+Los tiempos de entrega pueden depender de:
+Disponibilidad de la pieza.
+Ubicación del vendedor.
+Empresa transportista.
+Distancia.
+Condiciones climáticas.
+Días inhábiles.
+Cualquier otra circunstancia fuera del control de refaNet.
+Cuando el envío sea realizado directamente por el vendedor o por un tercero contratado por éste, las condiciones del envío serán responsabilidad de las partes correspondientes.
+
+12. GARANTÍAS Y DEVOLUCIONES
+Las condiciones de garantía, devolución, cambio o reembolso de una autoparte serán las establecidas por el vendedor y las disposiciones legales aplicables.
+Antes de realizar una compra, el cliente deberá revisar las condiciones ofrecidas por el vendedor.
+Cuando una operación se encuentre protegida por una garantía o mecanismo específico ofrecido por refaNet, dicha protección será regulada mediante términos adicionales.
+
+13. CONDUCTA DEL USUARIO
+El cliente se compromete a utilizar refaNet de manera lícita y responsable.
+Está prohibido utilizar la plataforma para:
+Defraudar.
+Estafar.
+Suplantar identidades.
+Publicar información falsa.
+Generar solicitudes fraudulentas.
+Obtener información de otros usuarios con fines ilícitos.
+Realizar actividades ilegales.
+Intentar vulnerar la seguridad de la plataforma.
+Utilizar bots o sistemas automatizados sin autorización.
+Enviar spam.
+Hostigar o amenazar a otros usuarios.
+Publicar contenido ilegal u ofensivo.
+
+14. COMUNICACIONES
+refaNet podrá utilizar los datos de contacto proporcionados por el usuario para:
+Enviar códigos de verificación.
+Informar sobre solicitudes.
+Informar sobre cotizaciones.
+Enviar notificaciones relacionadas con operaciones.
+Informar sobre cambios importantes en el servicio.
+Atender solicitudes de soporte.
+Las comunicaciones comerciales y promocionales estarán sujetas a las preferencias del usuario y a las disposiciones legales aplicables.
+
+15. NOTIFICACIONES
+El usuario podrá recibir notificaciones mediante:
+SMS.
+Notificaciones push.
+Correo electrónico.
+Notificaciones dentro de la aplicación.
+El usuario podrá desactivar determinadas notificaciones promocionales cuando la plataforma permita dicha opción.
+Las notificaciones necesarias para la seguridad, funcionamiento de la cuenta o ejecución de determinados servicios podrán mantenerse activas.
+
+16. PRIVACIDAD Y DATOS PERSONALES
+refaNet tratará los datos personales del usuario conforme a su Aviso de Privacidad.
+El usuario deberá consultar el Aviso de Privacidad para conocer:
+Qué información se recopila.
+Para qué se utiliza.
+Con quién puede compartirse.
+Cómo puede ejercer sus derechos.
+Cómo puede solicitar la modificación o eliminación de determinados datos.
+El Aviso de Privacidad forma parte de la documentación relacionada con el uso de refaNet.
+
+17. SEGURIDAD DE LA CUENTA
+El usuario deberá mantener la confidencialidad de los mecanismos utilizados para acceder a su cuenta.
+Si sospecha que otra persona ha obtenido acceso a su cuenta, deberá informar inmediatamente a refaNet.
+refaNet podrá implementar medidas de seguridad adicionales, incluyendo:
+Verificación mediante SMS.
+Bloqueo temporal.
+Límites de intentos.
+Detección de actividad sospechosa.
+Verificación adicional de identidad.
+
+18. SUSPENSIÓN O CANCELACIÓN DE CUENTAS
+refaNet podrá suspender o cancelar una cuenta cuando existan razones razonables para considerar que el usuario:
+Incumplió estos Términos.
+Proporcionó información falsa.
+Utilizó la plataforma para actividades fraudulentas.
+Intentó vulnerar la seguridad de refaNet.
+Generó solicitudes fraudulentas o abusivas.
+Utilizó la plataforma para actividades ilegales.
+Cuando sea procedente, refaNet podrá informar al usuario sobre la razón de la suspensión.
+
+19. DISPONIBILIDAD DE LA PLATAFORMA
+refaNet procurará mantener disponible la plataforma, pero no garantiza que el servicio esté disponible permanentemente y sin interrupciones.
+Podrán existir interrupciones debido a:
+Mantenimiento.
+Actualizaciones.
+Fallas de servidores.
+Fallas de proveedores externos.
+Problemas de internet.
+Fallas de operadores telefónicos.
+Situaciones de fuerza mayor.
+
+20. PROPIEDAD INTELECTUAL
+El nombre refaNet, logotipos, diseños, interfaces, software, contenido y elementos gráficos de la plataforma podrán estar protegidos por las leyes aplicables de propiedad intelectual.
+El usuario no adquiere ningún derecho de propiedad sobre dichos elementos por utilizar la plataforma.
+No está permitido copiar, modificar, distribuir, vender o explotar el software, diseño o contenido de refaNet sin autorización.
+
+21. RESPONSABILIDAD
+refaNet realizará esfuerzos razonables para mantener información útil y funcional la plataforma.
+Sin embargo, debido a que las autopartes son ofrecidas por terceros, refaNet no puede garantizar que:
+Una pieza esté disponible en todo momento.
+Una pieza sea compatible con un vehículo.
+La información proporcionada por un vendedor sea correcta.
+El vendedor cumpla con una cotización.
+Una pieza se encuentre en las condiciones esperadas por el cliente.
+Una entrega se realice dentro del tiempo estimado.
+El usuario deberá evaluar la información proporcionada antes de realizar una operación.
+Nada de estos Términos pretende excluir derechos que legalmente correspondan al consumidor conforme a la legislación aplicable.
+
+22. SERVICIOS DE TERCEROS
+refaNet puede utilizar servicios proporcionados por terceros, incluyendo proveedores de:
+SMS.
+Autenticación.
+Almacenamiento.
+Mapas y ubicación.
+Notificaciones.
+Procesamiento de pagos.
+Infraestructura tecnológica.
+La disponibilidad de dichos servicios puede afectar determinadas funciones de refaNet.
+
+23. MENORES DE EDAD
+refaNet está dirigida a personas que tengan capacidad legal para contratar conforme a la legislación aplicable.
+Los menores de edad deberán utilizar la plataforma únicamente cuando ello sea permitido por la legislación aplicable y bajo la supervisión y responsabilidad de su padre, madre o tutor.
+
+24. MODIFICACIONES A LOS TÉRMINOS
+refaNet podrá modificar estos Términos y Condiciones cuando sea necesario para:
+Mejorar sus servicios.
+Incorporar nuevas funciones.
+Cumplir obligaciones legales.
+Modificar el funcionamiento de la plataforma.
+Establecer nuevas condiciones de uso.
+Las modificaciones serán publicadas en la plataforma indicando la fecha de actualización.
+Cuando una modificación requiera consentimiento del usuario conforme a la legislación aplicable, refaNet solicitará dicho consentimiento.
+
+25. LEGISLACIÓN APLICABLE
+Estos Términos se interpretarán conforme a las leyes aplicables en los Estados Unidos Mexicanos.
+Cualquier controversia relacionada con el uso de la plataforma será atendida inicialmente mediante los mecanismos de atención y conciliación disponibles en refaNet, sin perjuicio de los derechos que correspondan al usuario conforme a la legislación mexicana.
+
+26. CONTACTO
+Para dudas, aclaraciones, reportes o solicitudes relacionadas con la cuenta o el uso de refaNet, el usuario podrá comunicarse mediante los canales oficiales de atención disponibles dentro de la plataforma.
+refaNet — La Red Nacional de Autopartes Usadas
+Correo de contacto: [CORREO DE SOPORTE]
+Sitio web: [SITIO WEB]
+
+27. ACEPTACIÓN
+Al seleccionar "Acepto los Términos y Condiciones", registrarse, iniciar sesión o utilizar las funciones de refaNet, el usuario manifiesta que ha leído y acepta estos Términos y Condiciones, así como el Aviso de Privacidad correspondiente.
+☐ Acepto los Términos y Condiciones de refaNet
+☐ He leído el Aviso de Privacidad
