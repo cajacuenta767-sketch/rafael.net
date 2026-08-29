@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>refaNet usa la cámara solo para agregar fotos de una refacción.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>refaNet usa tus fotos solo para agregar imágenes de una refacción.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

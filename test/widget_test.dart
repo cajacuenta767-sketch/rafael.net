@@ -6,6 +6,9 @@ import 'package:app_yonke/core/network/api_envelope.dart';
 import 'package:app_yonke/features/auth/presentation/client_login_page.dart';
 import 'package:app_yonke/features/home/presentation/role_home_page.dart';
 import 'package:app_yonke/features/home/presentation/start_page.dart';
+import 'package:app_yonke/features/requests/domain/request_draft.dart';
+import 'package:app_yonke/features/requests/presentation/request_city_page.dart';
+import 'package:app_yonke/features/requests/presentation/my_requests_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,7 +62,7 @@ void main() {
     await tester.tap(find.text('Continuar con Google'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Cliente · Modo prueba'), findsOneWidget);
+    expect(find.text('Hola, cliente'), findsOneWidget);
   }, skip: !AppConfig.enableMockAuth);
 
   const portraitSizes = <Size>[
@@ -136,6 +139,54 @@ void main() {
     expect(result.data, 'value');
     expect(result.statusCode, 200);
   });
+
+  testWidgets('requires a city before continuing with a request', (
+    tester,
+  ) async {
+    final draft = RequestDraft();
+    final router = GoRouter(
+      initialLocation: '/city',
+      routes: [
+        GoRoute(
+          path: '/city',
+          builder: (_, _) => RequestCityPage(draft: draft),
+        ),
+        GoRoute(
+          path: AppRoutes.clientRequestReview,
+          builder: (_, _) => const Scaffold(body: Text('Revisión')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+
+    final continueButton = find.widgetWithText(FilledButton, 'Continuar');
+    expect(tester.widget<FilledButton>(continueButton).onPressed, isNull);
+
+    await tester.tap(find.text('Nogales, Sonora'));
+    await tester.pump();
+
+    expect(tester.widget<FilledButton>(continueButton).onPressed, isNotNull);
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+    expect(draft.cityId, 1);
+    expect(draft.cityName, 'Nogales, Sonora');
+    expect(find.text('Revisión'), findsOneWidget);
+  });
+
+  testWidgets('shows clearly marked test requests in mock mode', (
+    tester,
+  ) async {
+    expect(AppConfig.enableMockAuth, isTrue);
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: MyRequestsPage())),
+    );
+    await tester.pump();
+
+    expect(find.text('Mis solicitudes'), findsOneWidget);
+    expect(find.textContaining('Solicitudes de prueba'), findsOneWidget);
+    expect(find.text('Alternador\nNissan Sentra 2018'), findsOneWidget);
+  }, skip: !AppConfig.enableMockAuth);
 }
 
 Widget _responsiveHarness(double textScale) {

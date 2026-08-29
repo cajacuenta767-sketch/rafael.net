@@ -250,12 +250,18 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
       }
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
-      _showMessage(
-        error.code == GoogleSignInExceptionCode.canceled
-            ? 'No se completó la selección de la cuenta de Google.'
-            : 'Google Sign-In no está configurado correctamente: '
-                  '${error.description ?? error.code.name}.',
-      );
+      final message = switch (error.code) {
+        GoogleSignInExceptionCode.canceled =>
+          'La selección de Google fue cancelada. Inténtalo nuevamente.',
+        GoogleSignInExceptionCode.clientConfigurationError => 'Google no está configurado para esta aplicación. El responsable debe revisar el Client ID, el paquete Android y la huella SHA.',
+        GoogleSignInExceptionCode.uiUnavailable => 'No se pudo abrir el selector de cuentas de Google en este dispositivo.',
+        GoogleSignInExceptionCode.interrupted =>
+          'La selección de Google fue interrumpida. Inténtalo nuevamente.',
+        _ =>
+          'Google no pudo iniciar sesión: '
+              '${error.description ?? error.code.name}.',
+      };
+      _showMessage(message);
     } on ApiException catch (error) {
       if (mounted) _showMessage(error.message);
     } on Object catch (error) {

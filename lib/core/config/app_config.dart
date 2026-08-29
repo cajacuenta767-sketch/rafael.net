@@ -17,13 +17,11 @@ abstract final class AppConfig {
     defaultValue: 'development',
   );
 
-  static const enableNetworkLogs = bool.fromEnvironment(
-    'ENABLE_NETWORK_LOGS',
-    defaultValue: false,
-  );
+  static bool get enableNetworkLogs =>
+      kDebugMode && const bool.fromEnvironment('ENABLE_NETWORK_LOGS');
 
   static bool get enableMockAuth =>
-      !kReleaseMode && const bool.fromEnvironment('MOCK_AUTH');
+      kDebugMode && const bool.fromEnvironment('MOCK_AUTH', defaultValue: true);
 
   static const connectTimeout = Duration(seconds: 20);
   static const receiveTimeout = Duration(seconds: 30);
