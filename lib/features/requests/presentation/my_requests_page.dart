@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router/app_router.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
+import '../../home/presentation/client_bottom_navigation.dart';
 
 class MyRequestsPage extends ConsumerStatefulWidget {
   const MyRequestsPage({super.key});
@@ -81,6 +84,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
           ),
         ),
       ),
+      bottomNavigationBar: const ClientBottomNavigation(currentIndex: 3),
     );
   }
 
@@ -144,13 +148,7 @@ class _RequestSummaryCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'El detalle de solicitud se implementará a continuación.',
-              ),
-            ),
-          ),
+          onTap: () => context.push(AppRoutes.clientRequestDetail(request.id)),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -265,12 +263,14 @@ class _MessageState extends StatelessWidget {
 
 class _RequestSummary {
   const _RequestSummary({
+    required this.id,
     required this.title,
     required this.quoteCount,
     required this.status,
     this.city,
   });
 
+  final String id;
   final String title;
   final int quoteCount;
   final String status;
@@ -299,6 +299,7 @@ List<_RequestSummary> _requestSummariesFromResponse(dynamic response) {
           model,
         ].whereType<String>().where((value) => value.isNotEmpty).join(' ');
         return _RequestSummary(
+          id: record['guidId']?.toString() ?? record['id']?.toString() ?? '',
           title: [
             title,
             vehicle,
@@ -308,18 +309,20 @@ List<_RequestSummary> _requestSummariesFromResponse(dynamic response) {
           city: record['ciudad']?.toString(),
         );
       })
-      .where((request) => request.title.isNotEmpty)
+      .where((request) => request.id.isNotEmpty && request.title.isNotEmpty)
       .toList();
 }
 
 const _testRequests = [
   _RequestSummary(
+    id: 'mock-request-alternador',
     title: 'Alternador\nNissan Sentra 2018',
     quoteCount: 3,
     status: 'En proceso',
     city: 'Nogales, Sonora',
   ),
   _RequestSummary(
+    id: 'mock-request-faro',
     title: 'Faro delantero\nToyota Corolla 2016',
     quoteCount: 1,
     status: 'En proceso',

@@ -411,7 +411,7 @@ class _RoleButtons extends StatelessWidget {
           semanticLabel: 'Continuar como yonke',
           colors: const [Color(0xFF114EB0), Color(0xFF093A91)],
           height: height,
-          onTap: () => context.go(AppRoutes.yonkeHome),
+          onTap: () => context.push(AppRoutes.yonkeLogin),
         ),
       ],
     );

@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
+import 'client_bottom_navigation.dart';
 
 enum AppRole { client, yonke }
 
 class RoleHomePage extends StatelessWidget {
-  const RoleHomePage.client({super.key}) : role = AppRole.client;
-  const RoleHomePage.yonke({super.key}) : role = AppRole.yonke;
+  const RoleHomePage.client({super.key})
+    : role = AppRole.client,
+      isDemoSession = false;
+  const RoleHomePage.yonke({super.key, this.isDemoSession = false})
+    : role = AppRole.yonke;
 
   final AppRole role;
+  final bool isDemoSession;
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +26,38 @@ class RoleHomePage extends StatelessWidget {
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: Text(AppConfig.enableMockAuth ? 'Yonke · Modo prueba' : 'Yonke'),
+        title: Text(isDemoSession ? 'Yonke · Modo prueba' : 'Yonke'),
       ),
-      body: const Center(child: Text('Inicio de yonke pendiente de diseño.')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.storefront_outlined,
+                size: 64,
+                color: Color(0xFF114EB0),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Módulo del yonke en desarrollo',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              if (isDemoSession) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  'Sesión de prueba: no representa una autenticación real.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF596276)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -38,7 +71,6 @@ class _ClientHomePage extends StatefulWidget {
 
 class _ClientHomePageState extends State<_ClientHomePage> {
   final _searchController = TextEditingController();
-  int _selectedTab = 0;
 
   @override
   void dispose() {
@@ -69,16 +101,7 @@ class _ClientHomePageState extends State<_ClientHomePage> {
                 ),
               ),
             ),
-            _BottomNavigation(
-              selectedIndex: _selectedTab,
-              onSelected: (index) {
-                if (index == 3) {
-                  context.push(AppRoutes.clientRequests);
-                  return;
-                }
-                setState(() => _selectedTab = index);
-              },
-            ),
+            const ClientBottomNavigation(currentIndex: 0),
           ],
         ),
       ),
@@ -109,6 +132,14 @@ class _HomeContent extends StatelessWidget {
         TextField(
           controller: searchController,
           textInputAction: TextInputAction.search,
+          onSubmitted: (value) {
+            final query = value.trim();
+            if (query.isNotEmpty) {
+              context.push(
+                '${AppRoutes.clientSearch}?q=${Uri.encodeQueryComponent(query)}',
+              );
+            }
+          },
           decoration: InputDecoration(
             hintText: 'Ej. Alternador Nissan',
             prefixIcon: const Icon(Icons.search, size: 21),
@@ -365,123 +396,6 @@ class _RequestCard extends StatelessWidget {
                   Text('En proceso'),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomNavigation extends StatelessWidget {
-  const _BottomNavigation({
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 72,
-          child: Row(
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                label: 'Inicio',
-                selected: selectedIndex == 0,
-                onTap: () => onSelected(0),
-              ),
-              _NavItem(
-                icon: Icons.search,
-                label: 'Buscar',
-                selected: selectedIndex == 1,
-                onTap: () => onSelected(1),
-              ),
-              Expanded(
-                child: Semantics(
-                  button: true,
-                  label: 'Crear solicitud',
-                  child: Center(
-                    child: InkWell(
-                      onTap: () => context.push(AppRoutes.clientNewRequest),
-                      borderRadius: BorderRadius.circular(28),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00695C),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              _NavItem(
-                icon: Icons.receipt_long_outlined,
-                label: 'Solicitudes',
-                selected: selectedIndex == 3,
-                onTap: () => onSelected(3),
-              ),
-              _NavItem(
-                icon: Icons.person_outline,
-                label: 'Perfil',
-                selected: selectedIndex == 4,
-                onTap: () => onSelected(4),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Semantics(
-        button: true,
-        label: label,
-        selected: selected,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: selected
-                    ? const Color(0xFF00695C)
-                    : const Color(0xFF48515A),
-              ),
-              const SizedBox(height: 4),
-              Text(label, style: Theme.of(context).textTheme.labelSmall),
             ],
           ),
         ),

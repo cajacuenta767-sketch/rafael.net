@@ -4,6 +4,7 @@ import '../config/app_config.dart';
 import '../storage/token_store.dart';
 import 'api_client.dart';
 import 'api_exception.dart';
+import 'api_endpoints.dart';
 import 'api_file.dart';
 
 class DioApiClient implements ApiClient {
@@ -22,7 +23,9 @@ class DioApiClient implements ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _tokenStore.readAccessToken();
-          if (token != null && token.isNotEmpty) {
+          if (token != null &&
+              token.isNotEmpty &&
+              !_isAuthenticationPath(options.path)) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
@@ -33,8 +36,8 @@ class DioApiClient implements ApiClient {
     if (AppConfig.enableNetworkLogs) {
       _dio.interceptors.add(
         LogInterceptor(
-          requestBody: true,
-          responseBody: true,
+          requestBody: false,
+          responseBody: false,
           requestHeader: false,
           responseHeader: false,
         ),
@@ -44,6 +47,14 @@ class DioApiClient implements ApiClient {
 
   final TokenStore _tokenStore;
   final Dio _dio;
+
+  bool _isAuthenticationPath(String path) => const {
+    ApiEndpoints.clientGoogleLogin,
+    ApiEndpoints.clientAppleLogin,
+    ApiEndpoints.requestOtp,
+    ApiEndpoints.verifyOtp,
+    ApiEndpoints.yonkeLogin,
+  }.contains(path);
 
   @override
   Future<dynamic> get(String path, {Map<String, dynamic>? queryParameters}) =>
