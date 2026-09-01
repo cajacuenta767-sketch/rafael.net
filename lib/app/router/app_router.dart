@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/client_login_page.dart';
+import '../../features/auth/presentation/client_session_gate.dart';
 import '../../features/auth/presentation/yonke_login_page.dart';
 import '../../features/home/presentation/role_home_page.dart';
 import '../../features/home/presentation/start_page.dart';
@@ -15,6 +16,7 @@ import '../../features/quotes/domain/client_quote.dart';
 import '../../features/quotes/presentation/quote_detail_page.dart';
 import '../../features/quotes/presentation/request_quotes_page.dart';
 import '../../features/search/presentation/parts_search_page.dart';
+import '../../features/profile/presentation/client_profile_page.dart';
 import '../../features/yonke_requests/domain/yonke_request_summary.dart';
 import '../../features/yonke_requests/presentation/yonke_quote_page.dart';
 import '../../features/yonke_requests/presentation/yonke_request_detail_page.dart';
@@ -28,6 +30,7 @@ abstract final class AppRoutes {
   static const clientLogin = '/cliente/login';
   static const clientHome = '/cliente';
   static const clientSearch = '/cliente/buscar';
+  static const clientProfile = '/cliente/perfil';
   static const clientNewRequest = '/cliente/solicitudes/nueva';
   static const clientRequestPhotos = '/cliente/solicitudes/fotografias';
   static const clientRequestCity = '/cliente/solicitudes/ciudad';
@@ -63,59 +66,79 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.clientHome,
-      builder: (context, state) => const RoleHomePage.client(),
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const RoleHomePage.client()),
     ),
     GoRoute(
       path: AppRoutes.clientSearch,
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) =>
+            PartsSearchPage(initialQuery: state.uri.queryParameters['q']),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.clientProfile,
       builder: (context, state) =>
-          PartsSearchPage(initialQuery: state.uri.queryParameters['q']),
+          ClientSessionGate(builder: (_) => const ClientProfilePage()),
     ),
     GoRoute(
       path: AppRoutes.clientNewRequest,
-      builder: (context, state) => NewRequestPage(
-        draft: state.extra is RequestDraft
-            ? state.extra! as RequestDraft
-            : null,
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => NewRequestPage(
+          draft: state.extra is RequestDraft
+              ? state.extra! as RequestDraft
+              : null,
+        ),
       ),
     ),
     GoRoute(
       path: AppRoutes.clientRequestPhotos,
-      builder: (context, state) =>
-          RequestPhotosPage(draft: state.extra! as RequestDraft),
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => RequestPhotosPage(draft: state.extra! as RequestDraft),
+      ),
     ),
     GoRoute(
       path: AppRoutes.clientRequestCity,
-      builder: (context, state) =>
-          RequestCityPage(draft: state.extra! as RequestDraft),
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => RequestCityPage(draft: state.extra! as RequestDraft),
+      ),
     ),
     GoRoute(
       path: AppRoutes.clientRequestReview,
-      builder: (context, state) =>
-          RequestReviewPage(draft: state.extra! as RequestDraft),
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => RequestReviewPage(draft: state.extra! as RequestDraft),
+      ),
     ),
     GoRoute(
       path: AppRoutes.clientRequests,
-      builder: (context, state) => const MyRequestsPage(),
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const MyRequestsPage()),
     ),
     GoRoute(
       path: '/cliente/solicitudes/detalle/:requestId',
-      builder: (context, state) =>
-          RequestDetailPage(requestId: state.pathParameters['requestId']!),
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) =>
+            RequestDetailPage(requestId: state.pathParameters['requestId']!),
+      ),
     ),
     GoRoute(
       path: '/cliente/solicitudes/detalle/:requestId/cotizaciones',
-      builder: (context, state) => RequestQuotesPage(
-        requestId: state.pathParameters['requestId']!,
-        requestTitle: state.extra as String?,
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => RequestQuotesPage(
+          requestId: state.pathParameters['requestId']!,
+          requestTitle: state.extra as String?,
+        ),
       ),
     ),
     GoRoute(
       path: '/cliente/cotizaciones/:quoteId',
-      builder: (context, state) => QuoteDetailPage(
-        quoteId: state.pathParameters['quoteId']!,
-        initialQuote: state.extra is ClientQuote
-            ? state.extra! as ClientQuote
-            : null,
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) => QuoteDetailPage(
+          quoteId: state.pathParameters['quoteId']!,
+          initialQuote: state.extra is ClientQuote
+              ? state.extra! as ClientQuote
+              : null,
+        ),
       ),
     ),
     GoRoute(

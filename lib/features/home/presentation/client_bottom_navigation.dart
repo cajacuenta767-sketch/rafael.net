@@ -24,11 +24,7 @@ class ClientBottomNavigation extends StatelessWidget {
         context.go(AppRoutes.clientRequests);
         return;
       case 4:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('El perfil del cliente será el siguiente módulo.'),
-          ),
-        );
+        context.go(AppRoutes.clientProfile);
         return;
     }
   }
