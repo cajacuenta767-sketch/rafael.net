@@ -230,24 +230,25 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
         throw StateError('Google no entregó un token de identidad.');
       }
 
-      final response = await ref
-          .read(authApiProvider)
-          .loginClientWithGoogle(idToken);
+      final result = await ref
+          .read(clientAuthRepositoryProvider)
+          .loginWithGoogle(idToken);
       if (!mounted) return;
 
-      if (response is Map && response['success'] == true) {
+      if (!result.hasUsableSession) {
         _showMessage(
-          response['message']?.toString() ??
-              'Google validó la cuenta correctamente.',
+          result.sessionContractPending
+              ? 'Google validó la cuenta, pero la API aún no publica el token de sesión.'
+              : 'No fue posible crear una sesión segura con Google.',
         );
-      } else {
-        _showMessage(
-          response is Map
-              ? response['message']?.toString() ??
-                    'La API rechazó el acceso con Google.'
-              : 'La API respondió sin un contrato de sesión documentado.',
-        );
+        return;
       }
+
+      await ref.read(tokenStoreProvider).writeTokens(
+        accessToken: result.accessToken!,
+        refreshToken: result.refreshToken,
+      );
+      if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
       final message = switch (error.code) {

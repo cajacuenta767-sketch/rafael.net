@@ -1,9 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/router/app_router.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
+import '../../messages/presentation/client_conversation_page.dart';
+import '../../orders/data/client_orders_repository.dart';
+import '../../orders/domain/client_order.dart';
+import '../../orders/presentation/client_order_pages.dart';
+import '../../ratings/presentation/yonke_reputation_card.dart';
 import '../domain/client_quote.dart';
 
 class QuoteDetailPage extends ConsumerStatefulWidget {
@@ -21,6 +30,9 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   bool _loading = true;
   bool _usingTestData = false;
   String? _error;
+  ClientOrder? _existingOrder;
+  bool _checkingExistingOrder = false;
+  String? _existingOrderError;
 
   @override
   void initState() {
@@ -32,6 +44,9 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _existingOrder = null;
+      _checkingExistingOrder = false;
+      _existingOrderError = null;
     });
     if (widget.quoteId.isEmpty) {
       setState(() {
@@ -47,6 +62,8 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
         _usingTestData = true;
         _loading = false;
       });
+      final quote = _quote;
+      if (quote != null) unawaited(_loadExistingOrder(quote));
       return;
     }
 
@@ -60,12 +77,38 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
         _usingTestData = false;
         _loading = false;
       });
+      final quote = _quote;
+      if (quote != null) unawaited(_loadExistingOrder(quote));
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
         _error = 'No se pudo cargar la cotización. Inténtalo nuevamente.';
       });
+    }
+  }
+
+  Future<void> _loadExistingOrder(ClientQuote quote) async {
+    if (!mounted) return;
+    setState(() {
+      _checkingExistingOrder = true;
+      _existingOrderError = null;
+    });
+    final repository = _usingTestData
+        ? const DemoClientOrdersRepository()
+        : ref.read(clientOrdersRepositoryProvider);
+    try {
+      final order = await repository.getForQuote(quote.id);
+      if (mounted) setState(() => _existingOrder = order);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _existingOrderError =
+              'No pudimos confirmar si esta cotización ya tiene una orden.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingExistingOrder = false);
     }
   }
 
@@ -188,6 +231,8 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           ],
         ),
         const SizedBox(height: 18),
+        YonkeReputationCard(yonkeId: quote.yonkeId, isDemo: _usingTestData),
+        const SizedBox(height: 18),
         Text(
           formatQuotePrice(quote.price),
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -260,6 +305,20 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
         ),
         const SizedBox(height: 18),
         FilledButton.icon(
+          key: const Key('client-open-conversation'),
+          onPressed: () => context.push(
+            AppRoutes.clientQuoteConversation(quote.id),
+            extra: ClientConversationArgs(quote: quote, isDemo: _usingTestData),
+          ),
+          icon: const Icon(Icons.forum_outlined),
+          label: const Text('Mensajes con el yonke'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            backgroundColor: const Color(0xFF00695C),
+          ),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
           onPressed: canContact ? () => _contact(quote, whatsapp: true) : null,
           icon: const Icon(Icons.chat_outlined),
           label: const Text('Contactar por WhatsApp'),
@@ -277,14 +336,93 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
             minimumSize: const Size.fromHeight(52),
           ),
         ),
+        const SizedBox(height: 10),
+        _orderAction(context, quote),
         const SizedBox(height: 14),
-        const Text(
-          'Elegir una cotización y crear una orden se habilitará cuando el backend confirme ese flujo.',
+        Text(
+          _orderActionMessage(quote),
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+          style: const TextStyle(color: Color(0xFF596276), fontSize: 12),
         ),
       ],
     );
+  }
+
+  Widget _orderAction(BuildContext context, ClientQuote quote) {
+    if (_checkingExistingOrder) {
+      return FilledButton.icon(
+        onPressed: null,
+        icon: const SizedBox.square(
+          dimension: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        label: const Text('Consultando orden...'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          backgroundColor: const Color(0xFF147A1D),
+        ),
+      );
+    }
+    if (_existingOrderError != null) {
+      return OutlinedButton.icon(
+        key: const Key('client-retry-order-lookup'),
+        onPressed: () => _loadExistingOrder(quote),
+        icon: const Icon(Icons.refresh),
+        label: const Text('Reintentar verificación de orden'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+        ),
+      );
+    }
+    final existingOrder = _existingOrder;
+    if (existingOrder != null) {
+      return FilledButton.icon(
+        key: const Key('client-open-order-tracking'),
+        onPressed: () => context.push(
+          AppRoutes.clientOrderTracking(quote.id),
+          extra: ClientOrderTrackingArgs(
+            quote: quote,
+            isDemo: _usingTestData,
+            orderId: existingOrder.id,
+          ),
+        ),
+        icon: const Icon(Icons.receipt_long_outlined),
+        label: const Text('Ver seguimiento de la orden'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          backgroundColor: const Color(0xFF00695C),
+        ),
+      );
+    }
+    return FilledButton.icon(
+      key: const Key('client-create-order'),
+      onPressed: quote.available && quote.active
+          ? () => context.push(
+              AppRoutes.clientOrderConfirmation(quote.id),
+              extra: ClientOrderConfirmationArgs(
+                quote: quote,
+                isDemo: _usingTestData,
+              ),
+            )
+          : null,
+      icon: const Icon(Icons.shopping_bag_outlined),
+      label: const Text('Elegir esta cotización'),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        backgroundColor: const Color(0xFF147A1D),
+      ),
+    );
+  }
+
+  String _orderActionMessage(ClientQuote quote) {
+    if (_checkingExistingOrder) return 'Estamos comprobando el estado de la orden.';
+    if (_existingOrderError != null) return _existingOrderError!;
+    if (_existingOrder != null) {
+      return 'Esta cotización ya tiene una orden. Consulta su seguimiento.';
+    }
+    return quote.available && quote.active
+        ? 'Revisarás los detalles antes de crear la orden.'
+        : 'Esta cotización no está disponible para crear una orden.';
   }
 }
 

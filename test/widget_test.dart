@@ -635,7 +635,8 @@ void main() {
       routes: [
         GoRoute(
           path: '/city',
-          builder: (_, _) => RequestCityPage(draft: draft),
+          builder: (_, _) =>
+              RequestCityPage(draft: draft, useTestCatalogs: true),
         ),
         GoRoute(
           path: AppRoutes.clientRequestReview,
@@ -644,7 +645,10 @@ void main() {
       ],
     );
     addTearDown(router.dispose);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
 
     final continueButton = find.widgetWithText(FilledButton, 'Continuar');
     expect(tester.widget<FilledButton>(continueButton).onPressed, isNull);
@@ -982,6 +986,23 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -1200));
     await tester.pumpAndSettle();
     expect(tester.widget<FilledButton>(whatsapp).onPressed, isNull);
+  }, skip: !AppConfig.enableMockAuth);
+
+  testWidgets('shows order tracking instead of creating a duplicate order', (
+    tester,
+  ) async {
+    expect(AppConfig.enableMockAuth, isTrue);
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: QuoteDetailPage(quoteId: 'mock-quote-faro')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -1200));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('client-open-order-tracking')), findsOneWidget);
+    expect(find.byKey(const Key('client-create-order')), findsNothing);
   }, skip: !AppConfig.enableMockAuth);
 
   test('parses the documented quote response fields', () {

@@ -15,6 +15,8 @@ class ClientOtpVerification {
 }
 
 abstract interface class ClientAuthRepository {
+  Future<ClientOtpVerification> loginWithGoogle(String idToken);
+
   Future<void> requestOtp(String phone);
 
   Future<ClientOtpVerification> verifyOtp({
@@ -27,6 +29,15 @@ class ApiClientAuthRepository implements ClientAuthRepository {
   const ApiClientAuthRepository(this._api);
 
   final AuthApi _api;
+
+  @override
+  Future<ClientOtpVerification> loginWithGoogle(String idToken) async {
+    await _api.loginClientWithGoogle(idToken);
+
+    // El endpoint existe, pero OpenAPI no define todavía el cuerpo de sesión.
+    // No basta con un indicador de éxito: se necesita un access token explícito.
+    return const ClientOtpVerification(sessionContractPending: true);
+  }
 
   @override
   Future<void> requestOtp(String phone) async {

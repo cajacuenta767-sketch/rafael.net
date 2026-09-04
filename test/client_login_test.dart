@@ -624,6 +624,10 @@ class _TestClientAuthRepository implements ClientAuthRepository {
   int verificationCount = 0;
 
   @override
+  Future<ClientOtpVerification> loginWithGoogle(String idToken) async =>
+      verification;
+
+  @override
   Future<void> requestOtp(String phone) async => requestedPhones.add(phone);
 
   @override

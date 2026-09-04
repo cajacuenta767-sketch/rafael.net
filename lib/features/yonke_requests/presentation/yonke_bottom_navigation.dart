@@ -17,12 +17,6 @@ class YonkeBottomNavigation extends StatelessWidget {
   final YonkeNavigationSection selected;
   final bool isDemoSession;
 
-  void _upcoming(BuildContext context, String module) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$module estará disponible próximamente.')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
@@ -77,12 +71,24 @@ class YonkeBottomNavigation extends StatelessWidget {
             _YonkeNavItem(
               icon: Icons.chat_bubble_outline,
               label: 'Mensajes',
-              onTap: () => _upcoming(context, 'Mensajes'),
+              selected: selected == YonkeNavigationSection.messages,
+              onTap: selected == YonkeNavigationSection.messages
+                  ? null
+                  : () => context.go(
+                      AppRoutes.yonkeMessages,
+                      extra: isDemoSession,
+                    ),
             ),
             _YonkeNavItem(
               icon: Icons.storefront_outlined,
               label: 'Perfil',
-              onTap: () => _upcoming(context, 'Perfil'),
+              selected: selected == YonkeNavigationSection.profile,
+              onTap: selected == YonkeNavigationSection.profile
+                  ? null
+                  : () => context.go(
+                      AppRoutes.yonkeProfile,
+                      extra: isDemoSession,
+                    ),
             ),
           ],
         ),

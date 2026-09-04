@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../yonke_messages/presentation/yonke_messages_page.dart';
 import '../data/yonke_quotes_repository.dart';
 import '../domain/yonke_quote.dart';
 
@@ -231,6 +234,23 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
             ],
           ),
           const SizedBox(height: 18),
+          FilledButton.icon(
+            key: const Key('yonke-open-conversation'),
+            onPressed: () => context.push(
+              AppRoutes.yonkeConversation(quote.id),
+              extra: YonkeConversationArgs(
+                quote: quote,
+                isDemoSession: widget.isDemoSession,
+              ),
+            ),
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: const Text('Mensajes con el cliente'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: const Color(0xFF114EB0),
+            ),
+          ),
+          const SizedBox(height: 10),
           FilledButton.icon(
             onPressed: quote.canEdit ? () {} : null,
             icon: const Icon(Icons.edit_outlined),

@@ -49,3 +49,22 @@ en modelos de producción.
   checkout, evitando duplicados por reintentos móviles.
 - Publicar ambientes separados para desarrollo, pruebas y producción.
 - Añadir endpoint de salud y una política de compatibilidad mínima de la app.
+
+## Contrato mínimo de sesión requerido por la app
+
+La aplicación ya está preparada para guardar tokens en el almacenamiento
+seguro del dispositivo, agregar `Authorization: Bearer <token>` y proteger las
+rutas. Falta que el backend publique y mantenga un DTO explícito para cada
+login. Como mínimo debe indicar:
+
+- `accessToken`: obligatorio y no vacío.
+- `refreshToken`: opcional, o una declaración expresa de que no habrá refresh.
+- `expiresAt` o `expiresIn`: obligatorio para renovar o cerrar la sesión a
+  tiempo.
+- Identificador del usuario autenticado. Para yonke debe incluir
+  `yonkeGuidId`, necesario para perfil, cobertura y dispositivo.
+- Rol o tipo de cuenta cuando un mismo token pueda representar más de un rol.
+
+Hasta que esos nombres y tipos aparezcan en Swagger, la app considera las
+respuestas de Google, OTP y yonke como `sessionContractPending`; no navega a
+áreas protegidas ni guarda valores inferidos de claves desconocidas.

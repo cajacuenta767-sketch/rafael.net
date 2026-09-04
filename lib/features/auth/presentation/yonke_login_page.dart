@@ -72,12 +72,19 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
             password: _passwordController.text,
           );
       if (!mounted) return;
-      if (result.sessionContractPending) {
+      if (!result.hasUsableSession) {
         setState(() {
-          _message = 'La API respondió, pero el contrato de sesión del yonke aún debe confirmarse.';
+          _message = result.sessionContractPending
+              ? 'La API respondió, pero el contrato de sesión del yonke aún debe confirmarse.'
+              : 'No fue posible crear una sesión segura para el yonke.';
         });
         return;
       }
+      await ref.read(tokenStoreProvider).writeTokens(
+        accessToken: result.accessToken!,
+        refreshToken: result.refreshToken,
+      );
+      if (!mounted) return;
       context.go(AppRoutes.yonkeHome);
     } on ApiException catch (error) {
       if (!mounted) return;

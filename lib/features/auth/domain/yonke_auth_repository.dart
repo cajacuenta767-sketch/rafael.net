@@ -1,11 +1,20 @@
 import '../data/auth_api.dart';
 
 class YonkeLoginResult {
-  const YonkeLoginResult({required this.sessionContractPending});
+  const YonkeLoginResult({
+    required this.sessionContractPending,
+    this.accessToken,
+    this.refreshToken,
+    this.yonkeId,
+  });
 
   final bool sessionContractPending;
+  final String? accessToken;
+  final String? refreshToken;
+  final String? yonkeId;
 
-  bool get hasUsableSession => !sessionContractPending;
+  bool get hasUsableSession =>
+      !sessionContractPending && accessToken?.isNotEmpty == true;
 }
 
 abstract interface class YonkeAuthRepository {
