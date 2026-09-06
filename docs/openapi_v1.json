@@ -1,0 +1,3715 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Web Api Yonke",
+    "version": "V1"
+  },
+  "paths": {
+    "/api/ClienteAuth/google": {
+      "post": {
+        "tags": [
+          "ClienteAuth"
+        ],
+        "summary": "Login Google cuenta",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ClienteAuth/apple": {
+      "post": {
+        "tags": [
+          "ClienteAuth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ClienteAuth/solicitar-otp": {
+      "post": {
+        "tags": [
+          "ClienteAuth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarOtpRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarOtpRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarOtpRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ClienteAuth/verificar-otp": {
+      "post": {
+        "tags": [
+          "ClienteAuth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificarOtpRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificarOtpRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificarOtpRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificarOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ClienteAuth/registrar-dispositivo": {
+      "post": {
+        "tags": [
+          "ClienteAuth"
+        ],
+        "summary": "Regisstro del dispotivo del cleinte despues de hacer login exitoso",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/CotizacionYonke": {
+      "post": {
+        "tags": [
+          "CotizacionYonke"
+        ],
+        "summary": "Registra una nueva cotización.",
+        "parameters": [
+          {
+            "name": "solicitudYonkeGuidId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Precio": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "Disponible": {
+                    "type": "boolean"
+                  },
+                  "EsNueva": {
+                    "type": "boolean"
+                  },
+                  "MarcaId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "NumeroParte": {
+                    "type": "string"
+                  },
+                  "Comentarios": {
+                    "type": "string"
+                  },
+                  "TiempoEntregaDias": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "DiasGarantia": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "EnvioDisponible": {
+                    "type": "boolean"
+                  },
+                  "CostoEnvio": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "TieneGarantia": {
+                    "type": "boolean"
+                  },
+                  "Imagenes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "Precio": {
+                  "style": "form"
+                },
+                "Disponible": {
+                  "style": "form"
+                },
+                "EsNueva": {
+                  "style": "form"
+                },
+                "MarcaId": {
+                  "style": "form"
+                },
+                "NumeroParte": {
+                  "style": "form"
+                },
+                "Comentarios": {
+                  "style": "form"
+                },
+                "TiempoEntregaDias": {
+                  "style": "form"
+                },
+                "DiasGarantia": {
+                  "style": "form"
+                },
+                "EnvioDisponible": {
+                  "style": "form"
+                },
+                "CostoEnvio": {
+                  "style": "form"
+                },
+                "TieneGarantia": {
+                  "style": "form"
+                },
+                "Imagenes": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/CotizacionYonke/{cotizacionGuidId}": {
+      "put": {
+        "tags": [
+          "CotizacionYonke"
+        ],
+        "summary": "Actualiza una cotización.",
+        "parameters": [
+          {
+            "name": "cotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCotizacionRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCotizacionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCotizacionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCotizacionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiResponseGlobal"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiResponseGlobal"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiResponseGlobal"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "CotizacionYonke"
+        ],
+        "summary": "Obtiene una cotización por Guid.",
+        "parameters": [
+          {
+            "name": "cotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudCotizacionesApiResponseGlobal"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudCotizacionesApiResponseGlobal"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudCotizacionesApiResponseGlobal"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DashboardSuscriptores/resumen": {
+      "get": {
+        "tags": [
+          "DashboardSuscriptores"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DashboardSuscriptores/mis-solicitudes": {
+      "get": {
+        "tags": [
+          "DashboardSuscriptores"
+        ],
+        "parameters": [
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CantidadRegistrosPorPagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DashboardSuscriptores/mis-cotizaciones": {
+      "get": {
+        "tags": [
+          "DashboardSuscriptores"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DashboardSuscriptores/mi-solicitud-reciente": {
+      "get": {
+        "tags": [
+          "DashboardSuscriptores"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Orden/{guidId}": {
+      "get": {
+        "tags": [
+          "Orden"
+        ],
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Orden/cotizacion/{cotizacionGuidId}": {
+      "get": {
+        "tags": [
+          "Orden"
+        ],
+        "parameters": [
+          {
+            "name": "cotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Orden": {
+      "post": {
+        "tags": [
+          "Orden"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearOrdenRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearOrdenRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearOrdenRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearOrdenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Orden/{guidId}/cancelar": {
+      "post": {
+        "tags": [
+          "Orden"
+        ],
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Pagos/checkout/{ordenGuidId}": {
+      "post": {
+        "tags": [
+          "Pagos"
+        ],
+        "parameters": [
+          {
+            "name": "ordenGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Pagos/stripe/webhook": {
+      "post": {
+        "tags": [
+          "Pagos"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/pago/exitoso": {
+      "get": {
+        "tags": [
+          "Pagos"
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Pagos/resultado/{sessionId}": {
+      "get": {
+        "tags": [
+          "Pagos"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCiudades/{solicitudGuidId}/ciudad/{ciudadId}": {
+      "post": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Agregar una ciudad a una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ciudadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Eliminar una ciudad de una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ciudadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCiudades/{solicitudGuidId}/ciudades": {
+      "post": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Agregar varias ciudades a una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Obtener ciudades asociadas a una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Reemplazar ciudades de una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Eliminar todas las ciudades de una solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCiudades/existe": {
+      "get": {
+        "tags": [
+          "SolicitudCiudades"
+        ],
+        "summary": "Validar si una ciudad existe en la solicitud",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ciudadId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCotizacionMensajes": {
+      "post": {
+        "tags": [
+          "SolicitudCotizacionMensajes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarMensajeCotizacionRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarMensajeCotizacionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarMensajeCotizacionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarMensajeCotizacionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCotizacionMensajes/{solicitudCotizacionGuidId}": {
+      "get": {
+        "tags": [
+          "SolicitudCotizacionMensajes"
+        ],
+        "parameters": [
+          {
+            "name": "solicitudCotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCotizacionMensajes/{solicitudCotizacionGuidId}/leer": {
+      "put": {
+        "tags": [
+          "SolicitudCotizacionMensajes"
+        ],
+        "parameters": [
+          {
+            "name": "solicitudCotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudCotizacionMensajes/{solicitudCotizacionGuidId}/no-leidos": {
+      "get": {
+        "tags": [
+          "SolicitudCotizacionMensajes"
+        ],
+        "parameters": [
+          {
+            "name": "solicitudCotizacionGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Solicitudes/AllPaged": {
+      "get": {
+        "tags": [
+          "Solicitudes"
+        ],
+        "summary": "Get Solicitudes paginados",
+        "parameters": [
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CantidadRegistrosPorPagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Solicitudes/{guidId}": {
+      "get": {
+        "tags": [
+          "Solicitudes"
+        ],
+        "summary": "Solicitud by Id",
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Solicitud_Busqueda_DTOApiResponseGlobal"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Solicitudes"
+        ],
+        "summary": "Cancelar Solicitud",
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudUpdateStatusDTO"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudUpdateStatusDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudUpdateStatusDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudUpdateStatusDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Solicitudes": {
+      "post": {
+        "tags": [
+          "Solicitudes"
+        ],
+        "summary": "Nueva Solicitud sin imagenes -- Proceso Add Imagenes",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Solicitudes_Create_DTO"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Solicitudes_Create_DTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Solicitudes_Create_DTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Solicitudes_Create_DTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudesImagenes/{solicitudGuidId}": {
+      "post": {
+        "tags": [
+          "SolicitudesImagenes"
+        ],
+        "summary": "Agrega una imagenes a una solicitud.",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imagenes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "imagenes": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudesImagenes/solicitud/{solicitudGuidId}": {
+      "get": {
+        "tags": [
+          "SolicitudesImagenes"
+        ],
+        "summary": "Obtiene todas las imágenes de una solicitud.",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudesImagenes/{imagenGuidId}": {
+      "get": {
+        "tags": [
+          "SolicitudesImagenes"
+        ],
+        "summary": "Obtiene una imagen.",
+        "parameters": [
+          {
+            "name": "imagenGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SolicitudesImagenes"
+        ],
+        "summary": "Elimina una imagen.",
+        "parameters": [
+          {
+            "name": "imagenGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudYonkes/{solicitudGuidId}/enviar": {
+      "post": {
+        "tags": [
+          "SolicitudYonkes"
+        ],
+        "summary": "Envía una solicitud a todos los yonkes con cobertura.",
+        "parameters": [
+          {
+            "name": "solicitudGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudYonkes/{solicitudYonkeGuidId}/vista": {
+      "put": {
+        "tags": [
+          "SolicitudYonkes"
+        ],
+        "summary": "Marcar Como vista una solicitud por parte del Yunke",
+        "parameters": [
+          {
+            "name": "solicitudYonkeGuidId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/entidades": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtiene todos los estados",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/entidad/{id}": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtiene un estado por Id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/entidad/{entidadId}/ciudades": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Ciudades por Entidad",
+        "parameters": [
+          {
+            "name": "entidadId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/ciudad/{id}": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Ciudad by Id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/marcas": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtiene todas las marcas",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/marca/{id}": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtiene una marca por Id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Actualizar marca",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/marca": {
+      "post": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Crear nueva marca",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Marcas"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/modelos": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtener los modelos por marca",
+        "parameters": [
+          {
+            "name": "marcaId",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/modelo/{id}": {
+      "get": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Obtiene una modelo por su Id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Actualizar modelo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Utilerias/modelo": {
+      "post": {
+        "tags": [
+          "Utilerias"
+        ],
+        "summary": "Crear nuevo modelo",
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Modelos"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkeAuth/login": {
+      "post": {
+        "tags": [
+          "YonkeAuth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginYonkeRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginYonkeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginYonkeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginYonkeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes/byPage": {
+      "get": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Consultar todas los Yonkes registradas",
+        "parameters": [
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CantidadRegistrosPorPagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ciudadId",
+            "in": "query",
+            "description": "",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes/{guidId}": {
+      "get": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Buscar por Id",
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes": {
+      "post": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Grabar nueva yunke",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "CiudadId",
+                  "Correo",
+                  "CP",
+                  "Direccion",
+                  "Nombre",
+                  "Password",
+                  "Responsable",
+                  "Telefono"
+                ],
+                "type": "object",
+                "properties": {
+                  "Nombre": {
+                    "type": "string"
+                  },
+                  "Responsable": {
+                    "type": "string"
+                  },
+                  "Telefono": {
+                    "type": "string"
+                  },
+                  "Correo": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "Direccion": {
+                    "type": "string"
+                  },
+                  "CP": {
+                    "pattern": "^[0-9]+$",
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "CiudadId": {
+                    "pattern": "^[0-9]+$",
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "LogoUrl": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "Password": {
+                    "minLength": 8,
+                    "type": "string"
+                  },
+                  "ConfirmPassword": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "Nombre": {
+                  "style": "form"
+                },
+                "Responsable": {
+                  "style": "form"
+                },
+                "Telefono": {
+                  "style": "form"
+                },
+                "Correo": {
+                  "style": "form"
+                },
+                "Direccion": {
+                  "style": "form"
+                },
+                "CP": {
+                  "style": "form"
+                },
+                "CiudadId": {
+                  "style": "form"
+                },
+                "LogoUrl": {
+                  "style": "form"
+                },
+                "Password": {
+                  "style": "form"
+                },
+                "ConfirmPassword": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes/updateInfo/byGuidId/{guidId}": {
+      "put": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Actualizar informacion",
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeUpdateInfoDTO"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeUpdateInfoDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeUpdateInfoDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeUpdateInfoDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes/ActualizarLogo": {
+      "put": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Update logotipo",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "GuidId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "LogoUrl": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "GuidId": {
+                  "style": "form"
+                },
+                "LogoUrl": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Yonkes/baja/byGuidId/{guidId}": {
+      "put": {
+        "tags": [
+          "Yonkes"
+        ],
+        "summary": "Baja de asociado",
+        "parameters": [
+          {
+            "name": "guidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkesCalificaciones": {
+      "post": {
+        "tags": [
+          "YonkesCalificaciones"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCalificacionRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCalificacionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCalificacionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCalificacionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkesCalificaciones/{yonkeGuidId}": {
+      "get": {
+        "tags": [
+          "YonkesCalificaciones"
+        ],
+        "parameters": [
+          {
+            "name": "yonkeGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkesCoberturas/guid/{yonkeGuidId}": {
+      "get": {
+        "tags": [
+          "YonkesCoberturas"
+        ],
+        "summary": "Obtener cobertura de un yonke",
+        "parameters": [
+          {
+            "name": "yonkeGuidId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkesCoberturas": {
+      "put": {
+        "tags": [
+          "YonkesCoberturas"
+        ],
+        "summary": "M;odificar coberturas",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeCoberturaDTO"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeCoberturaDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeCoberturaDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/YunkeCoberturaDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/YonkesDispositivos": {
+      "post": {
+        "tags": [
+          "YonkesDispositivos"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoDto"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarDispositivoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccesoDetalles": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "empresaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatus": {
+            "type": "boolean"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AppleLoginRequest": {
+        "type": "object",
+        "properties": {
+          "identityToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorizationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "userIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "apellido": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Ciudades": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entidadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ciudad": {
+            "type": "string",
+            "nullable": true
+          },
+          "entidades": {
+            "$ref": "#/components/schemas/Entidades"
+          },
+          "yonkes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Yonkes"
+            },
+            "nullable": true
+          },
+          "solicitudesCiudades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudesCiudades"
+            },
+            "nullable": true
+          },
+          "yonkesCoberturas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesCoberturas"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CrearOrdenRequest": {
+        "type": "object",
+        "properties": {
+          "cotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Entidades": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entidad": {
+            "type": "string",
+            "nullable": true
+          },
+          "ciudades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ciudades"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GoogleLoginRequest": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginYonkeRequest": {
+        "type": "object",
+        "properties": {
+          "correo": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Marcas": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marca": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Solicitudes"
+            },
+            "nullable": true
+          },
+          "modelos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Modelos"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Modelos": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          },
+          "marcas": {
+            "$ref": "#/components/schemas/Marcas"
+          },
+          "solicitudes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Solicitudes"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarCalificacionRequest": {
+        "type": "object",
+        "properties": {
+          "cotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "calificacion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarCotizacionRequest": {
+        "type": "object",
+        "properties": {
+          "precio": {
+            "type": "number",
+            "format": "double"
+          },
+          "disponible": {
+            "type": "boolean"
+          },
+          "esNueva": {
+            "type": "boolean"
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "comentarios": {
+            "type": "string",
+            "nullable": true
+          },
+          "tiempoEntregaDias": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "diasGarantia": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "envioDisponible": {
+            "type": "boolean"
+          },
+          "costoEnvio": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tieneGarantia": {
+            "type": "boolean"
+          },
+          "imagenes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarDispositivoDto": {
+        "type": "object",
+        "properties": {
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firebaseToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "plataforma": {
+            "type": "string",
+            "nullable": true
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarDispositivoRequest": {
+        "type": "object",
+        "properties": {
+          "firebaseToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "plataforma": {
+            "type": "string",
+            "nullable": true
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrarMensajeCotizacionRequest": {
+        "type": "object",
+        "properties": {
+          "solicitudCotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitarOtpRequest": {
+        "required": [
+          "telefono"
+        ],
+        "type": "object",
+        "properties": {
+          "telefono": {
+            "minLength": 1,
+            "type": "string",
+            "format": "tel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionEstatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionMensajes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "solicitudCotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoRemitenteId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "leido": {
+            "type": "boolean"
+          },
+          "fechaLectura": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "solicitudCotizacion": {
+            "$ref": "#/components/schemas/SolicitudCotizaciones"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizaciones": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudYonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modeloId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "precio": {
+            "type": "number",
+            "format": "double"
+          },
+          "disponible": {
+            "type": "boolean"
+          },
+          "esNueva": {
+            "type": "boolean"
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "comentarios": {
+            "type": "string",
+            "nullable": true
+          },
+          "tieneGarantia": {
+            "type": "boolean"
+          },
+          "diasGarantia": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "envioDisponible": {
+            "type": "boolean"
+          },
+          "costoEnvio": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "tiempoEntregaDias": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "activo": {
+            "type": "boolean"
+          },
+          "estatusId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "solicitudYonkes": {
+            "$ref": "#/components/schemas/SolicitudYonkes"
+          },
+          "solicitudCotizacionEstatus": {
+            "$ref": "#/components/schemas/SolicitudCotizacionEstatus"
+          },
+          "solicitudCotizacionesImagenes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudCotizacionesImagenes"
+            },
+            "nullable": true
+          },
+          "solicitudCotizacionMensajes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudCotizacionMensajes"
+            },
+            "nullable": true
+          },
+          "yonkesCalificaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesCalificaciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionesApiResponseGlobal": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/SolicitudCotizaciones"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionesImagenes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "esPrincipal": {
+            "type": "boolean"
+          },
+          "orden": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "urlImagen": {
+            "type": "string",
+            "nullable": true
+          },
+          "rutaBlob": {
+            "type": "string",
+            "nullable": true
+          },
+          "cotizacion": {
+            "$ref": "#/components/schemas/SolicitudCotizaciones"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudUpdateStatusDTO": {
+        "type": "object",
+        "properties": {
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estatusId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonkes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fechaEnvio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estatusId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaVista": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fechaRespuesta": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fechaCambioEstatus": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          },
+          "solicitudYonkesEstatus": {
+            "$ref": "#/components/schemas/SolicitudYonkesEstatus"
+          },
+          "solicitudCotizaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudCotizaciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonkesEstatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatusSolicitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudYonkes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudYonkes"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitud_Busqueda_DTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estatusSolicitudId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatusSolicitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marca": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeloId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          },
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "motor": {
+            "type": "string",
+            "nullable": true
+          },
+          "transmicion": {
+            "type": "string",
+            "nullable": true
+          },
+          "piezaBuscada": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "folio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaCierre": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalCotizaciones": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cerrada": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitud_Busqueda_DTOApiResponseGlobal": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/Solicitud_Busqueda_DTO"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitudes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "estatusSolicitudId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modeloId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "motor": {
+            "type": "string",
+            "nullable": true
+          },
+          "transmicion": {
+            "type": "string",
+            "nullable": true
+          },
+          "piezaBuscada": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "folio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaCierre": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cerrada": {
+            "type": "boolean"
+          },
+          "solicitudEstatus": {
+            "$ref": "#/components/schemas/SolicitudesEstatus"
+          },
+          "marcas": {
+            "$ref": "#/components/schemas/Marcas"
+          },
+          "modelos": {
+            "$ref": "#/components/schemas/Modelos"
+          },
+          "solicitudesImagenes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudesImagenes"
+            },
+            "nullable": true
+          },
+          "solicitudesHistorials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudesHistorials"
+            },
+            "nullable": true
+          },
+          "solicitudYonkes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudYonkes"
+            },
+            "nullable": true
+          },
+          "solicitudesCiudades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudesCiudades"
+            },
+            "nullable": true
+          },
+          "yonkesCalificaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesCalificaciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudesCiudades": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ciudadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          },
+          "ciudades": {
+            "$ref": "#/components/schemas/Ciudades"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudesEstatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Solicitudes"
+            },
+            "nullable": true
+          },
+          "solicitudesEstatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudesEstatus"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudesHistorials": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estatusSolicitudId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "comentarios": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          },
+          "solicitudesEstatus": {
+            "$ref": "#/components/schemas/SolicitudesEstatus"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudesImagenes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "urlImagen": {
+            "type": "string",
+            "nullable": true
+          },
+          "rutaBlob": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitudes_Create_DTO": {
+        "type": "object",
+        "properties": {
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modeloId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "motor": {
+            "type": "string",
+            "nullable": true
+          },
+          "transmicion": {
+            "type": "string",
+            "nullable": true
+          },
+          "piezaBuscada": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "ciudadesIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StringApiResponseGlobal": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "string",
+            "nullable": true
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubcripcionPeriodos": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodo": {
+            "type": "string",
+            "nullable": true
+          },
+          "precio": {
+            "type": "number",
+            "format": "double"
+          },
+          "subscripciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscripciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Subscripciones": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "yunkeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodoPagoId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaInicio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaTermino": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subcripcionPeriodos": {
+            "$ref": "#/components/schemas/SubcripcionPeriodos"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificarOtpRequest": {
+        "required": [
+          "codigo",
+          "telefono"
+        ],
+        "type": "object",
+        "properties": {
+          "telefono": {
+            "minLength": 1,
+            "type": "string",
+            "format": "tel"
+          },
+          "codigo": {
+            "maxLength": 6,
+            "minLength": 6,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Yonkes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "autorizado": {
+            "type": "boolean"
+          },
+          "estatus": {
+            "type": "boolean"
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsable": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "telefono": {
+            "type": "string",
+            "nullable": true
+          },
+          "correo": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "cp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ciudadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "longitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "createAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "stripeAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "stripeAccountConectada": {
+            "type": "boolean"
+          },
+          "stripeAccountFechaConexion": {
+            "type": "string",
+            "nullable": true
+          },
+          "stripeAccountStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "ciudades": {
+            "$ref": "#/components/schemas/Ciudades"
+          },
+          "yonkesCoberturas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesCoberturas"
+            },
+            "nullable": true
+          },
+          "accesoDetalles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccesoDetalles"
+            },
+            "nullable": true
+          },
+          "subscripciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscripciones"
+            },
+            "nullable": true
+          },
+          "solicitudYonkes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudYonkes"
+            },
+            "nullable": true
+          },
+          "yonkesDispositivos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesDispositivos"
+            },
+            "nullable": true
+          },
+          "yonkesCalificaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/YonkesCalificaciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "YonkesCalificaciones": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "usuarioId": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cotizacionGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "calificacion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activa": {
+            "type": "boolean"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          },
+          "cotizacion": {
+            "$ref": "#/components/schemas/SolicitudCotizaciones"
+          }
+        },
+        "additionalProperties": false
+      },
+      "YonkesCoberturas": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ciudadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activo": {
+            "type": "boolean"
+          },
+          "fechaRegistro": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          },
+          "ciudades": {
+            "$ref": "#/components/schemas/Ciudades"
+          }
+        },
+        "additionalProperties": false
+      },
+      "YonkesDispositivos": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firebaseToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "plataforma": {
+            "type": "string",
+            "nullable": true
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          },
+          "activo": {
+            "type": "boolean"
+          },
+          "fechaRegistro": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ultimoAcceso": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          }
+        },
+        "additionalProperties": false
+      },
+      "YunkeCoberturaDTO": {
+        "type": "object",
+        "properties": {
+          "yonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ciudadesIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "YunkeUpdateInfoDTO": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsable": {
+            "type": "string",
+            "nullable": true
+          },
+          "telefono": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "cp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ciudadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "longitud": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ]
+}
