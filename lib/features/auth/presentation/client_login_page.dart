@@ -245,11 +245,13 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
         return;
       }
 
-      await ref.read(tokenStoreProvider).writeTokens(
-        accessToken: result.accessToken!,
-        refreshToken: result.refreshToken,
-        expiresAt: result.expiresAt,
-      );
+      await ref
+          .read(tokenStoreProvider)
+          .writeTokens(
+            accessToken: result.accessToken!,
+            refreshToken: result.refreshToken,
+            expiresAt: result.expiresAt,
+          );
       if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;

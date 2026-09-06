@@ -1,3 +1,4 @@
+import 'package:app_yonke/features/requests/data/request_submission_repository.dart';
 import 'package:app_yonke/features/requests/domain/request_draft.dart';
 import 'package:app_yonke/features/requests/presentation/request_review_page.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(home: RequestReviewPage(draft: draft)),
+        child: MaterialApp(
+          home: RequestReviewPage(
+            draft: draft,
+            repository: const DemoRequestSubmissionRepository(),
+          ),
+        ),
       ),
     );
 

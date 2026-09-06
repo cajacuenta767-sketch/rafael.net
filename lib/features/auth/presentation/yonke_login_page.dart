@@ -81,12 +81,14 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
         });
         return;
       }
-      await ref.read(tokenStoreProvider).writeTokens(
-        accessToken: result.accessToken!,
-        refreshToken: result.refreshToken,
-        expiresAt: result.expiresAt,
-        yonkeGuidId: result.yonkeId,
-      );
+      await ref
+          .read(tokenStoreProvider)
+          .writeTokens(
+            accessToken: result.accessToken!,
+            refreshToken: result.refreshToken,
+            expiresAt: result.expiresAt,
+            yonkeGuidId: result.yonkeId,
+          );
       if (!mounted) return;
       context.go(AppRoutes.yonkeHome);
     } on ApiException catch (error) {

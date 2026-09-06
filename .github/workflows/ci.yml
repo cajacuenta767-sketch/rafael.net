@@ -35,7 +35,7 @@ jobs:
       - name: Pruebas
         run: flutter test
 
-      # Ocho pruebas de widget llevan `skip: !AppConfig.enableMockAuth` y solo
+      # Doce pruebas de widget llevan `skip: !AppConfig.enableMockAuth` y solo
       # se ejecutan con el modo de prueba encendido. Sin esta pasada quedarían
       # omitidas de forma silenciosa.
       - name: Pruebas del modo demo

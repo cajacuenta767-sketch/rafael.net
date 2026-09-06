@@ -681,6 +681,7 @@ void main() {
   testWidgets('searches demo parts and marks them as demonstration data', (
     tester,
   ) async {
+    expect(AppConfig.enableMockAuth, isTrue);
     final history = MemorySearchHistoryRepository();
     await tester.pumpWidget(
       ProviderScope(
@@ -701,7 +702,7 @@ void main() {
     expect(find.text('Alternador'), findsNWidgets(2));
     expect(find.textContaining('Datos de demostración'), findsOneWidget);
     expect(history.entries.single.query, 'Alternador');
-  });
+  }, skip: !AppConfig.enableMockAuth);
 
   testWidgets('requires a part name before searching', (tester) async {
     await tester.pumpWidget(
@@ -723,6 +724,7 @@ void main() {
   });
 
   testWidgets('applies a category filter to the part search', (tester) async {
+    expect(AppConfig.enableMockAuth, isTrue);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -746,7 +748,7 @@ void main() {
 
     expect(find.text('Filtros (1)'), findsOneWidget);
     expect(find.widgetWithText(InputChip, 'Eléctrico'), findsOneWidget);
-  });
+  }, skip: !AppConfig.enableMockAuth);
 
   testWidgets('shows and removes a recent search', (tester) async {
     final history = MemorySearchHistoryRepository([
@@ -770,6 +772,7 @@ void main() {
   });
 
   testWidgets('offers a manual request when no part matches', (tester) async {
+    expect(AppConfig.enableMockAuth, isTrue);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -793,11 +796,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Crear solicitud'), findsOneWidget);
-  });
+  }, skip: !AppConfig.enableMockAuth);
 
   testWidgets('opens a prefilled new request from a search result', (
     tester,
   ) async {
+    expect(AppConfig.enableMockAuth, isTrue);
     RequestDraft? receivedDraft;
     final router = GoRouter(
       initialLocation: '/search',
@@ -851,7 +855,7 @@ void main() {
     expect(receivedDraft?.brandName, 'Nissan');
     expect(receivedDraft?.modelName, 'Sentra');
     expect(receivedDraft?.year, 2018);
-  });
+  }, skip: !AppConfig.enableMockAuth);
 
   testWidgets('shows retry state when search fails', (tester) async {
     await tester.pumpWidget(

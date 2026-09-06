@@ -146,8 +146,9 @@ abstract final class SessionResponseParser {
     'yonke',
   ];
 
-  static final RegExp _jwtShape =
-      RegExp(r'^[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*$');
+  static final RegExp _jwtShape = RegExp(
+    r'^[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*$',
+  );
 
   /// Punto de entrada. Acepta cualquier cosa que devuelva el cliente HTTP.
   static SessionPayload parse(Object? response) {
