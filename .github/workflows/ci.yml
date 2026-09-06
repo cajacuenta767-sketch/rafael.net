@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  analizar-y-probar:
+    name: Análisis y pruebas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Versión del SDK
+        run: flutter --version
+
+      - name: Dependencias
+        run: flutter pub get
+
+      # Informativo: un desajuste de formato no debería frenar la revisión.
+      - name: Formato
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Análisis estático
+        run: flutter analyze
+
+      - name: Pruebas
+        run: flutter test
+
+      # Ocho pruebas de widget llevan `skip: !AppConfig.enableMockAuth` y solo
+      # se ejecutan con el modo de prueba encendido. Sin esta pasada quedarían
+      # omitidas de forma silenciosa.
+      - name: Pruebas del modo demo
+        run: flutter test --dart-define=MOCK_AUTH=true
