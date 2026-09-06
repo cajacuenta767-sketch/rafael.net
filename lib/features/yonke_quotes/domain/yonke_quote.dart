@@ -27,7 +27,6 @@ class YonkeQuote {
     required this.status,
     required this.createdAt,
     required this.imageUrls,
-    required this.isDemo,
     this.brand,
     this.model,
     this.year,
@@ -52,7 +51,6 @@ class YonkeQuote {
   final YonkeQuoteStatus status;
   final DateTime createdAt;
   final List<String> imageUrls;
-  final bool isDemo;
   final String? brand;
   final String? model;
   final int? year;
@@ -113,7 +111,7 @@ YonkeQuotesPageResult? yonkeQuotesPageFromResponse(dynamic response) {
   return YonkeQuotesPageResult(
     items: records
         .whereType<Map>()
-        .map((record) => yonkeQuoteFromJson(record, isDemo: false))
+        .map(yonkeQuoteFromJson)
         .whereType<YonkeQuote>()
         .toList(growable: false),
     page: 1,
@@ -123,13 +121,10 @@ YonkeQuotesPageResult? yonkeQuotesPageFromResponse(dynamic response) {
 
 YonkeQuote? yonkeQuoteFromResponse(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
-  return data is Map ? yonkeQuoteFromJson(data, isDemo: false) : null;
+  return data is Map ? yonkeQuoteFromJson(data) : null;
 }
 
-YonkeQuote? yonkeQuoteFromJson(
-  Map<dynamic, dynamic> json, {
-  required bool isDemo,
-}) {
+YonkeQuote? yonkeQuoteFromJson(Map<dynamic, dynamic> json) {
   final assignment = json['solicitudYonkes'];
   final request = assignment is Map ? assignment['solicitudes'] : null;
   final statusRecord = json['solicitudCotizacionEstatus'];
@@ -176,14 +171,15 @@ YonkeQuote? yonkeQuoteFromJson(
         DateTime.tryParse(json['fechaCreacion']?.toString() ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0),
     imageUrls: imageUrls,
-    isDemo: isDemo,
+    // `Solicitudes` anida `marcas: {marca}` y `modelos: {modelo}`; una
+    // proyección plana puede traer `marca`/`modelo` directamente.
     brand: request is Map
-        ? _text(request['marca']) ??
-              (brands is Map ? _text(brands['nombre']) : null)
+        ? (brands is Map ? _text(brands['marca']) : null) ??
+              _text(request['marca'])
         : null,
     model: request is Map
-        ? _text(request['modelo']) ??
-              (models is Map ? _text(models['nombre']) : null)
+        ? (models is Map ? _text(models['modelo']) : null) ??
+              _text(request['modelo'])
         : null,
     year: request is Map ? (request['año'] as num?)?.toInt() : null,
     folio: request is Map ? _text(request['folio']) : null,

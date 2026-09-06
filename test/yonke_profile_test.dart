@@ -1,6 +1,8 @@
 import 'package:app_yonke/core/di/api_providers.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/auth/presentation/yonke_session_gate.dart';
+import 'package:app_yonke/features/yonke_profile/data/yonke_profile_repository.dart';
+import 'package:app_yonke/features/yonke_profile/domain/yonke_profile.dart';
 import 'package:app_yonke/features/yonke_profile/presentation/yonke_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 void main() {
-  testWidgets('yonke profile labels demo access and exposes its operations', (
+  testWidgets('yonke profile shows the API data and exposes its operations', (
     tester,
   ) async {
     final store = _MemoryTokenStore(accessToken: 'test-token');
@@ -16,7 +18,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Perfil del yonke'), findsOneWidget);
-    expect(find.text('Modo de prueba'), findsOneWidget);
+    expect(find.text('Yonke Norte'), findsOneWidget);
+    expect(find.text('Perfil de la API'), findsOneWidget);
+    expect(find.text('+52 631 123 4567'), findsOneWidget);
     expect(find.text('Solicitudes recibidas'), findsOneWidget);
     expect(find.text('Cotizaciones enviadas'), findsOneWidget);
     expect(find.text('Ciudades de cobertura'), findsOneWidget);
@@ -52,7 +56,6 @@ void main() {
         GoRoute(
           path: '/privado',
           builder: (context, state) => YonkeSessionGate(
-            isDemoSession: false,
             builder: (_) => const Text('CONTENIDO YONKE PROTEGIDO'),
           ),
         ),
@@ -83,8 +86,10 @@ Widget _app(_MemoryTokenStore store) {
     routes: [
       GoRoute(
         path: '/yonke/perfil',
-        builder: (context, state) =>
-            YonkeProfilePage(isDemoSession: true, tokenStore: store),
+        builder: (context, state) => YonkeProfilePage(
+          tokenStore: store,
+          repository: const _FixedProfileRepository(),
+        ),
       ),
       GoRoute(
         path: '/yonke/login',
@@ -104,6 +109,25 @@ Widget _app(_MemoryTokenStore store) {
   return ProviderScope(
     overrides: [tokenStoreProvider.overrideWithValue(store)],
     child: MaterialApp.router(routerConfig: router),
+  );
+}
+
+class _FixedProfileRepository implements YonkeProfileRepository {
+  const _FixedProfileRepository();
+
+  @override
+  Future<YonkeProfileSnapshot> load() async => const YonkeProfileSnapshot(
+    availability: YonkeProfileAvailability.available,
+    profile: YonkeProfile(
+      guidId: 'yonke-1',
+      name: 'Yonke Norte',
+      manager: 'Rafael',
+      phone: '+52 631 123 4567',
+      email: 'norte@ejemplo.com',
+      address: 'Av. Obregón 100',
+      postalCode: 84000,
+      city: 'Nogales, Sonora',
+    ),
   );
 }
 

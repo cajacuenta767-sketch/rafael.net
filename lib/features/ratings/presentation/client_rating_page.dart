@@ -8,10 +8,9 @@ import '../../quotes/domain/client_quote.dart';
 import '../data/client_ratings_repository.dart';
 
 class ClientRatingArgs {
-  const ClientRatingArgs({required this.quote, required this.isDemo});
+  const ClientRatingArgs({required this.quote});
 
   final ClientQuote quote;
-  final bool isDemo;
 }
 
 class ClientRatingPage extends ConsumerStatefulWidget {
@@ -35,10 +34,7 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.args.isDemo
-            ? const DemoClientRatingsRepository()
-            : ref.read(clientRatingsRepositoryProvider));
+        widget.repository ?? ref.read(clientRatingsRepositoryProvider);
   }
 
   @override
@@ -97,10 +93,6 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
   Widget _form(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
     children: [
-      if (widget.args.isDemo) ...[
-        const _DemoBanner(),
-        const SizedBox(height: 22),
-      ],
       CircleAvatar(
         radius: 34,
         backgroundColor: const Color(0xFFE8F5EA),
@@ -201,9 +193,7 @@ class _Success extends StatelessWidget {
         const Icon(Icons.verified_outlined, size: 72, color: Color(0xFF147A1D)),
         const SizedBox(height: 18),
         Text(
-          args.isDemo
-              ? 'Calificación de prueba enviada'
-              : 'Gracias por tu calificación',
+          'Gracias por tu calificación',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineSmall
               ?.copyWith(fontWeight: FontWeight.w900),
@@ -222,28 +212,6 @@ class _Success extends StatelessWidget {
             backgroundColor: const Color(0xFF00695C),
           ),
           child: const Text('Ir al inicio'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text('Calificación de prueba: no se publica realmente.'),
         ),
       ],
     ),

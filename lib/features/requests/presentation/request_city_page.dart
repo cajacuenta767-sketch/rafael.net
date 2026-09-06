@@ -3,22 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/request_draft.dart';
 
 class RequestCityPage extends ConsumerStatefulWidget {
-  const RequestCityPage({
-    super.key,
-    required this.draft,
-    this.useTestCatalogs = false,
-  });
+  const RequestCityPage({super.key, required this.draft});
 
   final RequestDraft draft;
-
-  /// Sólo se utiliza por pruebas automatizadas. La aplicación intenta siempre
-  /// consultar los catálogos publicados antes de usar una alternativa local.
-  final bool useTestCatalogs;
 
   @override
   ConsumerState<RequestCityPage> createState() => _RequestCityPageState();
@@ -31,7 +22,6 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
   int? _selectedCityId;
   bool _loadingStates = true;
   bool _loadingCities = false;
-  bool _usingTestCatalogs = false;
   String? _error;
 
   @override
@@ -46,10 +36,6 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
       _loadingStates = true;
       _error = null;
     });
-    if (widget.useTestCatalogs) {
-      _applyTestStates();
-      return;
-    }
     try {
       final response = await ref.read(catalogsApiProvider).getStates();
       final states = _statesFromResponse(response);
@@ -60,34 +46,16 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
         _selectedStateId = states.any((state) => state.id == _selectedStateId)
             ? _selectedStateId
             : states.first.id;
-        _usingTestCatalogs = false;
         _loadingStates = false;
       });
       await _loadCities(_selectedStateId!);
     } catch (_) {
       if (!mounted) return;
-      if (AppConfig.enableMockAuth) {
-        _applyTestStates();
-      } else {
-        setState(() {
-          _loadingStates = false;
-          _error = 'No se pudieron cargar los estados. Inténtalo nuevamente.';
-        });
-      }
+      setState(() {
+        _loadingStates = false;
+        _error = 'No se pudieron cargar los estados. Inténtalo nuevamente.';
+      });
     }
-  }
-
-  void _applyTestStates() {
-    final selected = _testStates.any((state) => state.id == _selectedStateId)
-        ? _selectedStateId
-        : _testStates.first.id;
-    setState(() {
-      _states = _testStates;
-      _selectedStateId = selected;
-      _usingTestCatalogs = true;
-      _loadingStates = false;
-    });
-    _loadTestCities(selected!);
   }
 
   Future<void> _loadCities(int stateId) async {
@@ -120,36 +88,16 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      if (AppConfig.enableMockAuth) {
-        _loadTestCities(stateId);
-      } else {
-        setState(() {
-          _loadingCities = false;
-          _error = 'No se pudieron cargar las ciudades. Inténtalo nuevamente.';
-        });
-      }
+      setState(() {
+        _loadingCities = false;
+        _error = 'No se pudieron cargar las ciudades. Inténtalo nuevamente.';
+      });
     }
-  }
-
-  void _loadTestCities(int stateId) {
-    final cities = _testCities[stateId] ?? const <_CityOption>[];
-    setState(() {
-      _selectedStateId = stateId;
-      _cities = cities;
-      _selectedCityId = cities.any((city) => city.id == widget.draft.cityId)
-          ? widget.draft.cityId
-          : null;
-      _loadingCities = false;
-    });
   }
 
   void _selectState(int? stateId) {
     if (stateId == null || stateId == _selectedStateId) return;
-    if (_usingTestCatalogs) {
-      _loadTestCities(stateId);
-    } else {
-      _loadCities(stateId);
-    }
+    _loadCities(stateId);
   }
 
   void _continue() {
@@ -223,15 +171,10 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
                     const SizedBox(height: 14),
                     Expanded(child: _citiesContent()),
                     const SizedBox(height: 12),
-                    Text(
-                      _usingTestCatalogs
-                          ? 'Catálogo de ciudades de prueba. Se actualizará al conectar la API.'
-                          : 'Ciudades obtenidas del catálogo de la API.',
+                    const Text(
+                      'Ciudades obtenidas del catálogo de la API.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF596276),
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Color(0xFF596276), fontSize: 12),
                     ),
                     const SizedBox(height: 12),
                     FilledButton(
@@ -403,6 +346,9 @@ List<_StateOption> _statesFromResponse(dynamic response) => _records(response)
     .where((state) => state.id > 0 && state.name.isNotEmpty)
     .toList(growable: false);
 
+/// Registros `Ciudades`: `id`, `ciudad` y, cuando la API la incluye, la
+/// entidad anidada en `entidades.entidad`; si no viene, se usa el nombre del
+/// estado seleccionado.
 List<_CityOption> _citiesFromResponse(
   dynamic response, {
   String? fallbackStateName,
@@ -411,15 +357,16 @@ List<_CityOption> _citiesFromResponse(
       (record) => _CityOption(
         id: _integer(record['id']) ?? -1,
         name: _text(record['ciudad']) ?? '',
-        stateName:
-            _text(record['entidade']) ??
-            _text(record['entidad']) ??
-            fallbackStateName ??
-            '',
+        stateName: _nestedStateName(record) ?? fallbackStateName ?? '',
       ),
     )
     .where((city) => city.id > 0 && city.name.isNotEmpty)
     .toList(growable: false);
+
+String? _nestedStateName(Map<dynamic, dynamic> record) {
+  final state = record['entidades'];
+  return state is Map ? _text(state['entidad']) : null;
+}
 
 List<Map<dynamic, dynamic>> _records(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
@@ -435,26 +382,6 @@ String? _text(dynamic value) {
   final text = value?.toString().trim();
   return text == null || text.isEmpty ? null : text;
 }
-
-const _testStates = [
-  _StateOption(id: 1, name: 'Sonora'),
-  _StateOption(id: 2, name: 'Baja California'),
-  _StateOption(id: 3, name: 'Chihuahua'),
-];
-
-const _testCities = <int, List<_CityOption>>{
-  1: [
-    _CityOption(id: 1, name: 'Nogales', stateName: 'Sonora'),
-    _CityOption(id: 2, name: 'Hermosillo', stateName: 'Sonora'),
-    _CityOption(id: 3, name: 'Agua Prieta', stateName: 'Sonora'),
-    _CityOption(id: 4, name: 'San Luis Río Colorado', stateName: 'Sonora'),
-  ],
-  2: [
-    _CityOption(id: 5, name: 'Mexicali', stateName: 'Baja California'),
-    _CityOption(id: 6, name: 'Tijuana', stateName: 'Baja California'),
-  ],
-  3: [_CityOption(id: 7, name: 'Ciudad Juárez', stateName: 'Chihuahua')],
-};
 
 extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull {

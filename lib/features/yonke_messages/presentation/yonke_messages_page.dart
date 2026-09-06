@@ -10,23 +10,14 @@ import '../data/yonke_messages_repository.dart';
 import '../domain/yonke_message.dart';
 
 class YonkeConversationArgs {
-  const YonkeConversationArgs({
-    required this.quote,
-    required this.isDemoSession,
-  });
+  const YonkeConversationArgs({required this.quote});
 
   final YonkeQuote quote;
-  final bool isDemoSession;
 }
 
 class YonkeMessagesPage extends ConsumerStatefulWidget {
-  const YonkeMessagesPage({
-    super.key,
-    required this.isDemoSession,
-    this.repository,
-  });
+  const YonkeMessagesPage({super.key, this.repository});
 
-  final bool isDemoSession;
   final YonkeMessagesRepository? repository;
 
   @override
@@ -44,10 +35,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.isDemoSession
-            ? const DemoYonkeMessagesRepository()
-            : ref.read(yonkeMessagesRepositoryProvider));
+        widget.repository ?? ref.read(yonkeMessagesRepositoryProvider);
     _load();
   }
 
@@ -125,10 +113,6 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
                   'Habla con el cliente sobre cada cotización.',
                   style: TextStyle(color: Color(0xFF596276)),
                 ),
-                if (_repository.usesDemoData) ...[
-                  const SizedBox(height: 14),
-                  const _DemoBanner(),
-                ],
                 const SizedBox(height: 18),
                 ..._content(),
               ],
@@ -139,7 +123,6 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
     ),
     bottomNavigationBar: YonkeBottomNavigation(
       selected: YonkeNavigationSection.messages,
-      isDemoSession: widget.isDemoSession,
       onRefresh: _load,
     ),
   );
@@ -156,7 +139,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
         _StateCard(
           icon: Icons.rule_folder_outlined,
           title: 'Bandeja pendiente de conexión',
-          message: 'La API permite consultar una conversación por cotización, pero todavía no publica una lista de conversaciones del yonke autenticado.',
+          message: 'No se pudieron interpretar las cotizaciones del yonke para armar la bandeja de mensajes. Se reportó al backend.',
         ),
       ];
     }
@@ -247,10 +230,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
         ),
         onTap: () => context.push(
           AppRoutes.yonkeConversation(item.quote.id),
-          extra: YonkeConversationArgs(
-            quote: item.quote,
-            isDemoSession: widget.isDemoSession,
-          ),
+          extra: YonkeConversationArgs(quote: item.quote),
         ),
       ),
     ),
@@ -273,7 +253,6 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
   late final YonkeMessagesRepository _repository;
   List<YonkeQuoteMessage> _messages = const [];
   bool _loading = true;
-  bool _historyContractPending = false;
   bool _sending = false;
   Object? _error;
 
@@ -281,10 +260,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.args.isDemoSession
-            ? const DemoYonkeMessagesRepository()
-            : ref.read(yonkeMessagesRepositoryProvider));
+        widget.repository ?? ref.read(yonkeMessagesRepositoryProvider);
     _load();
   }
 
@@ -300,11 +276,10 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       _error = null;
     });
     try {
-      final result = await _repository.getConversation(widget.args.quote.id);
+      final messages = await _repository.getConversation(widget.args.quote.id);
       if (!mounted) return;
       setState(() {
-        _messages = result.messages;
-        _historyContractPending = result.historyContractPending;
+        _messages = messages;
         _loading = false;
       });
     } catch (error) {
@@ -328,28 +303,13 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
         message: message,
       );
       if (!mounted) return;
-      setState(() {
-        _messages = [
-          ..._messages,
-          YonkeQuoteMessage(
-            id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-            text: message,
-            sentAt: DateTime.now(),
-            fromClient: false,
-            localOnly: _historyContractPending,
-          ),
-        ];
-        _messageController.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _historyContractPending
-                ? 'Mensaje enviado. El historial se actualizará cuando la API documente su respuesta.'
-                : 'Mensaje enviado.',
-          ),
-        ),
-      );
+      _messageController.clear();
+      // Se vuelve a leer el historial del servidor para mostrar el mensaje
+      // con su identificador y hora reales.
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Mensaje enviado.')));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -394,8 +354,6 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       top: false,
       child: Column(
         children: [
-          if (widget.args.isDemoSession) const _DemoBanner(compact: true),
-          if (_historyContractPending) const _ContractBanner(),
           Expanded(child: _messagesBody()),
           _Composer(
             controller: _messageController,
@@ -532,7 +490,7 @@ class _MessageBubble extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_time(message.sentAt)}${message.localOnly ? ' · Pendiente de historial' : ''}',
+            _time(message.sentAt),
             style: TextStyle(
               color: message.fromClient
                   ? const Color(0xFF596276)
@@ -542,47 +500,6 @@ class _MessageBubble extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
-}
-
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner({this.compact = false});
-  final bool compact;
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.fromLTRB(16, compact ? 8 : 0, 16, compact ? 0 : 0),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Mensajes de prueba: no representan conversaciones reales.',
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _ContractBanner extends StatelessWidget {
-  const _ContractBanner();
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEAF1FF),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Text(
-      'La API no documenta el formato del historial. Puedes enviar un mensaje; se mostrará localmente hasta que el backend confirme la respuesta.',
     ),
   );
 }

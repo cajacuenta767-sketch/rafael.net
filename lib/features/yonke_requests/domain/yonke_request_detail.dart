@@ -9,7 +9,6 @@ class YonkeRequestDetail {
     required this.part,
     required this.status,
     required this.imageUrls,
-    required this.isDemo,
     this.brandId,
     this.brand,
     this.model,
@@ -29,7 +28,6 @@ class YonkeRequestDetail {
   final String part;
   final YonkeRequestStatus status;
   final List<String> imageUrls;
-  final bool isDemo;
   final int? brandId;
   final String? brand;
   final String? model;
@@ -61,7 +59,6 @@ class YonkeRequestDetail {
         part: part,
         status: status ?? this.status,
         imageUrls: imageUrls,
-        isDemo: isDemo,
         brandId: brandId,
         brand: brand,
         model: model,

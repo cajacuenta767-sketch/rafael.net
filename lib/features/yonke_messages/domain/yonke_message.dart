@@ -22,25 +22,12 @@ class YonkeQuoteMessage {
     required this.text,
     required this.sentAt,
     required this.fromClient,
-    this.localOnly = false,
+    this.read = true,
   });
 
   final String id;
   final String text;
   final DateTime sentAt;
   final bool fromClient;
-
-  /// Indica un mensaje enviado por la app que aún no puede reconciliarse con
-  /// el historial hasta que el backend documente su respuesta.
-  final bool localOnly;
-}
-
-class YonkeConversationResult {
-  const YonkeConversationResult({
-    required this.messages,
-    required this.historyContractPending,
-  });
-
-  final List<YonkeQuoteMessage> messages;
-  final bool historyContractPending;
+  final bool read;
 }

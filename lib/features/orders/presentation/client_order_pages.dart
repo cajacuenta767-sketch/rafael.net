@@ -11,36 +11,22 @@ import '../domain/client_order_creation.dart';
 import '../domain/client_order.dart';
 
 class ClientOrderConfirmationArgs {
-  const ClientOrderConfirmationArgs({
-    required this.quote,
-    required this.isDemo,
-  });
+  const ClientOrderConfirmationArgs({required this.quote});
 
   final ClientQuote quote;
-  final bool isDemo;
 }
 
 class ClientOrderSuccessArgs {
-  const ClientOrderSuccessArgs({
-    required this.quote,
-    required this.result,
-    required this.isDemo,
-  });
+  const ClientOrderSuccessArgs({required this.quote, required this.result});
 
   final ClientQuote quote;
   final ClientOrderCreationResult result;
-  final bool isDemo;
 }
 
 class ClientOrderTrackingArgs {
-  const ClientOrderTrackingArgs({
-    required this.quote,
-    required this.isDemo,
-    this.orderId,
-  });
+  const ClientOrderTrackingArgs({required this.quote, this.orderId});
 
   final ClientQuote quote;
-  final bool isDemo;
   final String? orderId;
 }
 
@@ -67,11 +53,7 @@ class _ClientOrderConfirmationPageState
   @override
   void initState() {
     super.initState();
-    _repository =
-        widget.repository ??
-        (widget.args.isDemo
-            ? const DemoClientOrdersRepository()
-            : ref.read(clientOrdersRepositoryProvider));
+    _repository = widget.repository ?? ref.read(clientOrdersRepositoryProvider);
   }
 
   Future<void> _createOrder() async {
@@ -82,11 +64,7 @@ class _ClientOrderConfirmationPageState
       if (!mounted) return;
       context.pushReplacement(
         AppRoutes.clientOrderSuccess,
-        extra: ClientOrderSuccessArgs(
-          quote: widget.args.quote,
-          result: result,
-          isDemo: widget.args.isDemo,
-        ),
+        extra: ClientOrderSuccessArgs(quote: widget.args.quote, result: result),
       );
     } catch (_) {
       if (mounted) {
@@ -120,10 +98,6 @@ class _ClientOrderConfirmationPageState
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
               children: [
-                if (widget.args.isDemo) ...[
-                  const _DemoBanner(),
-                  const SizedBox(height: 18),
-                ],
                 Icon(
                   Icons.shopping_bag_outlined,
                   size: 54,
@@ -240,7 +214,7 @@ class ClientOrderSuccessPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    args.isDemo ? 'Orden de prueba creada' : 'Orden creada',
+                    'Orden creada',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall
                         ?.copyWith(fontWeight: FontWeight.w900),
@@ -272,7 +246,6 @@ class ClientOrderSuccessPage extends StatelessWidget {
                         extra: ClientOrderTrackingArgs(
                           quote: args.quote,
                           orderId: args.result.orderId,
-                          isDemo: args.isDemo,
                         ),
                       ),
                       icon: const Icon(Icons.receipt_long_outlined),
@@ -288,10 +261,7 @@ class ClientOrderSuccessPage extends StatelessWidget {
                     key: const Key('client-rate-yonke'),
                     onPressed: () => context.push(
                       AppRoutes.clientRating(args.quote.id),
-                      extra: ClientRatingArgs(
-                        quote: args.quote,
-                        isDemo: args.isDemo,
-                      ),
+                      extra: ClientRatingArgs(quote: args.quote),
                     ),
                     icon: const Icon(Icons.star_outline),
                     label: const Text('Calificar al yonke'),
@@ -319,26 +289,6 @@ class ClientOrderSuccessPage extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
-}
-
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(child: Text('Orden de prueba: no genera un cobro real.')),
-      ],
     ),
   );
 }
@@ -414,7 +364,11 @@ class _OrderStatusInfoCard extends StatelessWidget {
 }
 
 class ClientOrderTrackingPage extends ConsumerStatefulWidget {
-  const ClientOrderTrackingPage({super.key, required this.args, this.repository});
+  const ClientOrderTrackingPage({
+    super.key,
+    required this.args,
+    this.repository,
+  });
 
   final ClientOrderTrackingArgs args;
   final ClientOrdersRepository? repository;
@@ -435,11 +389,7 @@ class _ClientOrderTrackingPageState
   @override
   void initState() {
     super.initState();
-    _repository =
-        widget.repository ??
-        (widget.args.isDemo
-            ? const DemoClientOrdersRepository()
-            : ref.read(clientOrdersRepositoryProvider));
+    _repository = widget.repository ?? ref.read(clientOrdersRepositoryProvider);
     _load();
   }
 
@@ -481,7 +431,9 @@ class _ClientOrderTrackingPageState
           FilledButton(
             key: const Key('client-confirm-cancel-order'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB3261E)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
             child: const Text('Cancelar orden'),
           ),
         ],
@@ -494,19 +446,17 @@ class _ClientOrderTrackingPageState
       if (mounted) {
         setState(() => _order = cancelled);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.args.isDemo
-                  ? 'Orden de prueba cancelada.'
-                  : 'La cancelación fue enviada.',
-            ),
-          ),
+          const SnackBar(content: Text('La cancelación fue enviada.')),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo cancelar la orden. Inténtalo nuevamente.')),
+          const SnackBar(
+            content: Text(
+              'No se pudo cancelar la orden. Inténtalo nuevamente.',
+            ),
+          ),
         );
       }
     } finally {
@@ -537,7 +487,6 @@ class _ClientOrderTrackingPageState
               : _TrackingContent(
                   quote: widget.args.quote,
                   order: _order!,
-                  isDemo: widget.args.isDemo,
                   cancelling: _cancelling,
                   onCancel: _cancel,
                 ),
@@ -551,14 +500,12 @@ class _TrackingContent extends StatelessWidget {
   const _TrackingContent({
     required this.quote,
     required this.order,
-    required this.isDemo,
     required this.cancelling,
     required this.onCancel,
   });
 
   final ClientQuote quote;
   final ClientOrder order;
-  final bool isDemo;
   final bool cancelling;
   final VoidCallback onCancel;
 
@@ -566,20 +513,21 @@ class _TrackingContent extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
     children: [
-      if (isDemo) ...[
-        const _DemoBanner(),
-        const SizedBox(height: 18),
-      ],
       Icon(
-        order.isCancelled ? Icons.cancel_outlined : Icons.local_shipping_outlined,
+        order.isCancelled
+            ? Icons.cancel_outlined
+            : Icons.local_shipping_outlined,
         size: 58,
-        color: order.isCancelled ? const Color(0xFFB3261E) : const Color(0xFF00695C),
+        color: order.isCancelled
+            ? const Color(0xFFB3261E)
+            : const Color(0xFF00695C),
       ),
       const SizedBox(height: 12),
       Text(
         order.isCancelled ? 'Orden cancelada' : 'Tu orden está registrada',
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+        style: Theme.of(context).textTheme.headlineSmall
+            ?.copyWith(fontWeight: FontWeight.w900),
       ),
       const SizedBox(height: 8),
       Text(
@@ -590,7 +538,10 @@ class _TrackingContent extends StatelessWidget {
       const SizedBox(height: 24),
       _SummaryCard(
         children: [
-          _SummaryRow(label: 'Estado', value: order.status ?? 'Pendiente de confirmar'),
+          _SummaryRow(
+            label: 'Estado',
+            value: order.status ?? 'Pendiente de confirmar',
+          ),
           _SummaryRow(label: 'Yonke', value: quote.yonkeName),
           _SummaryRow(label: 'Cotización', value: quote.id),
           if (order.id != null) _SummaryRow(label: 'Orden', value: order.id!),
@@ -641,7 +592,10 @@ class _NoOrder extends StatelessWidget {
       children: [
         Icon(Icons.receipt_long_outlined, size: 64, color: Color(0xFF596276)),
         SizedBox(height: 16),
-        Text('Aún no hay una orden para esta cotización', textAlign: TextAlign.center),
+        Text(
+          'Aún no hay una orden para esta cotización',
+          textAlign: TextAlign.center,
+        ),
       ],
     ),
   );
@@ -657,9 +611,16 @@ class _TrackingError extends StatelessWidget {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.cloud_off_outlined, size: 64, color: Color(0xFF596276)),
+        const Icon(
+          Icons.cloud_off_outlined,
+          size: 64,
+          color: Color(0xFF596276),
+        ),
         const SizedBox(height: 16),
-        const Text('No se pudo consultar la orden.', textAlign: TextAlign.center),
+        const Text(
+          'No se pudo consultar la orden.',
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 14),
         OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
       ],

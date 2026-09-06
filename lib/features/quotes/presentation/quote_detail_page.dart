@@ -6,10 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../messages/presentation/client_conversation_page.dart';
-import '../../orders/data/client_orders_repository.dart';
 import '../../orders/domain/client_order.dart';
 import '../../orders/presentation/client_order_pages.dart';
 import '../../ratings/presentation/yonke_reputation_card.dart';
@@ -28,7 +26,6 @@ class QuoteDetailPage extends ConsumerStatefulWidget {
 class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   ClientQuote? _quote;
   bool _loading = true;
-  bool _usingTestData = false;
   String? _error;
   ClientOrder? _existingOrder;
   bool _checkingExistingOrder = false;
@@ -56,17 +53,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       return;
     }
 
-    if (AppConfig.enableMockAuth) {
-      setState(() {
-        _quote = widget.initialQuote ?? mockQuoteById(widget.quoteId);
-        _usingTestData = true;
-        _loading = false;
-      });
-      final quote = _quote;
-      if (quote != null) unawaited(_loadExistingOrder(quote));
-      return;
-    }
-
     try {
       final response = await ref
           .read(quotesApiProvider)
@@ -74,7 +60,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       if (!mounted) return;
       setState(() {
         _quote = clientQuoteFromResponse(response);
-        _usingTestData = false;
         _loading = false;
       });
       final quote = _quote;
@@ -94,9 +79,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       _checkingExistingOrder = true;
       _existingOrderError = null;
     });
-    final repository = _usingTestData
-        ? const DemoClientOrdersRepository()
-        : ref.read(clientOrdersRepositoryProvider);
+    final repository = ref.read(clientOrdersRepositoryProvider);
     try {
       final order = await repository.getForQuote(quote.id);
       if (mounted) setState(() => _existingOrder = order);
@@ -113,7 +96,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   }
 
   Future<void> _contact(ClientQuote quote, {required bool whatsapp}) async {
-    if (_usingTestData) return;
     final digits = _validPhoneDigits(quote.phone);
     if (digits == null) {
       _showMessage('El yonke no tiene un teléfono válido disponible.');
@@ -188,28 +170,10 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       );
     }
 
-    final canContact =
-        !_usingTestData && _validPhoneDigits(quote.phone) != null;
+    final canContact = _validPhoneDigits(quote.phone) != null;
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
       children: [
-        if (_usingTestData) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF8F0),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, color: Color(0xFF147A1D)),
-                SizedBox(width: 10),
-                Expanded(child: Text('Cotización de prueba.')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
         Row(
           children: [
             _LargeYonkeLogo(name: quote.yonkeName, url: quote.logoUrl),
@@ -231,7 +195,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           ],
         ),
         const SizedBox(height: 18),
-        YonkeReputationCard(yonkeId: quote.yonkeId, isDemo: _usingTestData),
+        YonkeReputationCard(yonkeId: quote.yonkeId),
         const SizedBox(height: 18),
         Text(
           formatQuotePrice(quote.price),
@@ -308,7 +272,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           key: const Key('client-open-conversation'),
           onPressed: () => context.push(
             AppRoutes.clientQuoteConversation(quote.id),
-            extra: ClientConversationArgs(quote: quote, isDemo: _usingTestData),
+            extra: ClientConversationArgs(quote: quote),
           ),
           icon: const Icon(Icons.forum_outlined),
           label: const Text('Mensajes con el yonke'),
@@ -369,9 +333,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
         onPressed: () => _loadExistingOrder(quote),
         icon: const Icon(Icons.refresh),
         label: const Text('Reintentar verificación de orden'),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
-        ),
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
       );
     }
     final existingOrder = _existingOrder;
@@ -382,7 +344,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           AppRoutes.clientOrderTracking(quote.id),
           extra: ClientOrderTrackingArgs(
             quote: quote,
-            isDemo: _usingTestData,
             orderId: existingOrder.id,
           ),
         ),
@@ -399,10 +360,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       onPressed: quote.available && quote.active
           ? () => context.push(
               AppRoutes.clientOrderConfirmation(quote.id),
-              extra: ClientOrderConfirmationArgs(
-                quote: quote,
-                isDemo: _usingTestData,
-              ),
+              extra: ClientOrderConfirmationArgs(quote: quote),
             )
           : null,
       icon: const Icon(Icons.shopping_bag_outlined),
@@ -415,7 +373,9 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   }
 
   String _orderActionMessage(ClientQuote quote) {
-    if (_checkingExistingOrder) return 'Estamos comprobando el estado de la orden.';
+    if (_checkingExistingOrder) {
+      return 'Estamos comprobando el estado de la orden.';
+    }
     if (_existingOrderError != null) return _existingOrderError!;
     if (_existingOrder != null) {
       return 'Esta cotización ya tiene una orden. Consulta su seguimiento.';

@@ -40,10 +40,18 @@ class YonkesApi {
     required Map<String, dynamic> payload,
   }) => _client.put(ApiEndpoints.updateYonke(yonkeId), data: payload);
 
-  Future<dynamic> updateLogo(ApiFile logo) => _client.multipart(
+  /// `PUT /api/Yonkes/ActualizarLogo`: multipart con `GuidId` y el archivo
+  /// en el campo `LogoUrl`.
+  Future<dynamic> updateLogo({
+    required String yonkeId,
+    required ApiFile logo,
+  }) => _client.multipart(
     ApiEndpoints.updateYonkeLogo,
     method: 'PUT',
-    files: [logo],
+    fields: {'GuidId': yonkeId},
+    files: [
+      ApiFile(fieldName: 'LogoUrl', fileName: logo.fileName, bytes: logo.bytes),
+    ],
   );
 
   Future<dynamic> deactivate(String yonkeId) =>

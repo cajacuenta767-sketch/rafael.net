@@ -12,13 +12,11 @@ class YonkeQuoteDetailPage extends ConsumerStatefulWidget {
   const YonkeQuoteDetailPage({
     super.key,
     required this.quoteId,
-    required this.isDemoSession,
     this.initialQuote,
     this.repository,
   });
 
   final String quoteId;
-  final bool isDemoSession;
   final YonkeQuote? initialQuote;
   final YonkeQuotesRepository? repository;
 
@@ -37,11 +35,7 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
   void initState() {
     super.initState();
     _quote = widget.initialQuote;
-    _repository =
-        widget.repository ??
-        (widget.isDemoSession
-            ? const DemoYonkeQuotesRepository()
-            : ref.read(yonkeQuotesRepositoryProvider));
+    _repository = widget.repository ?? ref.read(yonkeQuotesRepositoryProvider);
     _load();
   }
 
@@ -114,10 +108,6 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
           28,
         ),
         children: [
-          if (quote.isDemo) ...[
-            const _DetailDemoBanner(),
-            const SizedBox(height: 14),
-          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -214,21 +204,13 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
                   itemCount: quote.imageUrls.length,
                   itemBuilder: (context, index) => ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: quote.imageUrls[index].startsWith('demo://')
-                        ? Container(
-                            color: const Color(0xFFE9ECEF),
-                            child: const Icon(
-                              Icons.car_repair_outlined,
-                              size: 54,
-                            ),
-                          )
-                        : Image.network(
-                            quote.imageUrls[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const Center(
-                              child: Icon(Icons.broken_image_outlined),
-                            ),
-                          ),
+                    child: Image.network(
+                      quote.imageUrls[index],
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Center(
+                        child: Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -238,10 +220,7 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
             key: const Key('yonke-open-conversation'),
             onPressed: () => context.push(
               AppRoutes.yonkeConversation(quote.id),
-              extra: YonkeConversationArgs(
-                quote: quote,
-                isDemoSession: widget.isDemoSession,
-              ),
+              extra: YonkeConversationArgs(quote: quote),
             ),
             icon: const Icon(Icons.chat_bubble_outline),
             label: const Text('Mensajes con el cliente'),
@@ -337,26 +316,6 @@ class _DetailStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Chip(label: Text(status.label));
-}
-
-class _DetailDemoBanner extends StatelessWidget {
-  const _DetailDemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(child: Text('Detalle de cotización de prueba.')),
-      ],
-    ),
-  );
 }
 
 class _DetailState extends StatelessWidget {

@@ -9,13 +9,8 @@ import '../data/yonke_quotes_repository.dart';
 import '../domain/yonke_quote.dart';
 
 class YonkeQuotesPage extends ConsumerStatefulWidget {
-  const YonkeQuotesPage({
-    super.key,
-    required this.isDemoSession,
-    this.repository,
-  });
+  const YonkeQuotesPage({super.key, this.repository});
 
-  final bool isDemoSession;
   final YonkeQuotesRepository? repository;
 
   @override
@@ -39,11 +34,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   @override
   void initState() {
     super.initState();
-    _repository =
-        widget.repository ??
-        (widget.isDemoSession
-            ? const DemoYonkeQuotesRepository()
-            : ref.read(yonkeQuotesRepositoryProvider));
+    _repository = widget.repository ?? ref.read(yonkeQuotesRepositoryProvider);
     _load(refresh: true);
   }
 
@@ -273,10 +264,6 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
                   'Consulta las propuestas enviadas a los clientes.',
                   style: TextStyle(color: Color(0xFF596276)),
                 ),
-                if (_repository.usesDemoData) ...[
-                  const SizedBox(height: 12),
-                  const _DemoBanner(),
-                ],
                 const SizedBox(height: 16),
                 TextField(
                   key: const Key('yonke-quotes-search'),
@@ -338,7 +325,6 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
     ),
     bottomNavigationBar: YonkeBottomNavigation(
       selected: YonkeNavigationSection.quotes,
-      isDemoSession: widget.isDemoSession,
       onRefresh: () => _load(refresh: true),
     ),
   );
@@ -577,28 +563,6 @@ class _StatusChip extends StatelessWidget {
         color: _statusColor(status),
         fontWeight: FontWeight.w800,
       ),
-    ),
-  );
-}
-
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text('Cotizaciones de prueba. No provienen de la API.'),
-        ),
-      ],
     ),
   );
 }

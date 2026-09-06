@@ -25,7 +25,6 @@ class YonkeRequestSummary {
     required this.part,
     required this.status,
     required this.receivedAt,
-    required this.isDemo,
     this.brand,
     this.model,
     this.year,
@@ -40,7 +39,6 @@ class YonkeRequestSummary {
   final String part;
   final YonkeRequestStatus status;
   final DateTime receivedAt;
-  final bool isDemo;
   final String? brand;
   final String? model;
   final int? year;
@@ -64,7 +62,6 @@ class YonkeRequestSummary {
         part: part,
         status: status ?? this.status,
         receivedAt: receivedAt,
-        isDemo: isDemo,
         brand: brand,
         model: model,
         year: year,

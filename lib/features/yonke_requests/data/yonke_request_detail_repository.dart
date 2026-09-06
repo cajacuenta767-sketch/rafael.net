@@ -3,18 +3,18 @@ import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_detail.dart';
 import '../domain/yonke_request_summary.dart';
-import 'yonke_requests_repository.dart';
 
 abstract interface class YonkeRequestDetailRepository {
-  bool get usesDemoData;
-
   Future<YonkeRequestDetail> getDetail({
     required String requestId,
     required String requestYonkeId,
     YonkeRequestSummary? summary,
   });
 
-  Future<void> markUnavailable(String requestYonkeId);
+  /// Responde que la pieza no está disponible. La API no publica una
+  /// operación de rechazo: se registra una cotización con `Disponible=false`
+  /// y el resto de campos obligatorios en cero.
+  Future<void> markUnavailable(String requestYonkeId, {int? brandId});
 
   Future<void> submitQuote(
     String requestYonkeId,
@@ -27,9 +27,6 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
 
   final RequestsApi _requestsApi;
   final QuotesApi _quotesApi;
-
-  @override
-  bool get usesDemoData => false;
 
   @override
   Future<YonkeRequestDetail> getDetail({
@@ -53,10 +50,19 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
   }
 
   @override
-  Future<void> markUnavailable(String requestYonkeId) async {
+  Future<void> markUnavailable(String requestYonkeId, {int? brandId}) async {
     await _quotesApi.create(
       requestYonkeId: requestYonkeId,
-      fields: const {'Disponible': false},
+      fields: {
+        'Precio': 0,
+        'Disponible': false,
+        'EsNueva': false,
+        'MarcaId': ?brandId,
+        'Comentarios': 'Pieza no disponible',
+        'DiasGarantia': 0,
+        'EnvioDisponible': false,
+        'TieneGarantia': false,
+      },
     );
   }
 
@@ -97,44 +103,6 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
   }
 }
 
-class DemoYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
-  const DemoYonkeRequestDetailRepository();
-
-  @override
-  bool get usesDemoData => true;
-
-  @override
-  Future<YonkeRequestDetail> getDetail({
-    required String requestId,
-    required String requestYonkeId,
-    YonkeRequestSummary? summary,
-  }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 180));
-    final detail = demoYonkeRequestDetail(
-      requestId: requestId,
-      requestYonkeId: requestYonkeId,
-      summary: summary,
-    );
-    if (detail == null) throw const YonkeRequestDetailNotFoundException();
-    return detail;
-  }
-
-  @override
-  Future<void> markUnavailable(String requestYonkeId) async {
-    _requireDemoId(requestYonkeId);
-    await Future<void>.delayed(const Duration(milliseconds: 180));
-  }
-
-  @override
-  Future<void> submitQuote(
-    String requestYonkeId,
-    YonkeQuoteSubmission submission,
-  ) async {
-    _requireDemoId(requestYonkeId);
-    await Future<void>.delayed(const Duration(milliseconds: 220));
-  }
-}
-
 class YonkeRequestDetailNotFoundException implements Exception {
   const YonkeRequestDetailNotFoundException();
 }
@@ -170,7 +138,6 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
         ? YonkeRequestStatus.closed
         : summary?.status ?? _statusFromText(_text(raw['estatusSolicitud'])),
     imageUrls: imageUrls,
-    isDemo: false,
     brandId: (raw['marcaId'] as num?)?.toInt(),
     brand: _text(raw['marca']) ?? summary?.brand,
     model: _text(raw['modelo']) ?? summary?.model,
@@ -185,46 +152,6 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
         DateTime.tryParse(raw['fechaCreacion']?.toString() ?? '') ??
         summary?.receivedAt,
     closed: closed,
-  );
-}
-
-YonkeRequestDetail? demoYonkeRequestDetail({
-  required String requestId,
-  required String requestYonkeId,
-  YonkeRequestSummary? summary,
-}) {
-  if (!requestId.startsWith('demo-') || !requestYonkeId.startsWith('demo-')) {
-    return null;
-  }
-  final current =
-      summary ??
-      demoYonkeRequests.firstWhereOrNull((item) => item.requestId == requestId);
-  if (current == null) return null;
-  final isAlternator = requestId.contains('alternador');
-  return YonkeRequestDetail(
-    requestId: current.requestId,
-    requestYonkeId: current.requestYonkeId,
-    part: current.part,
-    status: current.status,
-    imageUrls: List.generate(
-      current.photoCount,
-      (index) => 'demo://photo-${index + 1}',
-    ),
-    isDemo: true,
-    brandId: isAlternator ? 1 : null,
-    brand: current.brand,
-    model: current.model,
-    year: current.year,
-    engine: isAlternator ? '2.0 L' : null,
-    transmission: isAlternator ? 'Automática' : null,
-    partNumber: isAlternator ? '23100-3SH1A' : null,
-    description: isAlternator
-        ? 'Original o compatible, funcionando y en buen estado.'
-        : 'Se requiere una pieza completa y en buen estado.',
-    folio: current.folio,
-    city: current.city,
-    receivedAt: current.receivedAt,
-    closed: current.status == YonkeRequestStatus.closed,
   );
 }
 
@@ -261,19 +188,4 @@ YonkeRequestStatus _statusFromText(String? value) {
   if (normalized.contains('cerr')) return YonkeRequestStatus.closed;
   if (normalized.contains('nueva')) return YonkeRequestStatus.newRequest;
   return YonkeRequestStatus.unknown;
-}
-
-void _requireDemoId(String value) {
-  if (!value.startsWith('demo-')) {
-    throw StateError('El repositorio de prueba solo admite IDs demo.');
-  }
-}
-
-extension _FirstWhereOrNull<T> on Iterable<T> {
-  T? firstWhereOrNull(bool Function(T value) test) {
-    for (final value in this) {
-      if (test(value)) return value;
-    }
-    return null;
-  }
 }

@@ -41,8 +41,8 @@ antes sería pedir al usuario acceso para una función que aún no existe.
 
 ## Dependencias del backend
 
-Las funciones que no tienen una respuesta definida en Swagger permanecen en
-modo de prueba o bloqueadas. La lista contractual está en
+Las funciones que no tienen una respuesta definida en Swagger muestran un
+estado "pendiente" explícito en pantalla; ya no existe modo de prueba. La lista contractual está en
 `docs/BACKEND_CONTRACT_CHECKLIST.md`.
 
 ## Control previo a cada publicación
@@ -51,7 +51,6 @@ modo de prueba o bloqueadas. La lista contractual está en
 - Generar una compilación Android release firmada y probarla en un dispositivo
   físico.
 - Generar un Archive de iOS y validarlo en Xcode.
-- Confirmar que el modo de prueba esté desactivado.
 - Confirmar URL y ambiente de API de producción.
 - Revisar textos legales, ficha de privacidad y política de eliminación de
   cuenta.

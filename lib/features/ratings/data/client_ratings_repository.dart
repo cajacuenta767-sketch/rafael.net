@@ -24,14 +24,3 @@ class ApiClientRatingsRepository implements ClientRatingsRepository {
     comment: comment,
   );
 }
-
-class DemoClientRatingsRepository implements ClientRatingsRepository {
-  const DemoClientRatingsRepository();
-
-  @override
-  Future<void> register({
-    required String quoteId,
-    required int rating,
-    String? comment,
-  }) => Future<void>.delayed(const Duration(milliseconds: 220));
-}

@@ -201,19 +201,11 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   Future<void> _showPendingWithConsent(String feature) async {
     if (!await _ensureLegalAccepted()) return;
     if (!mounted) return;
-    if (AppConfig.enableMockAuth) {
-      context.go(AppRoutes.clientHome);
-      return;
-    }
     _showPending(feature);
   }
 
   Future<void> _signInWithGoogle() async {
     if (!await _ensureLegalAccepted() || _googleLoading || !mounted) return;
-    if (AppConfig.enableMockAuth) {
-      context.go(AppRoutes.clientHome);
-      return;
-    }
 
     setState(() => _googleLoading = true);
     try {

@@ -12,9 +12,9 @@
 //   dart run tool/api_probe.dart --base-url=https://otro-servidor
 //
 // Opciones: --base-url, --token, --state-id, --brand-id, --quote-id,
-// --request-id. Sin token solo se prueban los catálogos públicos. Termina
-// con código 1 si algún endpoint respondió con error o sin las claves que la
-// app necesita.
+// --request-id, --yonke-id. Sin token solo se prueban los catálogos públicos.
+// Termina con código 1 si algún endpoint respondió con error o sin las claves
+// que la app necesita.
 
 // ignore_for_file: avoid_print
 
@@ -128,10 +128,45 @@ Future<void> main(List<String> arguments) async {
     'solicitudCotizacionEstatus.descripcion',
   ];
   if (token.isEmpty) {
+    _skip('Mis solicitudes', 'requiere --token=<jwt>');
+    _skip('Solicitud reciente', 'requiere --token=<jwt>');
     _skip('Mis cotizaciones', 'requiere --token=<jwt>');
     _skip('Detalle de cotización', 'requiere --token=<jwt>');
     _skip('Ciudades de la solicitud', 'requiere --token=<jwt>');
+    _skip('Perfil del yonke', 'requiere --token=<jwt> y --yonke-id=<guid>');
+    _skip('Cobertura del yonke', 'requiere --token=<jwt> y --yonke-id=<guid>');
   } else {
+    results.add(
+      await _run(
+        dio,
+        const _Probe(
+          label: 'Mis solicitudes',
+          path: '/api/DashboardSuscriptores/mis-solicitudes',
+          query: {'Page': 1, 'CantidadRegistrosPorPagina': 5},
+          usedBy: 'mis solicitudes (cliente) y bandeja del yonke',
+          expectedKeys: ['guidId', 'piezaBuscada'],
+          optionalKeys: [
+            'marca',
+            'modelo',
+            'estatusSolicitud',
+            'totalCotizaciones',
+            'solicitudGuidId',
+            'solicitudes',
+          ],
+        ),
+      ),
+    );
+    results.add(
+      await _run(
+        dio,
+        const _Probe(
+          label: 'Solicitud reciente',
+          path: '/api/DashboardSuscriptores/mi-solicitud-reciente',
+          usedBy: 'inicio del cliente',
+          expectedKeys: ['guidId', 'piezaBuscada'],
+        ),
+      ),
+    );
     final quotes = await _run(
       dio,
       const _Probe(
@@ -157,6 +192,37 @@ Future<void> main(List<String> arguments) async {
             usedBy: 'detalle de cotización',
             expectedKeys: quoteKeys,
             nestedKeys: quoteNestedKeys,
+          ),
+        ),
+      );
+    }
+
+    final yonkeId = options['yonke-id'];
+    if (yonkeId == null || yonkeId.isEmpty) {
+      _skip('Perfil del yonke', 'pasa --yonke-id=<guid>');
+      _skip('Cobertura del yonke', 'pasa --yonke-id=<guid>');
+    } else {
+      results.add(
+        await _run(
+          dio,
+          _Probe(
+            label: 'Perfil del yonke',
+            path: '/api/Yonkes/$yonkeId',
+            usedBy: 'perfil del yonke',
+            expectedKeys: const ['guidId', 'nombre'],
+            optionalKeys: const ['telefono', 'correo', 'direccion', 'ciudades'],
+          ),
+        ),
+      );
+      results.add(
+        await _run(
+          dio,
+          _Probe(
+            label: 'Cobertura del yonke',
+            path: '/api/YonkesCoberturas/guid/$yonkeId',
+            usedBy: 'cobertura del yonke',
+            expectedKeys: const ['ciudadId'],
+            optionalKeys: const ['activo'],
           ),
         ),
       );
@@ -345,6 +411,7 @@ const _knownOptions = {
   'brand-id',
   'quote-id',
   'request-id',
+  'yonke-id',
 };
 
 Map<String, String>? _parseArguments(List<String> arguments) {

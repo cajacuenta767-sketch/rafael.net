@@ -2,18 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 
 class ClientSessionGate extends ConsumerStatefulWidget {
-  const ClientSessionGate({
-    super.key,
-    required this.builder,
-    this.allowDemoSession,
-  });
+  const ClientSessionGate({super.key, required this.builder});
 
   final WidgetBuilder builder;
-  final bool? allowDemoSession;
 
   @override
   ConsumerState<ClientSessionGate> createState() => _ClientSessionGateState();
@@ -30,7 +24,6 @@ class _ClientSessionGateState extends ConsumerState<ClientSessionGate> {
   }
 
   Future<bool> _hasSession() async {
-    if (widget.allowDemoSession ?? AppConfig.enableMockAuth) return true;
     final token = await ref.read(tokenStoreProvider).readAccessToken();
     return token?.isNotEmpty == true;
   }

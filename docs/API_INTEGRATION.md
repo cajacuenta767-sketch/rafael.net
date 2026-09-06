@@ -142,11 +142,34 @@ endpoint respondió con error o sin alguna clave necesaria.
 | `GET /api/DashboardSuscriptores/mis-cotizaciones` | Cotizaciones recibidas | `guidId`, `precio`, `disponible`, `activo`, `solicitudYonkes.solicitudGuidId`, `solicitudYonkes.yonkes.nombre`, `solicitudCotizacionEstatus.descripcion` |
 | `GET /api/CotizacionYonke/{guid}` | Detalle de cotización | las mismas del renglón anterior |
 | `GET /api/Orden/cotizacion/{guid}` | Detalle de cotización | `404` significa que no hay orden previa |
+| `GET /api/DashboardSuscriptores/mi-solicitud-reciente` | Inicio del cliente | `Solicitud_Busqueda_DTO` (objeto o lista de uno) |
+| `GET /api/DashboardSuscriptores/mis-solicitudes` | Mis solicitudes (cliente) y bandeja del yonke | `guidId`, `piezaBuscada`, `marca`, `modelo`, `año`, `estatusSolicitud`, `totalCotizaciones`; para el yonke, registros `SolicitudYonkes` con `solicitudes` anidada |
+| `GET /api/Solicitudes/{guid}` + `SolicitudesImagenes/solicitud/{guid}` + `SolicitudCiudades/{guid}/ciudades` | Detalle de solicitud | `Solicitud_Busqueda_DTO`, `urlImagen`, `ciudades.ciudad` + `entidades.entidad` |
+| `GET /api/SolicitudCotizacionMensajes/{guid}` y `PUT .../leer` | Conversaciones (cliente y yonke) | `SolicitudCotizacionMensajes`: `guidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`, `leido`, `fechaCreacion` |
+| `GET /api/Yonkes/{guid}` | Perfil del yonke | `nombre`, `responsable`, `telefono`, `correo`, `direccion`, `cp`, `ciudades.ciudad` |
+| `GET /api/YonkesCoberturas/guid/{guid}` y `PUT /api/YonkesCoberturas` | Cobertura del yonke | `ciudadId`, `activo` |
 
-Las mismas formas están fijadas en `test/api_flows_test.dart`, que ejercita
-las pantallas con el modo demo apagado y un cliente HTTP simulado. El OpenAPI
-no publica un buscador de refacciones: la pantalla de búsqueda usa marcas y
-modelos reales y, al buscar, ofrece crear la solicitud con lo capturado.
+Las mismas formas están fijadas en `test/api_flows_test.dart` y
+`test/contract_parsers_test.dart`, que ejercitan pantallas y parsers con un
+cliente HTTP simulado. El OpenAPI no publica un buscador de refacciones: la
+pantalla de búsqueda usa marcas y modelos reales y, al buscar, ofrece crear la
+solicitud con lo capturado.
+
+## Sin modo de prueba
+
+La aplicación ya no tiene modo demo ni datos locales de ejemplo: cada pantalla
+consulta la API con el token guardado al iniciar sesión. El yonke usa además el
+`yonkeGuidId` que entrega el login para perfil, cobertura y notificaciones.
+
+Quedan explícitamente marcadas como pendientes, con su mensaje en pantalla:
+
+- Buscador de refacciones y catálogo de categorías: no existen en el OpenAPI.
+- Notificaciones: falta Firebase Cloud Messaging en la app; el registro
+  `POST /api/YonkesDispositivos` ya está listo.
+- Edición del perfil del yonke y del cliente.
+- Checkout y resultado de pago (`Pagos`): el cliente HTTP existe, pero la
+  respuesta no está documentada y no hay flujo de retorno definido.
+- Apple Sign In (requiere configuración en Mac).
 
 ## Fuera del alcance móvil
 

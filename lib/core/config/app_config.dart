@@ -20,13 +20,6 @@ abstract final class AppConfig {
   static bool get enableNetworkLogs =>
       kDebugMode && const bool.fromEnvironment('ENABLE_NETWORK_LOGS');
 
-  /// Modo de prueba: entra a las pantallas sin llamar a la API. Apagado por
-  /// defecto para que una compilación de depuración use el servidor real.
-  /// Se enciende a propósito con `--dart-define=MOCK_AUTH=true`.
-  static bool get enableMockAuth =>
-      kDebugMode &&
-      const bool.fromEnvironment('MOCK_AUTH', defaultValue: false);
-
   static const connectTimeout = Duration(seconds: 20);
   static const receiveTimeout = Duration(seconds: 30);
 }

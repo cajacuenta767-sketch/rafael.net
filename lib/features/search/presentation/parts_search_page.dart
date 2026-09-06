@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../../requests/domain/request_draft.dart';
@@ -61,13 +60,6 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
       _loadingCatalogs = true;
       _catalogMessage = null;
     });
-    if (AppConfig.enableMockAuth) {
-      setState(() {
-        _brands = _demoBrands;
-        _loadingCatalogs = false;
-      });
-      return;
-    }
     try {
       final response = await ref.read(catalogsApiProvider).getBrands();
       final brands = _catalogOptions(response, 'marca');
@@ -89,7 +81,6 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
   }
 
   Future<List<_CatalogOption>> _modelsForBrand(int brandId) async {
-    if (AppConfig.enableMockAuth) return _demoModels[brandId] ?? const [];
     final response = await ref
         .read(catalogsApiProvider)
         .getModels(brandId: brandId);
@@ -383,30 +374,9 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            if (AppConfig.enableMockAuth) ...[
-              const _DemoNotice(),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _categories
-                    .map(
-                      (category) => ActionChip(
-                        avatar: Icon(category.icon, size: 18),
-                        label: Text(category.label),
-                        onPressed: () => setState(
-                          () => _filters = _filters.copyWith(
-                            category: category.label,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ] else
-              const Text(
-                'El catálogo de categorías está pendiente de definición en la API.',
-              ),
+            const Text(
+              'El catálogo de categorías está pendiente de definición en la API.',
+            ),
           ],
         );
       case _SearchStatus.loading:
@@ -426,10 +396,6 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (ref.read(partsSearchRepositoryProvider).usesDemoData) ...[
-              const _DemoNotice(),
-              const SizedBox(height: 14),
-            ],
             Text(
               '${_results.length} resultados',
               style: Theme.of(context).textTheme.titleMedium
@@ -473,30 +439,6 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
         );
     }
   }
-}
-
-class _DemoNotice extends StatelessWidget {
-  const _DemoNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEFF8F0),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.info_outline, color: Color(0xFF147A1D)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Datos de demostración. La API aún no documenta la búsqueda de refacciones.',
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _ResultCard extends StatelessWidget {
@@ -705,29 +647,12 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               key: const Key('category-search-filter'),
               initialValue: _filters.category,
               isExpanded: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Categoría',
-                helperText: AppConfig.enableMockAuth
-                    ? 'Catálogo de demostración'
-                    : 'Catálogo pendiente de la API',
+                helperText: 'Catálogo pendiente de la API',
               ),
-              items: AppConfig.enableMockAuth
-                  ? _categories
-                        .map(
-                          (item) => DropdownMenuItem(
-                            value: item.label,
-                            child: Text(item.label),
-                          ),
-                        )
-                        .toList()
-                  : const [],
-              onChanged: AppConfig.enableMockAuth
-                  ? (value) => setState(
-                      () => _filters = value == null
-                          ? _filters.copyWith(clearCategory: true)
-                          : _filters.copyWith(category: value),
-                    )
-                  : null,
+              items: const [],
+              onChanged: null,
             ),
             const SizedBox(height: 16),
             if (widget.loadingBrands)
@@ -873,47 +798,3 @@ List<_CatalogOption> _catalogOptions(dynamic response, String nameKey) {
       .where((item) => item.id >= 0 && item.name.isNotEmpty)
       .toList();
 }
-
-const _demoBrands = [
-  _CatalogOption(id: 1, name: 'Nissan'),
-  _CatalogOption(id: 2, name: 'Toyota'),
-  _CatalogOption(id: 3, name: 'Ford'),
-];
-
-const _demoModels = <int, List<_CatalogOption>>{
-  1: [
-    _CatalogOption(id: 1, name: 'Sentra'),
-    _CatalogOption(id: 2, name: 'Versa'),
-  ],
-  2: [
-    _CatalogOption(id: 3, name: 'Corolla'),
-    _CatalogOption(id: 4, name: 'Hilux'),
-  ],
-  3: [
-    _CatalogOption(id: 5, name: 'Focus'),
-    _CatalogOption(id: 6, name: 'Ranger'),
-  ],
-};
-
-typedef _CategoryItem = ({String label, IconData icon});
-
-const _categories = <_CategoryItem>[
-  (label: 'Motor', icon: Icons.settings_outlined),
-  (label: 'Transmisión', icon: Icons.album_outlined),
-  (label: 'Frenos', icon: Icons.radio_button_checked_outlined),
-  (label: 'Eléctrico', icon: Icons.electric_bolt_outlined),
-  (label: 'Suspensión', icon: Icons.car_repair_outlined),
-  (label: 'Dirección', icon: Icons.turn_slight_right_outlined),
-  (label: 'Enfriamiento', icon: Icons.ac_unit_outlined),
-  (label: 'Combustible', icon: Icons.local_gas_station_outlined),
-  (label: 'Escape', icon: Icons.air_outlined),
-  (label: 'Clutch', icon: Icons.settings_input_component_outlined),
-  (label: 'Carrocería', icon: Icons.directions_car_outlined),
-  (label: 'Iluminación', icon: Icons.lightbulb_outline),
-  (label: 'Cristales', icon: Icons.window_outlined),
-  (label: 'Interior', icon: Icons.event_seat_outlined),
-  (label: 'Aire acondicionado', icon: Icons.air_outlined),
-  (label: 'Llantas y rines', icon: Icons.tire_repair_outlined),
-  (label: 'Seguridad', icon: Icons.health_and_safety_outlined),
-  (label: 'Accesorios', icon: Icons.extension_outlined),
-];

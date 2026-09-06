@@ -244,6 +244,10 @@ abstract final class SessionResponseParser {
     return null;
   }
 
+  /// Identificador del usuario (`sub`, `nameid`, `NameIdentifier`) leído de
+  /// los claims de [token]. `null` si el token no se puede decodificar.
+  static String? subjectFromToken(String token) => _subjectFromClaims(token);
+
   // --- internos -------------------------------------------------------------
 
   /// Convierte un mapa de origen desconocido. Devuelve `null` si alguna clave

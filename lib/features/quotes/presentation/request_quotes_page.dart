@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/client_quote.dart';
 
@@ -27,7 +26,6 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
   List<ClientQuote> _quotes = const [];
   QuoteSort _sort = QuoteSort.lowestPrice;
   bool _loading = true;
-  bool _usingTestData = false;
   String? _error;
 
   @override
@@ -49,15 +47,6 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
       return;
     }
 
-    if (AppConfig.enableMockAuth) {
-      setState(() {
-        _quotes = mockQuotesForRequest(widget.requestId);
-        _usingTestData = true;
-        _loading = false;
-      });
-      return;
-    }
-
     try {
       final response = await ref.read(dashboardApiProvider).getMyQuotes();
       final quotes = clientQuotesFromDashboard(response)
@@ -66,7 +55,6 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
       if (!mounted) return;
       setState(() {
         _quotes = quotes;
-        _usingTestData = false;
         _loading = false;
       });
     } catch (_) {
@@ -162,7 +150,6 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
               requestTitle: widget.requestTitle,
               count: quotes.length,
               sort: _sort,
-              usingTestData: _usingTestData,
               onSortChanged: (value) => setState(() => _sort = value),
             );
           }
@@ -190,37 +177,18 @@ class _QuotesHeader extends StatelessWidget {
     required this.requestTitle,
     required this.count,
     required this.sort,
-    required this.usingTestData,
     required this.onSortChanged,
   });
 
   final String? requestTitle;
   final int count;
   final QuoteSort sort;
-  final bool usingTestData;
   final ValueChanged<QuoteSort> onSortChanged;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (usingTestData) ...[
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF8F0),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: Color(0xFF147A1D)),
-              SizedBox(width: 10),
-              Expanded(child: Text('Cotizaciones de prueba.')),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
       if (requestTitle != null && requestTitle!.isNotEmpty) ...[
         Text(
           requestTitle!,

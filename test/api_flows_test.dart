@@ -1,5 +1,4 @@
 import 'package:app_yonke/app/router/app_router.dart';
-import 'package:app_yonke/core/config/app_config.dart';
 import 'package:app_yonke/core/di/api_providers.dart';
 import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_exception.dart';
@@ -89,7 +88,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.callsTo('/api/Utilerias/entidad/2/ciudades'), hasLength(1));
-      // Sin `entidade` en el registro, el nombre del estado sale del catálogo
+      // Sin `entidades` en el registro, el nombre del estado sale del catálogo
       // de estados ya cargado.
       expect(find.text('Mexicali, Baja California'), findsOneWidget);
       expect(find.text('Nogales, Sonora'), findsNothing);
@@ -109,13 +108,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Reintentar'), findsOneWidget);
-      // En modo demo la pantalla usa el catálogo local en lugar del error.
-    }, skip: AppConfig.enableMockAuth);
+    });
   });
 
-  // La búsqueda lee `AppConfig.enableMockAuth` dentro de la pantalla: con el
-  // modo demo encendido usa marcas locales. Estas pruebas verifican la ruta
-  // real, así que solo corren con el modo demo apagado.
   group('Búsqueda de refacciones (Utilerias marcas y modelos)', () {
     testWidgets('usa marcas y modelos de la API en los filtros y los lleva a '
         'la solicitud', (tester) async {
@@ -183,7 +178,7 @@ void main() {
       expect(draft?.brandName, 'Nissan');
       expect(draft?.modelId, 7);
       expect(draft?.modelName, 'Sentra');
-    }, skip: AppConfig.enableMockAuth);
+    });
 
     testWidgets('avisa cuando el catálogo de marcas no responde', (
       tester,
@@ -198,11 +193,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No se pudieron cargar las marcas.'), findsOneWidget);
-    }, skip: AppConfig.enableMockAuth);
+    });
   });
 
-  // Las pantallas de cotizaciones usan datos locales con el modo demo
-  // encendido; la ruta real solo se ejercita con el modo demo apagado.
   group(
     'Cotizaciones del cliente (DashboardSuscriptores y CotizacionYonke)',
     () {
@@ -224,7 +217,7 @@ void main() {
         expect(find.text('Yonke Otro'), findsNothing);
         expect(find.text(r'$1850.00'), findsOneWidget);
         expect(find.text('Cotizaciones de prueba.'), findsNothing);
-      }, skip: AppConfig.enableMockAuth);
+      });
 
       testWidgets(
         'muestra el detalle real y permite elegir la cotización si no '
@@ -254,7 +247,6 @@ void main() {
           expect(button, findsOneWidget);
           expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
         },
-        skip: AppConfig.enableMockAuth,
       );
 
       testWidgets('ofrece reintentar si la API de cotizaciones falla', (
@@ -268,7 +260,7 @@ void main() {
 
         expect(find.text('No pudimos cargar las cotizaciones'), findsOneWidget);
         expect(find.text('Reintentar'), findsOneWidget);
-      }, skip: AppConfig.enableMockAuth);
+      });
     },
   );
 }
@@ -281,7 +273,7 @@ Widget _app(_FakeApiClient api, {required Widget home}) => ProviderScope(
 );
 
 /// La búsqueda necesita además el repositorio real (sin buscador) y un
-/// historial en memoria; se fijan aquí para no depender del valor de MOCK_AUTH.
+/// historial en memoria.
 Widget _searchApp(_FakeApiClient api, {required Widget child}) => ProviderScope(
   overrides: [
     apiClientProvider.overrideWithValue(api),
@@ -378,8 +370,18 @@ const _states = [
 ];
 
 const _sonoraCities = [
-  {'id': 1, 'ciudad': 'Nogales', 'entidadId': 26, 'entidade': 'Sonora'},
-  {'id': 2, 'ciudad': 'Hermosillo', 'entidadId': 26, 'entidade': 'Sonora'},
+  {
+    'id': 1,
+    'ciudad': 'Nogales',
+    'entidadId': 26,
+    'entidades': {'id': 26, 'entidad': 'Sonora'},
+  },
+  {
+    'id': 2,
+    'ciudad': 'Hermosillo',
+    'entidadId': 26,
+    'entidades': {'id': 26, 'entidad': 'Sonora'},
+  },
 ];
 
 const _bajaCities = [

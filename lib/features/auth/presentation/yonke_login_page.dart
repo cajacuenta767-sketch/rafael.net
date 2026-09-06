@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 
@@ -116,12 +115,6 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
       return 'No se pudo conectar. Revisa tu conexión e inténtalo nuevamente.';
     }
     return 'No pudimos iniciar sesión. Inténtalo nuevamente.';
-  }
-
-  void _enterDemoMode() {
-    if (!AppConfig.enableMockAuth || _loading) return;
-    FocusManager.instance.primaryFocus?.unfocus();
-    context.go(AppRoutes.yonkeHome, extra: true);
   }
 
   @override
@@ -337,26 +330,6 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
                                       )
                                     : const Text('Iniciar sesión'),
                               ),
-                              if (AppConfig.enableMockAuth) ...[
-                                const SizedBox(height: 12),
-                                OutlinedButton.icon(
-                                  key: const Key('yonke-demo-login-button'),
-                                  onPressed: _enterDemoMode,
-                                  icon: const Icon(Icons.science_outlined),
-                                  label: const Text(
-                                    'Continuar en modo de prueba',
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Modo de prueba: no representa una autenticación real.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Color(0xFF596276),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ),

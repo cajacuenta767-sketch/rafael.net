@@ -1,13 +1,9 @@
 enum RequestSubmissionStage { create, requestId, images, dispatch }
 
 class RequestSubmissionResult {
-  const RequestSubmissionResult({
-    required this.requestId,
-    required this.isDemo,
-  });
+  const RequestSubmissionResult({required this.requestId});
 
   final String requestId;
-  final bool isDemo;
 }
 
 class RequestSubmissionException implements Exception {

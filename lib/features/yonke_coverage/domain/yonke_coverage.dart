@@ -14,12 +14,10 @@ class YonkeCoverageSnapshot {
   const YonkeCoverageSnapshot({
     required this.cities,
     required this.selectedCityIds,
-    required this.isDemo,
   });
 
   final List<CoverageCity> cities;
   final Set<int> selectedCityIds;
-  final bool isDemo;
 }
 
 class YonkeIdentityContractPendingException implements Exception {

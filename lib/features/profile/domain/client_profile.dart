@@ -1,4 +1,4 @@
-enum ClientProfileAvailability { available, unavailable, demo }
+enum ClientProfileAvailability { available, unavailable }
 
 class ClientProfile {
   const ClientProfile({this.id, this.name, this.email, this.phone, this.city});

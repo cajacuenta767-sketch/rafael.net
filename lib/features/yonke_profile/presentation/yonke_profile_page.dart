@@ -12,14 +12,8 @@ import '../domain/yonke_profile.dart';
 import 'yonke_profile_controller.dart';
 
 class YonkeProfilePage extends ConsumerStatefulWidget {
-  const YonkeProfilePage({
-    super.key,
-    required this.isDemoSession,
-    this.repository,
-    this.tokenStore,
-  });
+  const YonkeProfilePage({super.key, this.repository, this.tokenStore});
 
-  final bool isDemoSession;
   final YonkeProfileRepository? repository;
   final TokenStore? tokenStore;
 
@@ -35,11 +29,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     super.initState();
     final TokenStore store = widget.tokenStore ?? ref.read(tokenStoreProvider);
     _controller = YonkeProfileController(
-      widget.repository ??
-          LocalYonkeProfileRepository(
-            tokenStore: store,
-            isDemoSession: widget.isDemoSession,
-          ),
+      widget.repository ?? ref.read(yonkeProfileRepositoryProvider),
       store,
     )..addListener(_refresh);
     _controller.load();
@@ -70,7 +60,6 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     body: SafeArea(top: false, child: _body()),
     bottomNavigationBar: YonkeBottomNavigation(
       selected: YonkeNavigationSection.profile,
-      isDemoSession: widget.isDemoSession,
       onRefresh: _controller.load,
     ),
   );
@@ -87,8 +76,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
         action: _controller.load,
       );
     }
-    final isDemo =
-        _controller.snapshot!.availability == YonkeProfileAvailability.demo;
+    final snapshot = _controller.snapshot!;
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -103,7 +91,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _AccountCard(isDemo: isDemo),
+                _AccountCard(snapshot: snapshot),
                 const SizedBox(height: 24),
                 const _SectionTitle('Mi operación'),
                 const SizedBox(height: 10),
@@ -112,10 +100,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                   icon: Icons.inbox_outlined,
                   title: 'Solicitudes recibidas',
                   subtitle: 'Revisa las refacciones pendientes de cotizar',
-                  onTap: () => context.go(
-                    AppRoutes.yonkeHome,
-                    extra: widget.isDemoSession,
-                  ),
+                  onTap: () => context.go(AppRoutes.yonkeHome),
                 ),
                 const SizedBox(height: 10),
                 _ProfileTile(
@@ -123,10 +108,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                   icon: Icons.request_quote_outlined,
                   title: 'Cotizaciones enviadas',
                   subtitle: 'Consulta las propuestas que compartiste',
-                  onTap: () => context.go(
-                    AppRoutes.yonkeQuotes,
-                    extra: widget.isDemoSession,
-                  ),
+                  onTap: () => context.go(AppRoutes.yonkeQuotes),
                 ),
                 const SizedBox(height: 24),
                 const _SectionTitle('Negocio y cobertura'),
@@ -135,7 +117,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                   icon: Icons.storefront_outlined,
                   title: 'Datos del yonke',
                   subtitle: 'Nombre, contacto y dirección',
-                  onTap: _showContractPending,
+                  onTap: () => _showBusinessData(snapshot),
                 ),
                 const SizedBox(height: 10),
                 _ProfileTile(
@@ -143,10 +125,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                   icon: Icons.location_on_outlined,
                   title: 'Ciudades de cobertura',
                   subtitle: 'Define dónde deseas recibir solicitudes',
-                  onTap: () => context.push(
-                    AppRoutes.yonkeCoverage,
-                    extra: widget.isDemoSession,
-                  ),
+                  onTap: () => context.push(AppRoutes.yonkeCoverage),
                 ),
                 const SizedBox(height: 10),
                 _ProfileTile(
@@ -154,10 +133,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                   icon: Icons.notifications_outlined,
                   title: 'Notificaciones',
                   subtitle: 'Alertas cuando llegue una nueva solicitud',
-                  onTap: () => context.push(
-                    AppRoutes.yonkeNotifications,
-                    extra: widget.isDemoSession,
-                  ),
+                  onTap: () => context.push(AppRoutes.yonkeNotifications),
                 ),
                 const SizedBox(height: 24),
                 const _SectionTitle('Legal e información'),
@@ -216,13 +192,49 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     );
   }
 
-  void _showContractPending() => ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text(
-        'La API debe confirmar el id del yonke autenticado antes de permitir esta actualización.',
+  void _showBusinessData(YonkeProfileSnapshot snapshot) {
+    final profile = snapshot.profile;
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'La sesión no incluye el identificador del yonke. Vuelve a iniciar sesión para consultar tus datos.',
+          ),
+        ),
+      );
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profile.name ?? 'Datos del yonke',
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              _DataRow('Responsable', profile.manager),
+              _DataRow('Teléfono', profile.phone),
+              _DataRow('Correo', profile.email),
+              _DataRow('Dirección', profile.fullAddress),
+              const SizedBox(height: 12),
+              const Text(
+                'La edición de estos datos se habilitará en una próxima versión.',
+                style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   void _openLegal(String title, String assetPath) => Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -261,57 +273,98 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
 }
 
 class _AccountCard extends StatelessWidget {
-  const _AccountCard({required this.isDemo});
-  final bool isDemo;
+  const _AccountCard({required this.snapshot});
+  final YonkeProfileSnapshot snapshot;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFE0E4EA)),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Column(
+  Widget build(BuildContext context) {
+    final profile = snapshot.profile;
+    final connected =
+        snapshot.availability == YonkeProfileAvailability.available &&
+        profile != null;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE0E4EA)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF1FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.storefront_outlined,
+              size: 38,
+              color: Color(0xFF114EB0),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            connected ? profile.name ?? 'Cuenta del yonke' : 'Cuenta del yonke',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: connected
+                  ? const Color(0xFFE8F5EA)
+                  : const Color(0xFFF2F4F7),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              connected ? 'Perfil de la API' : 'Perfil pendiente de sesión',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (connected) ...[
+            if (profile.manager != null)
+              _DataRow('Responsable', profile.manager),
+            if (profile.phone != null) _DataRow('Teléfono', profile.phone),
+            if (profile.email != null) _DataRow('Correo', profile.email),
+            if (profile.fullAddress.isNotEmpty)
+              _DataRow('Dirección', profile.fullAddress),
+          ] else
+            const Text(
+              'El inicio de sesión no entregó el identificador del yonke (yonkeGuidId). Vuelve a iniciar sesión para consultar tu perfil.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF596276), height: 1.4),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DataRow extends StatelessWidget {
+  const _DataRow(this.label, this.value);
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEAF1FF),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.storefront_outlined,
-            size: 38,
-            color: Color(0xFF114EB0),
-          ),
+        SizedBox(
+          width: 104,
+          child: Text(label, style: const TextStyle(color: Color(0xFF596276))),
         ),
-        const SizedBox(height: 14),
-        Text(
-          isDemo ? 'Yonke de prueba' : 'Cuenta del yonke',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: isDemo ? const Color(0xFFFFF4DD) : const Color(0xFFF2F4F7),
-            borderRadius: BorderRadius.circular(20),
-          ),
+        Expanded(
           child: Text(
-            isDemo ? 'Modo de prueba' : 'Perfil pendiente de la API',
+            value == null || value!.isEmpty ? 'Sin información' : value!,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          isDemo
-              ? 'Este acceso permite revisar el flujo del yonke, pero no representa una cuenta autenticada.'
-              : 'La API expone operaciones para actualizar un yonke por id, pero aún no indica cuál es el yonke de esta sesión.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF596276), height: 1.4),
         ),
       ],
     ),

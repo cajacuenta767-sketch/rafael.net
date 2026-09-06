@@ -17,34 +17,6 @@ class ApiYonkeReputationRepository implements YonkeReputationRepository {
   }
 }
 
-class DemoYonkeReputationRepository implements YonkeReputationRepository {
-  const DemoYonkeReputationRepository();
-
-  @override
-  Future<YonkeReputation> getReputation(String yonkeId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    return switch (yonkeId) {
-      'mock-yonke-norte' => const YonkeReputation(
-        records: [
-          YonkeRatingRecord(
-            rating: 5,
-            comment: 'Buena atención y la pieza estaba probada.',
-          ),
-          YonkeRatingRecord(rating: 4, comment: 'Respondieron rápido.'),
-          YonkeRatingRecord(rating: 5),
-        ],
-      ),
-      'mock-yonke-centro' => const YonkeReputation(
-        records: [
-          YonkeRatingRecord(rating: 5, comment: 'Todo conforme.'),
-          YonkeRatingRecord(rating: 5),
-        ],
-      ),
-      _ => const YonkeReputation(records: []),
-    };
-  }
-}
-
 YonkeReputation reputationFromResponse(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
   final records = switch (data) {

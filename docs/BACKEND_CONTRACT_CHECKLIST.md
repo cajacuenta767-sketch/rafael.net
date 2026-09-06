@@ -20,6 +20,29 @@ en modelos de producción.
 - Definir las respuestas de órdenes, checkout y resultado de pago.
 - Definir URLs de retorno/deep links de Stripe para Android e iOS.
 
+## Supuestos que la app aplica mientras se confirman
+
+La app ya consume estos endpoints con las interpretaciones siguientes. Si el
+backend confirma otra semántica, el ajuste es puntual en el parser indicado.
+
+- `DashboardSuscriptores/*` se consulta con el token de cada rol: el cliente
+  espera `Solicitud_Busqueda_DTO` en `mis-solicitudes` y sus cotizaciones en
+  `mis-cotizaciones`; el yonke espera registros `SolicitudYonkes` (con
+  `solicitudes` anidada) en `mis-solicitudes` y sus cotizaciones en
+  `mis-cotizaciones`. Si `mis-solicitudes` no trae el guid de la asignación,
+  la bandeja del yonke muestra "pendiente de conexión"
+  (`yonkeAssignedRequestsFromResponse`).
+- `SolicitudCotizacionMensajes.tipoRemitenteId`: se asume `1` = cliente cuando
+  no se puede comparar `usuarioId` con el usuario de la sesión
+  (`quote_message.dart`). Confirmar el catálogo.
+- "No disponible" del yonke se registra como cotización con
+  `Disponible=false`, `Precio=0` y el resto de campos obligatorios en cero,
+  porque no existe una operación de rechazo.
+- Las respuestas de login deben incluir `yonkeGuidId` (yonke) y el
+  identificador del usuario en el token (`sub`/`nameid`) para perfil,
+  cobertura, notificaciones y remitente de mensajes.
+- `Yonkes/ActualizarLogo` se envía como multipart con `GuidId` + `LogoUrl`.
+
 ## Consistencia del dominio
 
 - Unificar `Yonke`, `Yunke` y `Yonkes` en nombres de rutas y DTO.

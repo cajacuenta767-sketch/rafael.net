@@ -4,18 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/api_providers.dart';
 
-/// Protege las secciones privadas del yonke sin convertir el modo de prueba
-/// en una sesión real. El modo de prueba sólo entra cuando se recibió de forma
-/// explícita desde la pantalla de acceso.
+/// Protege las secciones privadas del yonke: sin token guardado redirige al
+/// inicio de sesión.
 class YonkeSessionGate extends ConsumerStatefulWidget {
-  const YonkeSessionGate({
-    super.key,
-    required this.builder,
-    required this.isDemoSession,
-  });
+  const YonkeSessionGate({super.key, required this.builder});
 
   final WidgetBuilder builder;
-  final bool isDemoSession;
 
   @override
   ConsumerState<YonkeSessionGate> createState() => _YonkeSessionGateState();
@@ -32,7 +26,6 @@ class _YonkeSessionGateState extends ConsumerState<YonkeSessionGate> {
   }
 
   Future<bool> _hasSession() async {
-    if (widget.isDemoSession) return true;
     final token = await ref.read(tokenStoreProvider).readAccessToken();
     return token?.isNotEmpty == true;
   }

@@ -1,32 +1,36 @@
 import '../../../core/storage/token_store.dart';
+import '../../yonkes/data/yonkes_api.dart';
 import '../domain/yonke_profile.dart';
 
 abstract interface class YonkeProfileRepository {
   Future<YonkeProfileSnapshot> load();
 }
 
-/// El contrato actual ofrece operaciones por id de yonke, pero el inicio de
-/// sesión aún no documenta cómo obtener ese id ni el perfil autenticado.
-/// Por seguridad, no se consulta ni actualiza un perfil adivinando su id.
-class LocalYonkeProfileRepository implements YonkeProfileRepository {
-  const LocalYonkeProfileRepository({
-    required this.tokenStore,
-    required this.isDemoSession,
-  });
+/// Perfil del yonke autenticado con `GET /api/Yonkes/{guidId}`, usando el
+/// `yonkeGuidId` que el login guardó en el almacenamiento seguro. Sin ese
+/// identificador no se consulta el perfil de otro negocio.
+class ApiYonkeProfileRepository implements YonkeProfileRepository {
+  const ApiYonkeProfileRepository(this._yonkesApi, this._tokenStore);
 
-  final TokenStore tokenStore;
-  final bool isDemoSession;
+  final YonkesApi _yonkesApi;
+  final TokenStore _tokenStore;
 
   @override
   Future<YonkeProfileSnapshot> load() async {
-    if (isDemoSession) {
+    final yonkeId = await _tokenStore.readYonkeGuidId();
+    if (yonkeId == null || yonkeId.isEmpty) {
       return const YonkeProfileSnapshot(
-        availability: YonkeProfileAvailability.demo,
+        availability: YonkeProfileAvailability.identityPending,
       );
     }
-    await tokenStore.readAccessToken();
-    return const YonkeProfileSnapshot(
-      availability: YonkeProfileAvailability.contractPending,
+    final response = await _yonkesApi.getById(yonkeId);
+    final profile = yonkeProfileFromResponse(response);
+    if (profile == null) {
+      throw StateError('La respuesta de Yonkes/{guidId} no trae el perfil.');
+    }
+    return YonkeProfileSnapshot(
+      availability: YonkeProfileAvailability.available,
+      profile: profile,
     );
   }
 }
