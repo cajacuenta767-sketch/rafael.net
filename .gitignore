@@ -47,3 +47,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local artifacts
+.chart-data-*/
+.codex/
+.codex-finalizer/
+output/
+swagger.json
