@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
+import '../domain/client_request.dart';
 
 class RequestDetailPage extends ConsumerStatefulWidget {
   const RequestDetailPage({super.key, required this.requestId});
@@ -16,9 +16,8 @@ class RequestDetailPage extends ConsumerStatefulWidget {
 }
 
 class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
-  _RequestDetail? _detail;
+  ClientRequestDetail? _detail;
   bool _loading = true;
-  bool _usingTestData = false;
   String? _error;
 
   @override
@@ -33,24 +32,22 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       _error = null;
     });
 
-    if (AppConfig.enableMockAuth) {
-      setState(() {
-        _detail = _mockRequestDetail(widget.requestId);
-        _usingTestData = true;
-        _loading = false;
-      });
-      return;
-    }
-
     try {
+      final api = ref.read(requestsApiProvider);
       final results = await Future.wait<dynamic>([
-        ref.read(requestsApiProvider).getById(widget.requestId),
-        ref.read(requestsApiProvider).getImages(widget.requestId),
+        api.getById(widget.requestId),
+        // Fotos y ciudades son complementarias: si fallan, el detalle se
+        // muestra igual.
+        _optional(api.getImages(widget.requestId)),
+        _optional(api.getCities(widget.requestId)),
       ]);
       if (!mounted) return;
       setState(() {
-        _detail = _requestDetailFromResponses(results[0], results[1]);
-        _usingTestData = false;
+        _detail = clientRequestDetailFromResponses(
+          requestResponse: results[0],
+          imagesResponse: results[1],
+          citiesResponse: results[2],
+        );
         _loading = false;
       });
     } catch (_) {
@@ -118,30 +115,41 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
         children: [
-          if (_usingTestData) ...[
-            const _TestDetailNotice(),
-            const SizedBox(height: 16),
-          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
-                  detail.part,
+                  detail.summary.part,
                   style: Theme.of(context).textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
-              _StatusChip(status: detail.status),
+              _StatusChip(status: detail.summary.status),
             ],
           ),
           const SizedBox(height: 18),
           _DetailCard(
             title: 'Información de la pieza',
             children: [
-              _DetailRow(label: 'Marca', value: detail.brand),
-              _DetailRow(label: 'Modelo', value: detail.model),
-              _DetailRow(label: 'Año', value: detail.year),
+              _DetailRow(
+                label: 'Marca',
+                value: detail.summary.brand ?? 'Sin información',
+              ),
+              _DetailRow(
+                label: 'Modelo',
+                value: detail.summary.model ?? 'Sin información',
+              ),
+              _DetailRow(
+                label: 'Año',
+                value: detail.summary.year?.toString() ?? 'Sin información',
+              ),
+              if (detail.engine != null)
+                _DetailRow(label: 'Motor', value: detail.engine!),
+              if (detail.transmission != null)
+                _DetailRow(label: 'Transmisión', value: detail.transmission!),
+              if (detail.partNumber != null)
+                _DetailRow(label: 'No. de parte', value: detail.partNumber!),
               if (detail.description != null)
                 _DetailRow(label: 'Descripción', value: detail.description!),
             ],
@@ -180,9 +188,6 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
                   itemCount: detail.imageUrls.length,
                   itemBuilder: (context, index) {
                     final imageUrl = detail.imageUrls[index];
-                    if (imageUrl.startsWith('mock://')) {
-                      return const _MockPhoto();
-                    }
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
@@ -212,7 +217,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '${detail.quoteCount} cotizaciones',
+                      '${detail.summary.quoteCount} cotizaciones',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -220,11 +225,10 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
               ),
               const SizedBox(height: 10),
               OutlinedButton(
-                onPressed: detail.quoteCount > 0
+                onPressed: detail.summary.quoteCount > 0
                     ? () => context.push(
                         AppRoutes.clientRequestQuotes(widget.requestId),
-                        extra:
-                            '${detail.part} ${detail.brand} ${detail.model} ${detail.year}',
+                        extra: detail.summary.title.replaceAll('\n', ' '),
                       )
                     : null,
                 child: const Text('Ver cotizaciones'),
@@ -315,47 +319,6 @@ class _DetailRow extends StatelessWidget {
   );
 }
 
-class _TestDetailNotice extends StatelessWidget {
-  const _TestDetailNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEFF8F0),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.info_outline, color: Color(0xFF147A1D)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text('Detalle de prueba; todavía no proviene de la API.'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _MockPhoto extends StatelessWidget {
-  const _MockPhoto();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFFE9ECEF),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Center(
-      child: Icon(
-        Icons.car_repair_outlined,
-        size: 44,
-        color: Color(0xFF596276),
-      ),
-    ),
-  );
-}
-
 class _ImageError extends StatelessWidget {
   const _ImageError();
 
@@ -404,98 +367,10 @@ class _DetailMessage extends StatelessWidget {
   );
 }
 
-class _RequestDetail {
-  const _RequestDetail({
-    required this.part,
-    required this.brand,
-    required this.model,
-    required this.year,
-    required this.city,
-    required this.status,
-    required this.quoteCount,
-    required this.imageUrls,
-    this.description,
-  });
-
-  final String part;
-  final String brand;
-  final String model;
-  final String year;
-  final String city;
-  final String status;
-  final int quoteCount;
-  final List<String> imageUrls;
-  final String? description;
-}
-
-_RequestDetail? _requestDetailFromResponses(
-  dynamic requestResponse,
-  dynamic imagesResponse,
-) {
-  final raw = requestResponse is Map
-      ? requestResponse['data'] ?? requestResponse
-      : null;
-  if (raw is! Map) return null;
-
-  final imagesData = imagesResponse is Map
-      ? imagesResponse['data']
-      : imagesResponse;
-  final imageRecords = imagesData is List ? imagesData : const <dynamic>[];
-  final imageUrls = imageRecords
-      .whereType<Map>()
-      .map(
-        (image) =>
-            image['url']?.toString() ??
-            image['imagenUrl']?.toString() ??
-            image['ruta']?.toString(),
-      )
-      .whereType<String>()
-      .where((url) => url.startsWith('https://'))
-      .toList();
-
-  return _RequestDetail(
-    part: raw['piezaBuscada']?.toString() ?? 'Pieza sin nombre',
-    brand: raw['marca']?.toString() ?? 'Sin información',
-    model: raw['modelo']?.toString() ?? 'Sin información',
-    year: raw['año']?.toString() ?? 'Sin información',
-    description: raw['descripcion']?.toString(),
-    city: raw['ciudad']?.toString() ?? 'Sin información',
-    status: raw['estatus']?.toString() ?? 'Sin estado',
-    quoteCount: (raw['cotizaciones'] as num?)?.toInt() ?? 0,
-    imageUrls: imageUrls,
-  );
-}
-
-_RequestDetail? _mockRequestDetail(String requestId) {
-  if (requestId == 'mock-request-faro') {
-    return const _RequestDetail(
-      part: 'Faro delantero',
-      brand: 'Toyota',
-      model: 'Corolla',
-      year: '2016',
-      city: 'Hermosillo, Sonora',
-      status: 'En proceso',
-      quoteCount: 1,
-      imageUrls: ['mock://faro'],
-      description: 'Faro delantero derecho en buen estado.',
-    );
+Future<dynamic> _optional(Future<dynamic> request) async {
+  try {
+    return await request;
+  } catch (_) {
+    return null;
   }
-  if (requestId == 'mock-request-alternador') {
-    return const _RequestDetail(
-      part: 'Alternador',
-      brand: 'Nissan',
-      model: 'Sentra',
-      year: '2018',
-      city: 'Nogales, Sonora',
-      status: 'En proceso',
-      quoteCount: 3,
-      imageUrls: [
-        'mock://alternador-1',
-        'mock://alternador-2',
-        'mock://alternador-3',
-      ],
-      description: 'Original o compatible en buen estado.',
-    );
-  }
-  return null;
 }

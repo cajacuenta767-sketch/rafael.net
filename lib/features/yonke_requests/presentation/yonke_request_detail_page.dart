@@ -38,10 +38,7 @@ class _YonkeRequestDetailPageState
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.request?.isDemo == true
-            ? const DemoYonkeRequestDetailRepository()
-            : ref.read(yonkeRequestDetailRepositoryProvider));
+        widget.repository ?? ref.read(yonkeRequestDetailRepositoryProvider);
     _load();
   }
 
@@ -100,19 +97,18 @@ class _YonkeRequestDetailPageState
 
     setState(() => _submitting = true);
     try {
-      await _repository.markUnavailable(detail.requestYonkeId);
+      await _repository.markUnavailable(
+        detail.requestYonkeId,
+        brandId: detail.brandId,
+      );
       if (!mounted) return;
       setState(() {
         _detail = detail.copyWith(status: YonkeRequestStatus.unavailable);
         _submitting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            detail.isDemo
-                ? 'Respuesta de prueba guardada. No se envió a la API.'
-                : 'La solicitud se marcó como no disponible.',
-          ),
+        const SnackBar(
+          content: Text('La solicitud se marcó como no disponible.'),
         ),
       );
     } catch (_) {
@@ -208,10 +204,6 @@ class _YonkeRequestDetailPageState
           28,
         ),
         children: [
-          if (detail.isDemo) ...[
-            const _DemoNotice(),
-            const SizedBox(height: 14),
-          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -341,13 +333,11 @@ class _YonkeRequestDetailPageState
                   minScale: 0.8,
                   maxScale: 4,
                   child: Center(
-                    child: url.startsWith('demo://')
-                        ? const _DemoPhoto(large: true)
-                        : Image.network(
-                            url,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => const _ImageError(),
-                          ),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const _ImageError(),
+                    ),
                   ),
                 ),
               ),
@@ -555,37 +545,14 @@ class _RequestPhoto extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: url.startsWith('demo://')
-            ? const _DemoPhoto()
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) => progress == null
-                    ? child
-                    : const Center(child: CircularProgressIndicator()),
-                errorBuilder: (_, _, _) => const _ImageError(),
-              ),
-      ),
-    ),
-  );
-}
-
-class _DemoPhoto extends StatelessWidget {
-  const _DemoPhoto({this.large = false});
-
-  final bool large;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    constraints: large
-        ? const BoxConstraints(minWidth: 280, minHeight: 280)
-        : null,
-    color: const Color(0xFFE9ECEF),
-    child: Center(
-      child: Icon(
-        Icons.car_repair_outlined,
-        size: large ? 96 : 46,
-        color: const Color(0xFF596276),
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, progress) => progress == null
+              ? child
+              : const Center(child: CircularProgressIndicator()),
+          errorBuilder: (_, _, _) => const _ImageError(),
+        ),
       ),
     ),
   );
@@ -598,30 +565,6 @@ class _ImageError extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     color: const Color(0xFFE9ECEF),
     child: const Center(child: Icon(Icons.broken_image_outlined)),
-  );
-}
-
-class _DemoNotice extends StatelessWidget {
-  const _DemoNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Solicitud de prueba. Sus respuestas no se enviarán al servidor.',
-          ),
-        ),
-      ],
-    ),
   );
 }
 

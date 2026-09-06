@@ -226,46 +226,33 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.yonkeHome,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) => YonkeRequestsPage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeRequestsPage()),
     ),
     GoRoute(
       path: AppRoutes.yonkeQuotes,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) => YonkeQuotesPage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeQuotesPage()),
     ),
     GoRoute(
       path: AppRoutes.yonkeProfile,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) => YonkeProfilePage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeProfilePage()),
     ),
     GoRoute(
       path: AppRoutes.yonkeCoverage,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) => YonkeCoveragePage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeCoveragePage()),
     ),
     GoRoute(
       path: AppRoutes.yonkeNotifications,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) =>
-            YonkeNotificationsPage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeNotificationsPage()),
     ),
     GoRoute(
       path: AppRoutes.yonkeMessages,
-      builder: (context, state) => YonkeSessionGate(
-        isDemoSession: state.extra == true,
-        builder: (_) => YonkeMessagesPage(isDemoSession: state.extra == true),
-      ),
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeMessagesPage()),
     ),
     GoRoute(
       path: '/yonke/mensajes/:quoteId',
@@ -274,7 +261,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final args = state.extra as YonkeConversationArgs;
         return YonkeSessionGate(
-          isDemoSession: args.isDemoSession,
           builder: (_) => YonkeConversationPage(args: args),
         );
       },
@@ -286,11 +272,9 @@ final GoRouter appRouter = GoRouter(
             ? state.extra! as YonkeQuote
             : null;
         return YonkeSessionGate(
-          isDemoSession: quote?.isDemo == true,
           builder: (_) => YonkeQuoteDetailPage(
             quoteId: state.pathParameters['quoteId']!,
             initialQuote: quote,
-            isDemoSession: quote?.isDemo == true,
           ),
         );
       },
@@ -302,7 +286,6 @@ final GoRouter appRouter = GoRouter(
             ? state.extra! as YonkeRequestSummary
             : null;
         return YonkeSessionGate(
-          isDemoSession: request?.isDemo == true,
           builder: (_) => YonkeRequestDetailPage(
             requestYonkeId: state.pathParameters['requestYonkeId']!,
             request: request,
@@ -320,7 +303,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final args = state.extra as YonkeQuotePageArgs;
         return YonkeSessionGate(
-          isDemoSession: args.detail.isDemo,
           builder: (_) => YonkeQuotePage(
             requestYonkeId: state.pathParameters['requestYonkeId']!,
             detail: args.detail,

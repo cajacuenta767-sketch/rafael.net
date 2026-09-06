@@ -201,19 +201,11 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   Future<void> _showPendingWithConsent(String feature) async {
     if (!await _ensureLegalAccepted()) return;
     if (!mounted) return;
-    if (AppConfig.enableMockAuth) {
-      context.go(AppRoutes.clientHome);
-      return;
-    }
     _showPending(feature);
   }
 
   Future<void> _signInWithGoogle() async {
     if (!await _ensureLegalAccepted() || _googleLoading || !mounted) return;
-    if (AppConfig.enableMockAuth) {
-      context.go(AppRoutes.clientHome);
-      return;
-    }
 
     setState(() => _googleLoading = true);
     try {
@@ -238,16 +230,20 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
       if (!result.hasUsableSession) {
         _showMessage(
           result.sessionContractPending
-              ? 'Google validó la cuenta, pero la API aún no publica el token de sesión.'
+              ? 'Google validó la cuenta, pero la respuesta de la API no trae '
+                    'token de sesión. Claves recibidas: ${result.keysSummary}.'
               : 'No fue posible crear una sesión segura con Google.',
         );
         return;
       }
 
-      await ref.read(tokenStoreProvider).writeTokens(
-        accessToken: result.accessToken!,
-        refreshToken: result.refreshToken,
-      );
+      await ref
+          .read(tokenStoreProvider)
+          .writeTokens(
+            accessToken: result.accessToken!,
+            refreshToken: result.refreshToken,
+            expiresAt: result.expiresAt,
+          );
       if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;

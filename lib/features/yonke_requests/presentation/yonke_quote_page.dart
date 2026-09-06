@@ -55,10 +55,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
     super.initState();
     _partNumberController.text = widget.detail.partNumber ?? '';
     _repository =
-        widget.repository ??
-        (widget.detail.isDemo
-            ? const DemoYonkeRequestDetailRepository()
-            : ref.read(yonkeRequestDetailRepositoryProvider));
+        widget.repository ?? ref.read(yonkeRequestDetailRepositoryProvider);
   }
 
   @override
@@ -162,15 +159,9 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
             size: 52,
             color: Color(0xFF14951F),
           ),
-          title: Text(
-            widget.detail.isDemo
-                ? 'Cotización de prueba guardada'
-                : 'Cotización enviada',
-          ),
-          content: Text(
-            widget.detail.isDemo
-                ? 'Este envío solo valida la interfaz y no llegó al servidor.'
-                : 'El cliente ya puede consultar tu precio y condiciones.',
+          title: const Text('Cotización enviada'),
+          content: const Text(
+            'El cliente ya puede consultar tu precio y condiciones.',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -183,7 +174,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
         ),
       );
       if (mounted) {
-        context.go(AppRoutes.yonkeHome, extra: widget.detail.isDemo);
+        context.go(AppRoutes.yonkeHome);
       }
     } catch (_) {
       if (!mounted) return;
@@ -224,10 +215,6 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (widget.detail.isDemo) ...[
-                      const _QuoteDemoNotice(),
-                      const SizedBox(height: 14),
-                    ],
                     Text(
                       widget.detail.part,
                       style: Theme.of(context).textTheme.headlineSmall
@@ -394,11 +381,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(
-                              widget.detail.isDemo
-                                  ? 'Guardar cotización de prueba'
-                                  : 'Enviar cotización',
-                            ),
+                          : const Text('Enviar cotización'),
                     ),
                   ],
                 ),
@@ -538,28 +521,6 @@ class _QuoteImages extends StatelessWidget {
         },
       ),
     ],
-  );
-}
-
-class _QuoteDemoNotice extends StatelessWidget {
-  const _QuoteDemoNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5A00)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text('Modo de prueba: esta cotización no llegará al cliente.'),
-        ),
-      ],
-    ),
   );
 }
 

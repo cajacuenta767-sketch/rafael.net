@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/request_submission_repository.dart';
 import '../domain/request_draft.dart';
@@ -29,10 +28,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (AppConfig.enableMockAuth
-            ? const DemoRequestSubmissionRepository()
-            : ref.read(requestSubmissionRepositoryProvider));
+        widget.repository ?? ref.read(requestSubmissionRepositoryProvider);
   }
 
   Future<void> _submit() async {
@@ -119,10 +115,6 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
         style: Theme.of(context).textTheme.bodyLarge
             ?.copyWith(color: const Color(0xFF30394B)),
       ),
-      if (AppConfig.enableMockAuth) ...[
-        const SizedBox(height: 12),
-        const _DemoNotice(),
-      ],
       const SizedBox(height: 20),
       _ReviewCard(
         title: 'Información de la pieza',
@@ -196,9 +188,7 @@ class _SubmissionSuccess extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  result.isDemo
-                      ? 'Solicitud de prueba enviada'
-                      : 'Solicitud enviada',
+                  'Solicitud enviada',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w900),
@@ -282,19 +272,6 @@ class _SubmissionError extends StatelessWidget {
         ),
       ),
     ),
-  );
-}
-
-class _DemoNotice extends StatelessWidget {
-  const _DemoNotice();
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Text('Solicitud de prueba: no se enviará a yonkes reales.'),
   );
 }
 

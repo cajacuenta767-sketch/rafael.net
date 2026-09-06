@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 void main() {
-  testWidgets('profile identifies demo data and exposes existing modules', (
+  testWidgets('profile shows the pending state and exposes existing modules', (
     tester,
   ) async {
     final store = _MemoryTokenStore(accessToken: 'test-token');
@@ -25,7 +25,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Mi perfil'), findsOneWidget);
-    expect(find.text('Modo de prueba'), findsOneWidget);
+    expect(find.text('Perfil pendiente de la API'), findsOneWidget);
     expect(find.text('Mis solicitudes'), findsOneWidget);
     expect(find.text('Cotizaciones recibidas'), findsOneWidget);
     expect(find.text('Términos y condiciones'), findsOneWidget);
@@ -72,7 +72,6 @@ void main() {
         GoRoute(
           path: '/protegido',
           builder: (context, state) => ClientSessionGate(
-            allowDemoSession: false,
             builder: (_) => const Text('CONTENIDO PROTEGIDO'),
           ),
         ),
@@ -104,7 +103,7 @@ GoRouter _profileRouter(_MemoryTokenStore store) => GoRouter(
       path: '/cliente/perfil',
       builder: (context, state) => ClientProfilePage(
         tokenStore: store,
-        repository: const _DemoProfileRepository(),
+        repository: const _PendingProfileRepository(),
       ),
     ),
     GoRoute(
@@ -131,12 +130,13 @@ GoRouter _profileRouter(_MemoryTokenStore store) => GoRouter(
   ],
 );
 
-class _DemoProfileRepository implements ClientProfileRepository {
-  const _DemoProfileRepository();
+class _PendingProfileRepository implements ClientProfileRepository {
+  const _PendingProfileRepository();
 
   @override
-  Future<ClientProfileSnapshot> load() async =>
-      const ClientProfileSnapshot(availability: ClientProfileAvailability.demo);
+  Future<ClientProfileSnapshot> load() async => const ClientProfileSnapshot(
+    availability: ClientProfileAvailability.unavailable,
+  );
 }
 
 class _MemoryTokenStore implements TokenStore {
@@ -145,10 +145,15 @@ class _MemoryTokenStore implements TokenStore {
   String? accessToken;
   String? refreshToken;
 
+  DateTime? expiresAt;
+  String? yonkeGuidId;
+
   @override
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
+    expiresAt = null;
+    yonkeGuidId = null;
   }
 
   @override
@@ -158,11 +163,21 @@ class _MemoryTokenStore implements TokenStore {
   Future<String?> readRefreshToken() async => refreshToken;
 
   @override
+  Future<DateTime?> readExpiresAt() async => expiresAt;
+
+  @override
+  Future<String?> readYonkeGuidId() async => yonkeGuidId;
+
+  @override
   Future<void> writeTokens({
     required String accessToken,
     String? refreshToken,
+    DateTime? expiresAt,
+    String? yonkeGuidId,
   }) async {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
+    this.expiresAt = expiresAt;
+    this.yonkeGuidId = yonkeGuidId;
   }
 }

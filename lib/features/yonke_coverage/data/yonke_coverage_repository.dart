@@ -8,9 +8,9 @@ abstract interface class YonkeCoverageRepository {
   Future<void> save({required String yonkeId, required Set<int> cityIds});
 }
 
-/// Las llamadas reales se mantienen listas para cuando YonkeAuth entregue el
-/// guid del yonke autenticado. No se adivina ese valor ni se actualiza el
-/// perfil de otro negocio.
+/// Cobertura sobre `YonkesCoberturas/guid/{yonkeGuidId}` y `PUT
+/// /api/YonkesCoberturas`. Requiere el guid del yonke autenticado que entrega
+/// el login; sin él no se consulta ni modifica la cobertura de otro negocio.
 class ApiYonkeCoverageRepository implements YonkeCoverageRepository {
   const ApiYonkeCoverageRepository(this._catalogsApi, this._yonkesApi);
 
@@ -26,8 +26,7 @@ class ApiYonkeCoverageRepository implements YonkeCoverageRepository {
     final coverage = await _yonkesApi.getCoverage(yonkeId);
     return YonkeCoverageSnapshot(
       cities: cities,
-      selectedCityIds: _coverageCityIds(coverage),
-      isDemo: false,
+      selectedCityIds: coverageCityIdsFromResponse(coverage),
     );
   }
 
@@ -46,45 +45,46 @@ class ApiYonkeCoverageRepository implements YonkeCoverageRepository {
         if (stateId is! int) return const <CoverageCity>[];
         final stateName = state['entidad']?.toString() ?? 'Estado';
         final cities = _records(await _catalogsApi.getCitiesByState(stateId));
-        return cities
-            .whereType<Map>()
-            .map((city) {
-              return CoverageCity(
-                id: city['id'] as int,
-                name: city['ciudad']?.toString() ?? 'Ciudad',
-                // El backend actual expone "entidade" en esta respuesta.
-                state: city['entidade']?.toString() ?? stateName,
-              );
-            })
-            .toList(growable: false);
+        return coverageCitiesFromRecords(cities, stateName: stateName);
       }),
     );
     return groups.expand((cities) => cities).toList(growable: false);
   }
 }
 
-class DemoYonkeCoverageRepository implements YonkeCoverageRepository {
-  const DemoYonkeCoverageRepository();
+/// Registros `Ciudades`: `id`, `ciudad` y, si viene incluida, la entidad
+/// anidada en `entidades.entidad`.
+List<CoverageCity> coverageCitiesFromRecords(
+  List<dynamic> records, {
+  required String stateName,
+}) => records
+    .whereType<Map>()
+    .map((city) {
+      final id = city['id'];
+      final name = city['ciudad']?.toString().trim();
+      if (id is! int || name == null || name.isEmpty) return null;
+      final state = city['entidades'];
+      final nestedState = state is Map ? state['entidad']?.toString() : null;
+      return CoverageCity(
+        id: id,
+        name: name,
+        state: nestedState == null || nestedState.isEmpty
+            ? stateName
+            : nestedState,
+      );
+    })
+    .whereType<CoverageCity>()
+    .toList(growable: false);
 
-  @override
-  Future<YonkeCoverageSnapshot> load({required String? yonkeId}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-    return const YonkeCoverageSnapshot(
-      cities: [
-        CoverageCity(id: 1, name: 'Nogales', state: 'Sonora'),
-        CoverageCity(id: 2, name: 'Hermosillo', state: 'Sonora'),
-        CoverageCity(id: 3, name: 'Agua Prieta', state: 'Sonora'),
-        CoverageCity(id: 4, name: 'San Luis Río Colorado', state: 'Sonora'),
-      ],
-      selectedCityIds: {1, 2},
-      isDemo: true,
-    );
-  }
-
-  @override
-  Future<void> save({required String yonkeId, required Set<int> cityIds}) =>
-      Future<void>.delayed(const Duration(milliseconds: 180));
-}
+/// Registros `YonkesCoberturas`: solo las coberturas con `activo` verdadero
+/// (o sin el campo) cuentan como seleccionadas.
+Set<int> coverageCityIdsFromResponse(dynamic response) =>
+    _records(response)
+        .whereType<Map>()
+        .where((item) => item['activo'] != false)
+        .map((item) => item['ciudadId'])
+        .whereType<int>()
+        .toSet();
 
 List<dynamic> _records(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
@@ -94,13 +94,4 @@ List<dynamic> _records(dynamic response) {
     if (items is List) return items;
   }
   return const [];
-}
-
-Set<int> _coverageCityIds(dynamic response) {
-  final records = _records(response);
-  return records
-      .whereType<Map>()
-      .map((item) => item['ciudadId'])
-      .whereType<int>()
-      .toSet();
 }

@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
+import '../domain/client_request.dart';
 
 class MyRequestsPage extends ConsumerStatefulWidget {
   const MyRequestsPage({super.key});
@@ -15,10 +15,9 @@ class MyRequestsPage extends ConsumerStatefulWidget {
 }
 
 class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
-  List<_RequestSummary> _requests = const [];
+  List<ClientRequestSummary> _requests = const [];
   bool _loading = true;
   String? _error;
-  bool _usingTestData = false;
 
   @override
   void initState() {
@@ -31,22 +30,11 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       _loading = true;
       _error = null;
     });
-
-    if (AppConfig.enableMockAuth) {
-      setState(() {
-        _requests = _testRequests;
-        _usingTestData = true;
-        _loading = false;
-      });
-      return;
-    }
-
     try {
       final response = await ref.read(dashboardApiProvider).getMyRequests();
       if (!mounted) return;
       setState(() {
-        _requests = _requestSummariesFromResponse(response);
-        _usingTestData = false;
+        _requests = clientRequestSummariesFromResponse(response);
         _loading = false;
       });
     } catch (_) {
@@ -115,15 +103,10 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       onRefresh: _loadRequests,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-        itemCount: _requests.length + (_usingTestData ? 1 : 0),
+        itemCount: _requests.length,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          if (_usingTestData && index == 0) {
-            return const _TestDataNotice();
-          }
-          final request = _requests[index - (_usingTestData ? 1 : 0)];
-          return _RequestSummaryCard(request: request);
-        },
+        itemBuilder: (context, index) =>
+            _RequestSummaryCard(request: _requests[index]),
       ),
     );
   }
@@ -132,7 +115,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 class _RequestSummaryCard extends StatelessWidget {
   const _RequestSummaryCard({required this.request});
 
-  final _RequestSummary request;
+  final ClientRequestSummary request;
 
   @override
   Widget build(BuildContext context) {
@@ -159,14 +142,11 @@ class _RequestSummaryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                if (request.city != null) ...[
+                if (request.folio != null) ...[
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 17),
-                      const SizedBox(width: 5),
-                      Expanded(child: Text(request.city!)),
-                    ],
+                  Text(
+                    'Folio ${request.folio}',
+                    style: const TextStyle(color: Color(0xFF596276)),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -195,30 +175,6 @@ class _RequestSummaryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TestDataNotice extends StatelessWidget {
-  const _TestDataNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEFF8F0),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.info_outline, color: Color(0xFF147A1D)),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Solicitudes de prueba. Se reemplazarán por tus datos al completar el inicio de sesión real.',
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _MessageState extends StatelessWidget {
@@ -260,72 +216,3 @@ class _MessageState extends StatelessWidget {
     ),
   );
 }
-
-class _RequestSummary {
-  const _RequestSummary({
-    required this.id,
-    required this.title,
-    required this.quoteCount,
-    required this.status,
-    this.city,
-  });
-
-  final String id;
-  final String title;
-  final int quoteCount;
-  final String status;
-  final String? city;
-
-  bool get isInProgress => status.toLowerCase() == 'en proceso';
-}
-
-List<_RequestSummary> _requestSummariesFromResponse(dynamic response) {
-  final data = response is Map ? response['data'] : response;
-  final records = switch (data) {
-    List() => data,
-    Map() when data['items'] is List => data['items'] as List,
-    Map() when data['registros'] is List => data['registros'] as List,
-    _ => const <dynamic>[],
-  };
-
-  return records
-      .whereType<Map>()
-      .map((record) {
-        final title = record['piezaBuscada']?.toString();
-        final brand = record['marca']?.toString();
-        final model = record['modelo']?.toString();
-        final vehicle = [
-          brand,
-          model,
-        ].whereType<String>().where((value) => value.isNotEmpty).join(' ');
-        return _RequestSummary(
-          id: record['guidId']?.toString() ?? record['id']?.toString() ?? '',
-          title: [
-            title,
-            vehicle,
-          ].whereType<String>().where((value) => value.isNotEmpty).join('\n'),
-          quoteCount: (record['cotizaciones'] as num?)?.toInt() ?? 0,
-          status: record['estatus']?.toString() ?? 'Sin estado',
-          city: record['ciudad']?.toString(),
-        );
-      })
-      .where((request) => request.id.isNotEmpty && request.title.isNotEmpty)
-      .toList();
-}
-
-const _testRequests = [
-  _RequestSummary(
-    id: 'mock-request-alternador',
-    title: 'Alternador\nNissan Sentra 2018',
-    quoteCount: 3,
-    status: 'En proceso',
-    city: 'Nogales, Sonora',
-  ),
-  _RequestSummary(
-    id: 'mock-request-faro',
-    title: 'Faro delantero\nToyota Corolla 2016',
-    quoteCount: 1,
-    status: 'En proceso',
-    city: 'Hermosillo, Sonora',
-  ),
-];

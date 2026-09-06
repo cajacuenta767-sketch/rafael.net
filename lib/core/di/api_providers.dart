@@ -20,10 +20,10 @@ import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
 import '../../features/yonke_notifications/data/yonke_notifications_repository.dart';
+import '../../features/yonke_profile/data/yonke_profile_repository.dart';
 import '../../features/messages/data/client_messages_repository.dart';
 import '../../features/yonke_requests/data/yonke_request_detail_repository.dart';
 import '../../features/yonke_requests/data/yonke_requests_repository.dart';
-import '../config/app_config.dart';
 import '../network/api_client.dart';
 import '../network/dio_api_client.dart';
 import '../storage/secure_token_store.dart';
@@ -79,7 +79,10 @@ final yonkeReputationRepositoryProvider = Provider<YonkeReputationRepository>(
   (ref) => ApiYonkeReputationRepository(ref.watch(yonkesApiProvider)),
 );
 final yonkeRequestsRepositoryProvider = Provider<YonkeRequestsRepository>(
-  (ref) => const UnavailableYonkeRequestsRepository(),
+  (ref) => ApiYonkeRequestsRepository(
+    ref.watch(dashboardApiProvider),
+    ref.watch(requestsApiProvider),
+  ),
 );
 final yonkeRequestDetailRepositoryProvider =
     Provider<YonkeRequestDetailRepository>(
@@ -95,7 +98,11 @@ final yonkeQuotesRepositoryProvider = Provider<YonkeQuotesRepository>(
   ),
 );
 final yonkeMessagesRepositoryProvider = Provider<YonkeMessagesRepository>(
-  (ref) => ApiYonkeMessagesRepository(ref.watch(quotesApiProvider)),
+  (ref) => ApiYonkeMessagesRepository(
+    ref.watch(quotesApiProvider),
+    ref.watch(dashboardApiProvider),
+    ref.watch(tokenStoreProvider),
+  ),
 );
 final yonkeCoverageRepositoryProvider = Provider<YonkeCoverageRepository>(
   (ref) => ApiYonkeCoverageRepository(
@@ -103,17 +110,24 @@ final yonkeCoverageRepositoryProvider = Provider<YonkeCoverageRepository>(
     ref.watch(yonkesApiProvider),
   ),
 );
+final yonkeProfileRepositoryProvider = Provider<YonkeProfileRepository>(
+  (ref) => ApiYonkeProfileRepository(
+    ref.watch(yonkesApiProvider),
+    ref.watch(tokenStoreProvider),
+  ),
+);
 final yonkeNotificationsRepositoryProvider =
     Provider<YonkeNotificationsRepository>(
       (ref) => ApiYonkeNotificationsRepository(ref.watch(yonkesApiProvider)),
     );
 final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
-  (ref) => ApiClientMessagesRepository(ref.watch(quotesApiProvider)),
+  (ref) => ApiClientMessagesRepository(
+    ref.watch(quotesApiProvider),
+    ref.watch(tokenStoreProvider),
+  ),
 );
 final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(
-  (ref) => AppConfig.enableMockAuth
-      ? const DemoPartsSearchRepository()
-      : const UnavailablePartsSearchRepository(),
+  (ref) => const UnavailablePartsSearchRepository(),
 );
 final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>(
   (ref) => SecureSearchHistoryRepository(),

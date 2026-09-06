@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/request_draft.dart';
 
@@ -28,7 +27,6 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
   String? _error;
   bool _loadingBrands = true;
   bool _loadingModels = false;
-  bool _usingTestCatalogs = false;
   late final RequestDraft _draft;
 
   @override
@@ -63,24 +61,14 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
       setState(() {
         _brands = brands;
         _loadingBrands = false;
-        _usingTestCatalogs = false;
       });
       if (_brandId != null) await _loadModels(_brandId!, keepModel: true);
     } catch (_) {
       if (!mounted) return;
-      if (AppConfig.enableMockAuth) {
-        setState(() {
-          _brands = _testBrands;
-          _loadingBrands = false;
-          _usingTestCatalogs = true;
-        });
-        if (_brandId != null) await _loadModels(_brandId!, keepModel: true);
-      } else {
-        setState(() {
-          _loadingBrands = false;
-          _error = 'No se pudieron cargar las marcas. Inténtalo nuevamente.';
-        });
-      }
+      setState(() {
+        _loadingBrands = false;
+        _error = 'No se pudieron cargar las marcas. Inténtalo nuevamente.';
+      });
     }
   }
 
@@ -109,20 +97,10 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      if (_usingTestCatalogs) {
-        setState(() {
-          _models = _testModels[brandId] ?? const [];
-          _modelId = _models.any((model) => model.id == previousModelId)
-              ? previousModelId
-              : null;
-          _loadingModels = false;
-        });
-      } else {
-        setState(() {
-          _loadingModels = false;
-          _error = 'No se pudieron cargar los modelos. Inténtalo nuevamente.';
-        });
-      }
+      setState(() {
+        _loadingModels = false;
+        _error = 'No se pudieron cargar los modelos. Inténtalo nuevamente.';
+      });
     }
   }
 
@@ -273,13 +251,6 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
                           hintText: 'Original o compatible en buen estado.',
                         ),
                       ),
-                      if (_usingTestCatalogs) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Marcas y modelos de prueba: el catálogo real se conectará al iniciar sesión con la API.',
-                          style: TextStyle(color: Color(0xFF596276)),
-                        ),
-                      ],
                       if (_error != null) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -342,24 +313,3 @@ List<_CatalogOption> _catalogOptions(dynamic response, String nameKey) {
       .where((item) => item.id >= 0 && item.name.isNotEmpty)
       .toList();
 }
-
-const _testBrands = [
-  _CatalogOption(id: 1, name: 'Nissan'),
-  _CatalogOption(id: 2, name: 'Toyota'),
-  _CatalogOption(id: 3, name: 'Ford'),
-];
-
-const _testModels = <int, List<_CatalogOption>>{
-  1: [
-    _CatalogOption(id: 1, name: 'Sentra'),
-    _CatalogOption(id: 2, name: 'Versa'),
-  ],
-  2: [
-    _CatalogOption(id: 3, name: 'Corolla'),
-    _CatalogOption(id: 4, name: 'Hilux'),
-  ],
-  3: [
-    _CatalogOption(id: 5, name: 'Focus'),
-    _CatalogOption(id: 6, name: 'Ranger'),
-  ],
-};

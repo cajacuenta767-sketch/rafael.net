@@ -1,11 +1,13 @@
+import 'package:app_yonke/features/requests/data/request_submission_repository.dart';
 import 'package:app_yonke/features/requests/domain/request_draft.dart';
+import 'package:app_yonke/features/requests/domain/request_submission.dart';
 import 'package:app_yonke/features/requests/presentation/request_review_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('cliente envía una solicitud de prueba a yonkes con cobertura', (
+  testWidgets('cliente envía una solicitud a yonkes con cobertura', (
     tester,
   ) async {
     final draft = RequestDraft()
@@ -17,10 +19,13 @@ void main() {
       ..year = 2018
       ..cityId = 1
       ..cityName = 'Nogales, Sonora';
+    final repository = _RecordingSubmissionRepository();
 
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(home: RequestReviewPage(draft: draft)),
+        child: MaterialApp(
+          home: RequestReviewPage(draft: draft, repository: repository),
+        ),
       ),
     );
 
@@ -28,10 +33,60 @@ void main() {
     await tester.tap(find.byKey(const Key('submit-client-request')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Solicitud de prueba enviada'), findsOneWidget);
+    expect(repository.submitted.single.part, 'Alternador');
+    expect(find.text('Solicitud enviada'), findsOneWidget);
     expect(
       find.textContaining('yonkes con cobertura en tu ciudad'),
       findsOneWidget,
     );
   });
+
+  testWidgets('explica en qué paso falló el envío', (tester) async {
+    final draft = RequestDraft()
+      ..part = 'Radiador'
+      ..brandId = 1
+      ..modelId = 2
+      ..year = 2020
+      ..cityId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: RequestReviewPage(
+            draft: draft,
+            repository: const _FailingSubmissionRepository(
+              RequestSubmissionStage.dispatch,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('submit-client-request')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('no se pudo enviar a los yonkes de cobertura'),
+      findsOneWidget,
+    );
+  });
+}
+
+class _RecordingSubmissionRepository implements RequestSubmissionRepository {
+  final submitted = <RequestDraft>[];
+
+  @override
+  Future<RequestSubmissionResult> submit(RequestDraft draft) async {
+    submitted.add(draft);
+    return const RequestSubmissionResult(requestId: 'request-created');
+  }
+}
+
+class _FailingSubmissionRepository implements RequestSubmissionRepository {
+  const _FailingSubmissionRepository(this.stage);
+
+  final RequestSubmissionStage stage;
+
+  @override
+  Future<RequestSubmissionResult> submit(RequestDraft draft) =>
+      Future.error(RequestSubmissionException(stage: stage));
 }

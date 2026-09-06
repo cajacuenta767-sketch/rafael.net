@@ -52,7 +52,9 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
   Future<ClientOrder> cancel(ClientOrder order) async {
     final orderId = order.id;
     if (orderId == null || orderId.isEmpty) {
-      throw const ApiException(message: 'La orden no tiene un identificador válido.');
+      throw const ApiException(
+        message: 'La orden no tiene un identificador válido.',
+      );
     }
     final response = await _ordersApi.cancel(orderId);
     final updated = _orderFromResponse(
@@ -67,53 +69,6 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
       canCancel: false,
     );
   }
-}
-
-class DemoClientOrdersRepository implements ClientOrdersRepository {
-  const DemoClientOrdersRepository();
-
-  @override
-  Future<ClientOrderCreationResult> createOrder(String quoteId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    return ClientOrderCreationResult(
-      orderId: 'demo-order-$quoteId',
-      responseContractPending: false,
-    );
-  }
-
-  @override
-  Future<ClientOrder?> getForQuote(String quoteId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 220));
-    // Solo esta cotización representa una orden previa de prueba. Las demás
-    // conservan el recorrido normal de elegir cotización y crear la orden.
-    return quoteId == 'mock-quote-faro' ? _demoOrder(quoteId) : null;
-  }
-
-  @override
-  Future<ClientOrder> getById(String orderId, {String? quoteId}) async {
-    await Future<void>.delayed(const Duration(milliseconds: 220));
-    return _demoOrder(quoteId ?? orderId.replaceFirst('demo-order-', ''));
-  }
-
-  @override
-  Future<ClientOrder> cancel(ClientOrder order) async {
-    await Future<void>.delayed(const Duration(milliseconds: 220));
-    return order.copyWith(
-      status: 'Cancelada',
-      isCancelled: true,
-      canCancel: false,
-    );
-  }
-
-  ClientOrder _demoOrder(String quoteId) => ClientOrder(
-    id: 'demo-order-$quoteId',
-    quoteId: quoteId,
-    status: 'Confirmada',
-    createdAt: DateTime.utc(2026, 9, 4, 12),
-    isCancelled: false,
-    canCancel: true,
-    responseContractPending: false,
-  );
 }
 
 String? _orderIdFromResponse(dynamic response) {
@@ -134,7 +89,8 @@ ClientOrder _orderFromResponse(
 }) {
   final data = response is Map ? response['data'] ?? response : response;
   final json = data is Map ? data : const <dynamic, dynamic>{};
-  final statusValue = json['estatus'] ??
+  final statusValue =
+      json['estatus'] ??
       json['estado'] ??
       json['status'] ??
       json['ordenEstatus'];
@@ -142,10 +98,12 @@ ClientOrder _orderFromResponse(
       ? (statusValue['descripcion'] ?? statusValue['nombre'])?.toString()
       : statusValue?.toString();
   final normalizedStatus = (status ?? '').toLowerCase();
-  final cancelled = json['cancelada'] == true ||
+  final cancelled =
+      json['cancelada'] == true ||
       json['activo'] == false ||
       normalizedStatus.contains('cancel');
-  final completed = normalizedStatus.contains('complet') ||
+  final completed =
+      normalizedStatus.contains('complet') ||
       normalizedStatus.contains('entreg') ||
       normalizedStatus.contains('finaliz');
   final explicitCanCancel = json['puedeCancelar'] ?? json['cancelable'];
@@ -154,15 +112,21 @@ ClientOrder _orderFromResponse(
     id: _orderIdFromResponse(response) ?? fallbackId,
     quoteId: json['cotizacionGuidId']?.toString() ?? quoteId,
     status: status,
-    createdAt: _dateFrom(json['fechaCreacion'] ?? json['creadoEn'] ?? json['fecha']),
+    createdAt: _dateFrom(
+      json['fechaCreacion'] ?? json['creadoEn'] ?? json['fecha'],
+    ),
     isCancelled: cancelled,
     canCancel: explicitCanCancel is bool
         ? explicitCanCancel && !cancelled
-        : !cancelled && !completed && (_orderIdFromResponse(response) ?? fallbackId) != null,
-    responseContractPending: data is! Map ||
+        : !cancelled &&
+              !completed &&
+              (_orderIdFromResponse(response) ?? fallbackId) != null,
+    responseContractPending:
+        data is! Map ||
         _orderIdFromResponse(response) == null ||
         status == null,
   );
 }
 
-DateTime? _dateFrom(dynamic value) => value is String ? DateTime.tryParse(value) : null;
+DateTime? _dateFrom(dynamic value) =>
+    value is String ? DateTime.tryParse(value) : null;

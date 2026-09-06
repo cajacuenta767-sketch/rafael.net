@@ -133,7 +133,9 @@ class ClientLoginController extends ChangeNotifier {
       final result = await authRepository.verifyOtp(phone: phone, code: code);
       if (!result.hasUsableSession) {
         message = result.sessionContractPending
-            ? 'El servidor recibió el código, pero todavía no publica el contrato de sesión.'
+            ? 'El servidor recibió el código, pero la respuesta no cumple el '
+                  'contrato de sesión: no llegó ningún token. '
+                  'Claves recibidas: ${result.keysSummary}.'
             : 'No fue posible crear una sesión segura.';
         return false;
       }
@@ -141,6 +143,7 @@ class ClientLoginController extends ChangeNotifier {
       await sessionStore.writeTokens(
         accessToken: result.accessToken!,
         refreshToken: result.refreshToken,
+        expiresAt: result.expiresAt,
       );
       return true;
     } catch (error) {

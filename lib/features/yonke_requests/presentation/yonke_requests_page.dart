@@ -3,20 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_requests_repository.dart';
 import '../domain/yonke_request_summary.dart';
 import 'yonke_bottom_navigation.dart';
 
 class YonkeRequestsPage extends ConsumerStatefulWidget {
-  const YonkeRequestsPage({
-    super.key,
-    required this.isDemoSession,
-    this.repository,
-  });
+  const YonkeRequestsPage({super.key, this.repository});
 
-  final bool isDemoSession;
   final YonkeRequestsRepository? repository;
 
   @override
@@ -45,10 +39,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.isDemoSession && AppConfig.enableMockAuth
-            ? const DemoYonkeRequestsRepository()
-            : ref.read(yonkeRequestsRepositoryProvider));
+        widget.repository ?? ref.read(yonkeRequestsRepositoryProvider);
     _scrollController.addListener(_handleScroll);
     _load(refresh: true);
   }
@@ -139,11 +130,8 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _YonkeFiltersSheet(
-        initial: _filters,
-        cities: cities,
-        demoMode: _repository.usesDemoData,
-      ),
+      builder: (context) =>
+          _YonkeFiltersSheet(initial: _filters, cities: cities),
     );
     if (selected == null || !mounted) return;
     setState(() => _filters = selected);
@@ -248,10 +236,6 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
                   style: TextStyle(color: Color(0xFF596276)),
                 ),
                 const SizedBox(height: 18),
-                if (_repository.usesDemoData) ...[
-                  const _DemoBanner(),
-                  const SizedBox(height: 16),
-                ],
                 TextField(
                   key: const Key('yonke-requests-search'),
                   controller: _searchController,
@@ -331,7 +315,6 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     bottomNavigationBar: YonkeBottomNavigation(
       onRefresh: () => _load(refresh: true),
       selected: YonkeNavigationSection.requests,
-      isDemoSession: widget.isDemoSession,
     ),
   );
 
@@ -349,7 +332,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         _StateMessage(
           icon: Icons.construction_outlined,
           title: 'Bandeja pendiente de conexión',
-          message: 'La API todavía no documenta cómo consultar las solicitudes asignadas al yonke autenticado.',
+          message: 'La respuesta de la API no trae las solicitudes con la forma SolicitudYonkes que necesita esta bandeja. Se reportó al backend.',
           actionLabel: 'Reintentar',
           onAction: () => _load(refresh: true),
         ),
@@ -434,26 +417,6 @@ class _YonkeWordmark extends StatelessWidget {
         style: Theme.of(context).textTheme.titleLarge
             ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1),
       ),
-    ),
-  );
-}
-
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEDF3FF),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF114EB0)),
-        SizedBox(width: 10),
-        Expanded(child: Text('Solicitudes de prueba. No provienen de la API.')),
-      ],
     ),
   );
 }
@@ -708,15 +671,10 @@ class _ActiveFilters extends StatelessWidget {
 }
 
 class _YonkeFiltersSheet extends StatefulWidget {
-  const _YonkeFiltersSheet({
-    required this.initial,
-    required this.cities,
-    required this.demoMode,
-  });
+  const _YonkeFiltersSheet({required this.initial, required this.cities});
 
   final YonkeRequestFilters initial;
   final List<String> cities;
-  final bool demoMode;
 
   @override
   State<_YonkeFiltersSheet> createState() => _YonkeFiltersSheetState();
@@ -782,11 +740,9 @@ class _YonkeFiltersSheetState extends State<_YonkeFiltersSheet> {
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _filters.city,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Ciudad',
-              helperText: widget.demoMode
-                  ? 'Ciudades de las solicitudes de prueba'
-                  : 'Pendiente del endpoint de bandeja',
+              helperText: 'Ciudades de las solicitudes recibidas',
             ),
             items: widget.cities
                 .map((city) => DropdownMenuItem(value: city, child: Text(city)))

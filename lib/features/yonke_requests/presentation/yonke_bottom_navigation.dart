@@ -10,12 +10,10 @@ class YonkeBottomNavigation extends StatelessWidget {
     super.key,
     required this.onRefresh,
     required this.selected,
-    required this.isDemoSession,
   });
 
   final VoidCallback onRefresh;
   final YonkeNavigationSection selected;
-  final bool isDemoSession;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -32,7 +30,7 @@ class YonkeBottomNavigation extends StatelessWidget {
               selected: selected == YonkeNavigationSection.requests,
               onTap: selected == YonkeNavigationSection.requests
                   ? null
-                  : () => context.go(AppRoutes.yonkeHome, extra: isDemoSession),
+                  : () => context.go(AppRoutes.yonkeHome),
             ),
             _YonkeNavItem(
               icon: Icons.request_quote_outlined,
@@ -40,8 +38,7 @@ class YonkeBottomNavigation extends StatelessWidget {
               selected: selected == YonkeNavigationSection.quotes,
               onTap: selected == YonkeNavigationSection.quotes
                   ? null
-                  : () =>
-                        context.go(AppRoutes.yonkeQuotes, extra: isDemoSession),
+                  : () => context.go(AppRoutes.yonkeQuotes),
             ),
             Expanded(
               child: Semantics(
@@ -74,10 +71,7 @@ class YonkeBottomNavigation extends StatelessWidget {
               selected: selected == YonkeNavigationSection.messages,
               onTap: selected == YonkeNavigationSection.messages
                   ? null
-                  : () => context.go(
-                      AppRoutes.yonkeMessages,
-                      extra: isDemoSession,
-                    ),
+                  : () => context.go(AppRoutes.yonkeMessages),
             ),
             _YonkeNavItem(
               icon: Icons.storefront_outlined,
@@ -85,10 +79,7 @@ class YonkeBottomNavigation extends StatelessWidget {
               selected: selected == YonkeNavigationSection.profile,
               onTap: selected == YonkeNavigationSection.profile
                   ? null
-                  : () => context.go(
-                      AppRoutes.yonkeProfile,
-                      extra: isDemoSession,
-                    ),
+                  : () => context.go(AppRoutes.yonkeProfile),
             ),
           ],
         ),

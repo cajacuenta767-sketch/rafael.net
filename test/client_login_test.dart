@@ -649,10 +649,15 @@ class _MemoryTokenStore implements TokenStore {
   String? accessToken;
   String? refreshToken;
 
+  DateTime? expiresAt;
+  String? yonkeGuidId;
+
   @override
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
+    expiresAt = null;
+    yonkeGuidId = null;
   }
 
   @override
@@ -662,11 +667,21 @@ class _MemoryTokenStore implements TokenStore {
   Future<String?> readRefreshToken() async => refreshToken;
 
   @override
+  Future<DateTime?> readExpiresAt() async => expiresAt;
+
+  @override
+  Future<String?> readYonkeGuidId() async => yonkeGuidId;
+
+  @override
   Future<void> writeTokens({
     required String accessToken,
     String? refreshToken,
+    DateTime? expiresAt,
+    String? yonkeGuidId,
   }) async {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
+    this.expiresAt = expiresAt;
+    this.yonkeGuidId = yonkeGuidId;
   }
 }

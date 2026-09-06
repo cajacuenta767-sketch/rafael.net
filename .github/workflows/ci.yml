@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  analizar-y-probar:
+    name: Análisis y pruebas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Versión del SDK
+        run: flutter --version
+
+      - name: Dependencias
+        run: flutter pub get
+
+      # Informativo: un desajuste de formato no debería frenar la revisión.
+      - name: Formato
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Análisis estático
+        run: flutter analyze
+
+      - name: Pruebas
+        run: flutter test

@@ -1,4 +1,5 @@
 import 'package:app_yonke/features/ratings/data/yonke_reputation_repository.dart';
+import 'package:app_yonke/features/ratings/domain/yonke_reputation.dart';
 import 'package:app_yonke/features/ratings/presentation/yonke_reputation_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,14 +26,16 @@ void main() {
     },
   );
 
-  testWidgets('muestra reputación de prueba del yonke', (tester) async {
+  testWidgets('muestra la reputación que entrega el repositorio', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
           home: Scaffold(
             body: YonkeReputationCard(
-              yonkeId: 'mock-yonke-norte',
-              isDemo: true,
+              yonkeId: 'yonke-norte',
+              repository: _FixedReputationRepository(),
             ),
           ),
         ),
@@ -44,4 +47,18 @@ void main() {
     expect(find.text('3 calificaciones'), findsOneWidget);
     expect(find.textContaining('Buena atención'), findsOneWidget);
   });
+}
+
+class _FixedReputationRepository implements YonkeReputationRepository {
+  const _FixedReputationRepository();
+
+  @override
+  Future<YonkeReputation> getReputation(String yonkeId) async =>
+      const YonkeReputation(
+        records: [
+          YonkeRatingRecord(rating: 5, comment: 'Buena atención y rapidez.'),
+          YonkeRatingRecord(rating: 4, comment: 'Respondieron rápido.'),
+          YonkeRatingRecord(rating: 5),
+        ],
+      );
 }

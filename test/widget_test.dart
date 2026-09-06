@@ -2,21 +2,12 @@ import 'dart:async';
 
 import 'package:app_yonke/app/app.dart';
 import 'package:app_yonke/app/router/app_router.dart';
-import 'package:app_yonke/core/config/app_config.dart';
 import 'package:app_yonke/core/network/api_endpoints.dart';
 import 'package:app_yonke/core/network/api_envelope.dart';
-import 'package:app_yonke/features/auth/presentation/client_login_page.dart';
 import 'package:app_yonke/features/auth/presentation/yonke_login_page.dart';
 import 'package:app_yonke/features/auth/domain/yonke_auth_repository.dart';
-import 'package:app_yonke/features/home/presentation/role_home_page.dart';
 import 'package:app_yonke/features/home/presentation/start_page.dart';
 import 'package:app_yonke/features/quotes/domain/client_quote.dart';
-import 'package:app_yonke/features/quotes/presentation/quote_detail_page.dart';
-import 'package:app_yonke/features/quotes/presentation/request_quotes_page.dart';
-import 'package:app_yonke/features/requests/domain/request_draft.dart';
-import 'package:app_yonke/features/requests/presentation/request_city_page.dart';
-import 'package:app_yonke/features/requests/presentation/my_requests_page.dart';
-import 'package:app_yonke/features/requests/presentation/request_detail_page.dart';
 import 'package:app_yonke/features/search/data/parts_search_repository.dart';
 import 'package:app_yonke/features/search/data/search_history_repository.dart';
 import 'package:app_yonke/features/search/domain/part_search.dart';
@@ -150,7 +141,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.calls, 1);
-    expect(find.textContaining('contrato de sesión del yonke'), findsOneWidget);
+    expect(find.textContaining('no envió token de sesión'), findsOneWidget);
     expect(find.text('Ingreso para yonkes'), findsOneWidget);
   });
 
@@ -209,74 +200,19 @@ void main() {
     expect(find.textContaining('user not found'), findsNothing);
   });
 
-  testWidgets('debug yonke access opens only a marked test session', (
-    tester,
-  ) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    final router = GoRouter(
-      initialLocation: '/login',
-      routes: [
-        GoRoute(path: '/login', builder: (_, _) => const YonkeLoginPage()),
-        GoRoute(
-          path: AppRoutes.yonkeHome,
-          builder: (_, state) => Scaffold(
-            body: Text(state.extra == true ? 'Sesión demo' : 'Sesión real'),
-          ),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          yonkeAuthRepositoryProvider.overrideWithValue(
-            _PendingYonkeAuthRepository(),
-          ),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('yonke-demo-login-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Sesión demo'), findsOneWidget);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('the real app route opens the marked yonke demo inbox', (
-    tester,
-  ) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    appRouter.go(AppRoutes.start);
-    await tester.pumpWidget(const ProviderScope(child: YonkeApp()));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Soy Yonke'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('yonke-demo-login-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Solicitudes recibidas'), findsOneWidget);
-    expect(find.textContaining('Solicitudes de prueba'), findsOneWidget);
-    appRouter.go(AppRoutes.start);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('shows the yonke demo inbox with calculated summaries', (
+  testWidgets('shows the yonke inbox with calculated summaries', (
     tester,
   ) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: true,
-            repository: DemoYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _SampleYonkeRequestsRepository()),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Solicitudes recibidas'), findsOneWidget);
-    expect(find.textContaining('Solicitudes de prueba'), findsOneWidget);
     expect(find.text('3 solicitudes'), findsOneWidget);
     expect(find.text('Alternador'), findsOneWidget);
   });
@@ -287,17 +223,14 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: true,
-            repository: DemoYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _SampleYonkeRequestsRepository()),
         ),
       ),
     );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('yonke-requests-search')),
-      'DEMO-002',
+      'RF-002',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
@@ -313,10 +246,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: true,
-            repository: DemoYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _SampleYonkeRequestsRepository()),
         ),
       ),
     );
@@ -339,10 +269,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: true,
-            repository: DemoYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _SampleYonkeRequestsRepository()),
         ),
       ),
     );
@@ -364,33 +291,29 @@ void main() {
     expect(find.text('Faro delantero'), findsNothing);
   });
 
-  testWidgets('shows the pending endpoint state outside demo mode', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: false,
-            repository: UnavailableYonkeRequestsRepository(),
+  testWidgets(
+    'shows the pending contract state when the inbox shape is unknown',
+    (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: YonkeRequestsPage(
+              repository: _PendingYonkeRequestsRepository(),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Bandeja pendiente de conexión'), findsOneWidget);
-    expect(find.textContaining('Solicitudes de prueba'), findsNothing);
-  });
+      expect(find.text('Bandeja pendiente de conexión'), findsOneWidget);
+    },
+  );
 
   testWidgets('shows an empty assigned requests state', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: false,
-            repository: _EmptyYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _EmptyYonkeRequestsRepository()),
         ),
       ),
     );
@@ -408,10 +331,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeRequestsPage(
-            isDemoSession: false,
-            repository: _ErrorYonkeRequestsRepository(),
-          ),
+          home: YonkeRequestsPage(repository: _ErrorYonkeRequestsRepository()),
         ),
       ),
     );
@@ -430,8 +350,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/inbox',
-          builder: (_, _) =>
-              YonkeRequestsPage(isDemoSession: false, repository: repository),
+          builder: (_, _) => YonkeRequestsPage(repository: repository),
         ),
         GoRoute(
           path: '/yonke/solicitudes/:id',
@@ -453,33 +372,6 @@ void main() {
     expect(repository.markedIds, ['assignment-test']);
     expect(find.text('Detalle Vista'), findsOneWidget);
   });
-
-  testWidgets('mock Google access opens the client home', (tester) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    final router = GoRouter(
-      initialLocation: '/login',
-      routes: [
-        GoRoute(
-          path: '/login',
-          builder: (_, _) => const ClientLoginPage(initialLegalAccepted: true),
-        ),
-        GoRoute(
-          path: AppRoutes.clientHome,
-          builder: (_, _) => const RoleHomePage.client(),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: router)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Continuar con Google'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Hola, cliente'), findsOneWidget);
-  }, skip: !AppConfig.enableMockAuth);
 
   const portraitSizes = <Size>[
     Size(320, 640),
@@ -548,8 +440,7 @@ void main() {
                     textScaler: TextScaler.linear(textScale),
                   ),
                   child: const YonkeRequestsPage(
-                    isDemoSession: true,
-                    repository: DemoYonkeRequestsRepository(),
+                    repository: _SampleYonkeRequestsRepository(),
                   ),
                 ),
               ),
@@ -559,7 +450,6 @@ void main() {
 
           expect(tester.takeException(), isNull);
           expect(find.text('Solicitudes recibidas'), findsOneWidget);
-          expect(find.textContaining('Solicitudes de prueba'), findsOneWidget);
         },
       );
     }
@@ -626,83 +516,6 @@ void main() {
     expect(result.statusCode, 200);
   });
 
-  testWidgets('requires a city before continuing with a request', (
-    tester,
-  ) async {
-    final draft = RequestDraft();
-    final router = GoRouter(
-      initialLocation: '/city',
-      routes: [
-        GoRoute(
-          path: '/city',
-          builder: (_, _) =>
-              RequestCityPage(draft: draft, useTestCatalogs: true),
-        ),
-        GoRoute(
-          path: AppRoutes.clientRequestReview,
-          builder: (_, _) => const Scaffold(body: Text('Revisión')),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: router)),
-    );
-    await tester.pumpAndSettle();
-
-    final continueButton = find.widgetWithText(FilledButton, 'Continuar');
-    expect(tester.widget<FilledButton>(continueButton).onPressed, isNull);
-
-    await tester.tap(find.text('Nogales, Sonora'));
-    await tester.pump();
-
-    expect(tester.widget<FilledButton>(continueButton).onPressed, isNotNull);
-    await tester.tap(continueButton);
-    await tester.pumpAndSettle();
-    expect(draft.cityId, 1);
-    expect(draft.cityName, 'Nogales, Sonora');
-    expect(find.text('Revisión'), findsOneWidget);
-  });
-
-  testWidgets('shows clearly marked test requests in mock mode', (
-    tester,
-  ) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: MyRequestsPage())),
-    );
-    await tester.pump();
-
-    expect(find.text('Mis solicitudes'), findsOneWidget);
-    expect(find.textContaining('Solicitudes de prueba'), findsOneWidget);
-    expect(find.text('Alternador\nNissan Sentra 2018'), findsOneWidget);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('searches demo parts and marks them as demonstration data', (
-    tester,
-  ) async {
-    final history = MemorySearchHistoryRepository();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [searchHistoryRepositoryProvider.overrideWithValue(history)],
-        child: const MaterialApp(home: PartsSearchPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('parts-search-field')),
-      'Alternador',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-
-    expect(find.text('1 resultados'), findsOneWidget);
-    expect(find.text('Alternador'), findsNWidgets(2));
-    expect(find.textContaining('Datos de demostración'), findsOneWidget);
-    expect(history.entries.single.query, 'Alternador');
-  });
-
   testWidgets('requires a part name before searching', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -720,32 +533,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Escribe el nombre de una refacción.'), findsOneWidget);
-  });
-
-  testWidgets('applies a category filter to the part search', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          searchHistoryRepositoryProvider.overrideWithValue(
-            MemorySearchHistoryRepository(),
-          ),
-        ],
-        child: const MaterialApp(home: PartsSearchPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('open-search-filters')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('category-search-filter')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Eléctrico').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('apply-search-filters')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Filtros (1)'), findsOneWidget);
-    expect(find.widgetWithText(InputChip, 'Eléctrico'), findsOneWidget);
   });
 
   testWidgets('shows and removes a recent search', (tester) async {
@@ -767,90 +554,6 @@ void main() {
 
     expect(find.text('Radiador'), findsNothing);
     expect(history.entries, isEmpty);
-  });
-
-  testWidgets('offers a manual request when no part matches', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          searchHistoryRepositoryProvider.overrideWithValue(
-            MemorySearchHistoryRepository(),
-          ),
-        ],
-        child: const MaterialApp(home: PartsSearchPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('parts-search-field')),
-      'Pieza inexistente',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('No encontramos refacciones con esos datos'),
-      findsOneWidget,
-    );
-    expect(find.text('Crear solicitud'), findsOneWidget);
-  });
-
-  testWidgets('opens a prefilled new request from a search result', (
-    tester,
-  ) async {
-    RequestDraft? receivedDraft;
-    final router = GoRouter(
-      initialLocation: '/search',
-      routes: [
-        GoRoute(path: '/search', builder: (_, _) => const PartsSearchPage()),
-        GoRoute(
-          path: AppRoutes.clientNewRequest,
-          builder: (_, state) {
-            receivedDraft = state.extra! as RequestDraft;
-            return const Scaffold(body: Text('Solicitud precargada'));
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.clientHome,
-          builder: (_, _) => const Scaffold(body: Text('Inicio')),
-        ),
-        GoRoute(
-          path: AppRoutes.clientSearch,
-          builder: (_, _) => const PartsSearchPage(),
-        ),
-        GoRoute(
-          path: AppRoutes.clientRequests,
-          builder: (_, _) => const Scaffold(body: Text('Solicitudes')),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          searchHistoryRepositoryProvider.overrideWithValue(
-            MemorySearchHistoryRepository(),
-          ),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('parts-search-field')),
-      'Alternador',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Solicitar cotización'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Solicitud precargada'), findsOneWidget);
-    expect(receivedDraft?.part, 'Alternador');
-    expect(receivedDraft?.brandName, 'Nissan');
-    expect(receivedDraft?.modelName, 'Sentra');
-    expect(receivedDraft?.year, 2018);
   });
 
   testWidgets('shows retry state when search fails', (tester) async {
@@ -923,88 +626,6 @@ void main() {
     }
   }
 
-  testWidgets('shows a request detail in mock mode', (tester) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: RequestDetailPage(requestId: 'mock-request-alternador'),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Detalle de solicitud'), findsOneWidget);
-    expect(find.textContaining('Detalle de prueba'), findsOneWidget);
-    expect(find.text('Alternador'), findsOneWidget);
-    expect(find.text('Nogales, Sonora'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -1200));
-    await tester.pumpAndSettle();
-    expect(find.text('3 cotizaciones'), findsOneWidget);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('shows and compares mock quotes for a request', (tester) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: RequestQuotesPage(
-            requestId: 'mock-request-alternador',
-            requestTitle: 'Alternador Nissan Sentra 2018',
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Cotizaciones recibidas'), findsOneWidget);
-    expect(find.text('Cotizaciones de prueba.'), findsOneWidget);
-    expect(find.text('3 cotizaciones recibidas'), findsOneWidget);
-    expect(find.text('Mejor precio'), findsOneWidget);
-    expect(find.text('\$1700.00'), findsOneWidget);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('shows a mock quote detail without active contact', (
-    tester,
-  ) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: QuoteDetailPage(quoteId: 'mock-quote-norte')),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Detalle de cotización'), findsOneWidget);
-    expect(find.text('Cotización de prueba.'), findsOneWidget);
-    expect(find.text('Yonke de prueba Norte'), findsOneWidget);
-    expect(find.text('\$1700.00'), findsOneWidget);
-    final whatsapp = find.widgetWithText(
-      FilledButton,
-      'Contactar por WhatsApp',
-    );
-    await tester.drag(find.byType(ListView), const Offset(0, -1200));
-    await tester.pumpAndSettle();
-    expect(tester.widget<FilledButton>(whatsapp).onPressed, isNull);
-  }, skip: !AppConfig.enableMockAuth);
-
-  testWidgets('shows order tracking instead of creating a duplicate order', (
-    tester,
-  ) async {
-    expect(AppConfig.enableMockAuth, isTrue);
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: QuoteDetailPage(quoteId: 'mock-quote-faro')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -1200));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('client-open-order-tracking')), findsOneWidget);
-    expect(find.byKey(const Key('client-create-order')), findsNothing);
-  }, skip: !AppConfig.enableMockAuth);
-
   test('parses the documented quote response fields', () {
     final quote = clientQuoteFromResponse({
       'success': true,
@@ -1039,7 +660,7 @@ void main() {
   });
 
   test('parses the documented yonke request detail and safe images', () {
-    final summary = demoYonkeRequests.first;
+    final summary = _sampleYonkeRequests.first;
     final detail = yonkeRequestDetailFromResponses(
       requestResponse: {
         'success': true,
@@ -1076,17 +697,15 @@ void main() {
     expect(detail.imageUrls, ['https://example.com/request.jpg']);
   });
 
-  testWidgets('shows a complete demo request detail for the yonke', (
-    tester,
-  ) async {
-    final summary = demoYonkeRequests.first;
+  testWidgets('shows a complete request detail for the yonke', (tester) async {
+    final summary = _sampleYonkeRequests.first;
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: YonkeRequestDetailPage(
             requestYonkeId: summary.requestYonkeId,
             request: summary,
-            repository: const DemoYonkeRequestDetailRepository(),
+            repository: const _SampleYonkeRequestDetailRepository(),
           ),
         ),
       ),
@@ -1098,7 +717,7 @@ void main() {
     expect(find.text('Información de la pieza'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
-    expect(find.text('Fotografías (4)'), findsOneWidget);
+    expect(find.text('Fotografías (0)'), findsOneWidget);
     expect(find.byKey(const Key('yonke-unavailable-button')), findsOneWidget);
     expect(find.byKey(const Key('yonke-quote-button')), findsOneWidget);
   });
@@ -1197,7 +816,7 @@ void main() {
         tester.view.physicalSize = size;
         addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetPhysicalSize);
-        final summary = demoYonkeRequests.first;
+        final summary = _sampleYonkeRequests.first;
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
@@ -1206,7 +825,7 @@ void main() {
                 child: YonkeRequestDetailPage(
                   requestYonkeId: summary.requestYonkeId,
                   request: summary,
-                  repository: const DemoYonkeRequestDetailRepository(),
+                  repository: const _SampleYonkeRequestDetailRepository(),
                 ),
               ),
             ),
@@ -1245,8 +864,8 @@ void main() {
               'piezaBuscada': 'Alternador',
               'año': 2018,
               'folio': 'RF-100',
-              'marcas': {'nombre': 'Nissan'},
-              'modelos': {'nombre': 'Sentra'},
+              'marcas': {'marca': 'Nissan'},
+              'modelos': {'modelo': 'Sentra'},
             },
           },
           'solicitudCotizacionesImagenes': [
@@ -1265,21 +884,17 @@ void main() {
     expect(result.items.single.imageUrls, ['https://example.com/quote.jpg']);
   });
 
-  testWidgets('shows the yonke demo sent quotes inbox', (tester) async {
+  testWidgets('shows the yonke sent quotes inbox', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeQuotesPage(
-            isDemoSession: true,
-            repository: DemoYonkeQuotesRepository(),
-          ),
+          home: YonkeQuotesPage(repository: _SampleYonkeQuotesRepository()),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Cotizaciones enviadas'), findsOneWidget);
-    expect(find.textContaining('Cotizaciones de prueba'), findsOneWidget);
     expect(find.text('Alternador'), findsOneWidget);
     expect(find.text('3'), findsAtLeastNWidgets(1));
   });
@@ -1288,17 +903,14 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeQuotesPage(
-            isDemoSession: true,
-            repository: DemoYonkeQuotesRepository(),
-          ),
+          home: YonkeQuotesPage(repository: _SampleYonkeQuotesRepository()),
         ),
       ),
     );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('yonke-quotes-search')),
-      'DEMO-003',
+      'RF-003',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
@@ -1311,10 +923,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeQuotesPage(
-            isDemoSession: true,
-            repository: DemoYonkeQuotesRepository(),
-          ),
+          home: YonkeQuotesPage(repository: _SampleYonkeQuotesRepository()),
         ),
       ),
     );
@@ -1335,15 +944,14 @@ void main() {
   testWidgets('shows a safe yonke quote detail with editing blocked', (
     tester,
   ) async {
-    final quote = demoYonkeQuotes.first;
+    final quote = _sampleYonkeQuotes.first;
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: YonkeQuoteDetailPage(
             quoteId: quote.id,
-            isDemoSession: true,
             initialQuote: quote,
-            repository: const DemoYonkeQuotesRepository(),
+            repository: const _SampleYonkeQuotesRepository(),
           ),
         ),
       ),
@@ -1370,10 +978,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: YonkeQuotesPage(
-            isDemoSession: false,
-            repository: _PendingYonkeQuotesRepository(),
-          ),
+          home: YonkeQuotesPage(repository: _PendingYonkeQuotesRepository()),
         ),
       ),
     );
@@ -1397,8 +1002,7 @@ void main() {
               home: MediaQuery(
                 data: MediaQueryData(textScaler: TextScaler.linear(1.3)),
                 child: YonkeQuotesPage(
-                  isDemoSession: true,
-                  repository: DemoYonkeQuotesRepository(),
+                  repository: _SampleYonkeQuotesRepository(),
                 ),
               ),
             ),
@@ -1408,7 +1012,6 @@ void main() {
 
         expect(tester.takeException(), isNull);
         expect(find.text('Cotizaciones enviadas'), findsOneWidget);
-        expect(find.textContaining('Cotizaciones de prueba'), findsOneWidget);
       },
     );
   }
@@ -1430,9 +1033,6 @@ Widget _responsiveHarness(double textScale) {
 
 class _FailingPartsSearchRepository implements PartsSearchRepository {
   const _FailingPartsSearchRepository();
-
-  @override
-  bool get usesDemoData => false;
 
   @override
   Future<List<PartSearchResult>> search(
@@ -1500,9 +1100,6 @@ class _EmptyYonkeRequestsRepository implements YonkeRequestsRepository {
   const _EmptyYonkeRequestsRepository();
 
   @override
-  bool get usesDemoData => false;
-
-  @override
   Future<YonkeRequestsPageResult> getAssignedRequests({
     required int page,
     required int pageSize,
@@ -1518,9 +1115,6 @@ class _TrackingYonkeRequestsRepository implements YonkeRequestsRepository {
   final markedIds = <String>[];
 
   @override
-  bool get usesDemoData => false;
-
-  @override
   Future<YonkeRequestsPageResult> getAssignedRequests({
     required int page,
     required int pageSize,
@@ -1534,7 +1128,6 @@ class _TrackingYonkeRequestsRepository implements YonkeRequestsRepository {
         part: 'Marcha de prueba',
         status: YonkeRequestStatus.newRequest,
         receivedAt: DateTime(2026, 8, 31),
-        isDemo: false,
       ),
     ],
     page: 1,
@@ -1549,9 +1142,6 @@ class _TrackingYonkeRequestsRepository implements YonkeRequestsRepository {
 
 class _ErrorYonkeRequestsRepository implements YonkeRequestsRepository {
   const _ErrorYonkeRequestsRepository();
-
-  @override
-  bool get usesDemoData => false;
 
   @override
   Future<YonkeRequestsPageResult> getAssignedRequests({
@@ -1576,7 +1166,6 @@ class _TrackingYonkeRequestDetailRepository
     part: 'Alternador de prueba',
     status: YonkeRequestStatus.viewed,
     imageUrls: const [],
-    isDemo: false,
     brandId: 4,
     brand: 'Nissan',
     model: 'Sentra',
@@ -1586,9 +1175,6 @@ class _TrackingYonkeRequestDetailRepository
   );
 
   @override
-  bool get usesDemoData => false;
-
-  @override
   Future<YonkeRequestDetail> getDetail({
     required String requestId,
     required String requestYonkeId,
@@ -1596,7 +1182,7 @@ class _TrackingYonkeRequestDetailRepository
   }) async => detail;
 
   @override
-  Future<void> markUnavailable(String requestYonkeId) async {
+  Future<void> markUnavailable(String requestYonkeId, {int? brandId}) async {
     unavailableIds.add(requestYonkeId);
   }
 
@@ -1616,7 +1202,6 @@ YonkeRequestSummary _summaryForDetail(YonkeRequestDetail detail) =>
       part: detail.part,
       status: detail.status,
       receivedAt: detail.receivedAt ?? DateTime(2026, 8, 31),
-      isDemo: detail.isDemo,
       brand: detail.brand,
       model: detail.model,
       year: detail.year,
@@ -1625,9 +1210,6 @@ YonkeRequestSummary _summaryForDetail(YonkeRequestDetail detail) =>
 
 class _PendingYonkeQuotesRepository implements YonkeQuotesRepository {
   const _PendingYonkeQuotesRepository();
-
-  @override
-  bool get usesDemoData => false;
 
   @override
   Future<YonkeQuotesPageResult> getMyQuotes({
@@ -1641,3 +1223,257 @@ class _PendingYonkeQuotesRepository implements YonkeQuotesRepository {
   Future<YonkeQuote> getById(String quoteId) =>
       Future.error(const YonkeQuoteNotFoundException());
 }
+
+/// Solicitudes de muestra con la forma que produce el parser de la bandeja.
+final _sampleYonkeRequests = <YonkeRequestSummary>[
+  YonkeRequestSummary(
+    requestId: 'request-alternador',
+    requestYonkeId: 'assignment-alternador',
+    part: 'Alternador',
+    status: YonkeRequestStatus.newRequest,
+    receivedAt: DateTime(2026, 8, 31, 9, 20),
+    brand: 'Nissan',
+    model: 'Sentra',
+    year: 2018,
+    city: 'Nogales, Sonora',
+    folio: 'RF-001',
+    photoCount: 4,
+  ),
+  YonkeRequestSummary(
+    requestId: 'request-faro',
+    requestYonkeId: 'assignment-faro',
+    part: 'Faro delantero',
+    status: YonkeRequestStatus.viewed,
+    receivedAt: DateTime(2026, 8, 30, 17, 45),
+    brand: 'Toyota',
+    model: 'Corolla',
+    year: 2016,
+    city: 'Hermosillo, Sonora',
+    folio: 'RF-002',
+    photoCount: 2,
+  ),
+  YonkeRequestSummary(
+    requestId: 'request-transmision',
+    requestYonkeId: 'assignment-transmision',
+    part: 'Transmisión automática',
+    status: YonkeRequestStatus.quoted,
+    receivedAt: DateTime(2026, 8, 29, 14, 10),
+    brand: 'Ford',
+    model: 'Ranger',
+    year: 2020,
+    city: 'Agua Prieta, Sonora',
+    folio: 'RF-003',
+    photoCount: 3,
+    hasQuote: true,
+  ),
+];
+
+class _SampleYonkeRequestsRepository implements YonkeRequestsRepository {
+  const _SampleYonkeRequestsRepository();
+
+  @override
+  Future<YonkeRequestsPageResult> getAssignedRequests({
+    required int page,
+    required int pageSize,
+    String? search,
+    YonkeRequestFilters filters = const YonkeRequestFilters(),
+  }) async {
+    final query = _normalize(search ?? '');
+    final items = _sampleYonkeRequests.where((item) {
+      final searchable = _normalize(
+        [
+          item.part,
+          item.brand,
+          item.model,
+          item.year,
+          item.folio,
+          item.city,
+        ].whereType<Object>().join(' '),
+      );
+      return (query.isEmpty || searchable.contains(query)) &&
+          (filters.status == null || item.status == filters.status) &&
+          (filters.city == null || item.city == filters.city);
+    }).toList();
+    return YonkeRequestsPageResult(items: items, page: 1, hasMore: false);
+  }
+
+  @override
+  Future<void> markAsViewed(String requestYonkeId) async {}
+}
+
+class _PendingYonkeRequestsRepository implements YonkeRequestsRepository {
+  const _PendingYonkeRequestsRepository();
+
+  @override
+  Future<YonkeRequestsPageResult> getAssignedRequests({
+    required int page,
+    required int pageSize,
+    String? search,
+    YonkeRequestFilters filters = const YonkeRequestFilters(),
+  }) => Future.error(const AssignedRequestsEndpointPendingException());
+
+  @override
+  Future<void> markAsViewed(String requestYonkeId) async {}
+}
+
+class _SampleYonkeRequestDetailRepository
+    implements YonkeRequestDetailRepository {
+  const _SampleYonkeRequestDetailRepository();
+
+  @override
+  Future<YonkeRequestDetail> getDetail({
+    required String requestId,
+    required String requestYonkeId,
+    YonkeRequestSummary? summary,
+  }) async {
+    final source =
+        summary ??
+        _sampleYonkeRequests.firstWhere((item) => item.requestId == requestId);
+    return YonkeRequestDetail(
+      requestId: source.requestId,
+      requestYonkeId: source.requestYonkeId,
+      part: source.part,
+      status: source.status,
+      imageUrls: const [],
+      brandId: 1,
+      brand: source.brand,
+      model: source.model,
+      year: source.year,
+      engine: '2.0 L',
+      transmission: 'Automática',
+      partNumber: '23100-3SH1A',
+      description: 'Original o compatible, funcionando y en buen estado.',
+      folio: source.folio,
+      city: source.city,
+      receivedAt: source.receivedAt,
+    );
+  }
+
+  @override
+  Future<void> markUnavailable(String requestYonkeId, {int? brandId}) async {}
+
+  @override
+  Future<void> submitQuote(
+    String requestYonkeId,
+    YonkeQuoteSubmission submission,
+  ) async {}
+}
+
+/// Cotizaciones de muestra con la forma que produce `yonkeQuoteFromJson`.
+final _sampleYonkeQuotes = <YonkeQuote>[
+  YonkeQuote(
+    id: 'quote-alternador',
+    requestYonkeId: 'assignment-alternador',
+    requestId: 'request-alternador',
+    part: 'Alternador',
+    price: 1850,
+    available: true,
+    isNew: false,
+    hasWarranty: true,
+    warrantyDays: 30,
+    shippingAvailable: true,
+    shippingCost: 120,
+    active: true,
+    status: YonkeQuoteStatus.viewed,
+    createdAt: DateTime(2026, 8, 31, 11, 25),
+    imageUrls: const [],
+    brand: 'Nissan',
+    model: 'Sentra',
+    year: 2018,
+    folio: 'RF-001',
+    partNumber: '23100-3SH1A',
+    comments: 'Pieza original usada, probada y en buen estado.',
+    deliveryDays: 2,
+  ),
+  YonkeQuote(
+    id: 'quote-faro',
+    requestYonkeId: 'assignment-faro',
+    requestId: 'request-faro',
+    part: 'Faro delantero',
+    price: 950,
+    available: true,
+    isNew: false,
+    hasWarranty: true,
+    warrantyDays: 15,
+    shippingAvailable: false,
+    active: true,
+    status: YonkeQuoteStatus.sent,
+    createdAt: DateTime(2026, 8, 30, 18, 10),
+    imageUrls: const [],
+    brand: 'Toyota',
+    model: 'Corolla',
+    year: 2016,
+    folio: 'RF-002',
+    comments: 'Faro usado completo, sin roturas.',
+  ),
+  YonkeQuote(
+    id: 'quote-transmision',
+    requestYonkeId: 'assignment-transmision',
+    requestId: 'request-transmision',
+    part: 'Transmisión automática',
+    price: 14500,
+    available: true,
+    isNew: false,
+    hasWarranty: true,
+    warrantyDays: 60,
+    shippingAvailable: true,
+    shippingCost: 850,
+    active: true,
+    status: YonkeQuoteStatus.accepted,
+    createdAt: DateTime(2026, 8, 29, 15, 45),
+    imageUrls: const [],
+    brand: 'Ford',
+    model: 'Ranger',
+    year: 2020,
+    folio: 'RF-003',
+    comments: 'Transmisión probada con garantía.',
+    deliveryDays: 3,
+  ),
+];
+
+class _SampleYonkeQuotesRepository implements YonkeQuotesRepository {
+  const _SampleYonkeQuotesRepository();
+
+  @override
+  Future<YonkeQuotesPageResult> getMyQuotes({
+    required int page,
+    required int pageSize,
+    String? search,
+    YonkeQuoteFilters filters = const YonkeQuoteFilters(),
+  }) async {
+    final query = _normalize(search ?? '');
+    final items = _sampleYonkeQuotes.where((quote) {
+      final searchable = _normalize(
+        [
+          quote.part,
+          quote.brand,
+          quote.model,
+          quote.year,
+          quote.folio,
+          quote.partNumber,
+        ].whereType<Object>().join(' '),
+      );
+      return (query.isEmpty || searchable.contains(query)) &&
+          (filters.status == null || quote.status == filters.status) &&
+          (filters.onlyAvailable == null ||
+              quote.available == filters.onlyAvailable);
+    }).toList();
+    return YonkeQuotesPageResult(items: items, page: 1, hasMore: false);
+  }
+
+  @override
+  Future<YonkeQuote> getById(String quoteId) async =>
+      _sampleYonkeQuotes.firstWhere(
+        (quote) => quote.id == quoteId,
+        orElse: () => throw const YonkeQuoteNotFoundException(),
+      );
+}
+
+String _normalize(String value) => value
+    .trim()
+    .toLowerCase()
+    .replaceAll(RegExp(r'[áàä]'), 'a')
+    .replaceAll(RegExp(r'[éèë]'), 'e')
+    .replaceAll(RegExp(r'[íìï]'), 'i')
+    .replaceAll(RegExp(r'[óòö]'), 'o')
+    .replaceAll(RegExp(r'[úùü]'), 'u');

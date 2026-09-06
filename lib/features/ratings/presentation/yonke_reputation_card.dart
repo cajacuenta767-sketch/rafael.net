@@ -9,12 +9,10 @@ class YonkeReputationCard extends ConsumerStatefulWidget {
   const YonkeReputationCard({
     super.key,
     required this.yonkeId,
-    required this.isDemo,
     this.repository,
   });
 
   final String yonkeId;
-  final bool isDemo;
   final YonkeReputationRepository? repository;
 
   @override
@@ -32,10 +30,7 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.isDemo
-            ? const DemoYonkeReputationRepository()
-            : ref.read(yonkeReputationRepositoryProvider));
+        widget.repository ?? ref.read(yonkeReputationRepositoryProvider);
     _load();
   }
 

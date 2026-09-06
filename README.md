@@ -5,9 +5,14 @@ yonke de la API Refanet.
 
 ## Estado
 
-La infraestructura, navegación y módulos HTTP están preparados. La API aún está
-en desarrollo, por lo que las respuestas permanecen flexibles hasta que el
-contrato OpenAPI defina modelos y errores estables.
+Todas las pantallas consumen la API publicada; no hay modo demo ni datos de
+ejemplo. El contrato revisado está en `docs/openapi_v1.json` y los endpoints
+que usa cada pantalla, con las claves que la app lee, en
+`docs/API_INTEGRATION.md`. Para comprobar el servidor desde tu máquina:
+
+```shell
+dart run tool/api_probe.dart --token=<jwt>
+```
 
 ## Ejecutar
 

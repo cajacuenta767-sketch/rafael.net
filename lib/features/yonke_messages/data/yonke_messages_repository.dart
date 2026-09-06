@@ -1,39 +1,105 @@
+import '../../../core/storage/token_store.dart';
+import '../../auth/domain/current_user.dart';
+import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quotes_api.dart';
-import '../../yonke_quotes/data/yonke_quotes_repository.dart';
+import '../../quotes/domain/quote_message.dart';
+import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../domain/yonke_message.dart';
 
 abstract interface class YonkeMessagesRepository {
-  bool get usesDemoData;
-
   Future<List<YonkeMessagePreview>> getInbox();
 
-  Future<YonkeConversationResult> getConversation(String quoteId);
+  Future<List<YonkeQuoteMessage>> getConversation(String quoteId);
 
   Future<void> sendMessage({required String quoteId, required String message});
 }
 
-/// La API expone conversaciones por cotización, pero no una bandeja global ni
-/// el esquema de sus respuestas. Se conserva la operación de envío confirmada
-/// y se evita convertir JSON desconocido en mensajes que podrían ser erróneos.
+/// La API no publica una bandeja global de mensajes: se construye a partir
+/// de las cotizaciones del yonke (`DashboardSuscriptores/mis-cotizaciones`)
+/// y la conversación de cada una (`SolicitudCotizacionMensajes/{id}`).
 class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
-  const ApiYonkeMessagesRepository(this._quotesApi);
+  const ApiYonkeMessagesRepository(
+    this._quotesApi,
+    this._dashboardApi,
+    this._tokenStore,
+  );
 
   final QuotesApi _quotesApi;
+  final DashboardApi _dashboardApi;
+  final TokenStore _tokenStore;
+
+  /// Conversaciones consultadas por carga de bandeja, de la más reciente a
+  /// la más antigua, para no disparar una llamada por cada cotización vieja.
+  static const inboxLimit = 20;
 
   @override
-  bool get usesDemoData => false;
+  Future<List<YonkeMessagePreview>> getInbox() async {
+    final page = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes());
+    if (page == null) throw const YonkeMessagesInboxContractPendingException();
+    final quotes = [...page.items]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final viewerUserId = await currentUserIdFrom(_tokenStore);
 
-  @override
-  Future<List<YonkeMessagePreview>> getInbox() async =>
-      throw const YonkeMessagesInboxContractPendingException();
-
-  @override
-  Future<YonkeConversationResult> getConversation(String quoteId) async {
-    await _quotesApi.getConversation(quoteId);
-    return const YonkeConversationResult(
-      messages: [],
-      historyContractPending: true,
+    final previews = await Future.wait(
+      quotes.take(inboxLimit).map((quote) async {
+        List<QuoteMessageRecord> messages;
+        try {
+          messages = quoteMessagesFromResponse(
+            await _quotesApi.getConversation(quote.id),
+          );
+        } catch (_) {
+          messages = const [];
+        }
+        final last = messages.isEmpty ? null : messages.last;
+        final unread = messages
+            .where(
+              (message) =>
+                  !message.read &&
+                  message.isFromClient(
+                    viewerUserId: viewerUserId,
+                    viewerIsClient: false,
+                  ),
+            )
+            .length;
+        return YonkeMessagePreview(
+          quote: quote,
+          clientLabel: quote.folio == null
+              ? 'Cliente'
+              : 'Cliente · ${quote.folio}',
+          lastMessage: last?.text ?? 'Sin mensajes todavía',
+          lastMessageAt: last?.sentAt ?? quote.createdAt,
+          unreadCount: unread,
+        );
+      }),
     );
+    previews.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    return previews;
+  }
+
+  @override
+  Future<List<YonkeQuoteMessage>> getConversation(String quoteId) async {
+    final response = await _quotesApi.getConversation(quoteId);
+    final viewerUserId = await currentUserIdFrom(_tokenStore);
+    final messages = quoteMessagesFromResponse(response)
+        .map(
+          (record) => YonkeQuoteMessage(
+            id: record.id,
+            text: record.text,
+            sentAt: record.sentAt,
+            fromClient: record.isFromClient(
+              viewerUserId: viewerUserId,
+              viewerIsClient: false,
+            ),
+            read: record.read,
+          ),
+        )
+        .toList(growable: false);
+    try {
+      await _quotesApi.markMessagesRead(quoteId);
+    } catch (_) {
+      // El marcado de lectura no bloquea la conversación.
+    }
+    return messages;
   }
 
   @override
@@ -43,78 +109,6 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
   }) => _quotesApi.sendMessage(quoteId: quoteId, message: message);
 }
 
-class DemoYonkeMessagesRepository implements YonkeMessagesRepository {
-  const DemoYonkeMessagesRepository();
-
-  @override
-  bool get usesDemoData => true;
-
-  @override
-  Future<List<YonkeMessagePreview>> getInbox() async {
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-    return _demoPreviews;
-  }
-
-  @override
-  Future<YonkeConversationResult> getConversation(String quoteId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    return YonkeConversationResult(
-      messages: _demoMessages[quoteId] ?? const [],
-      historyContractPending: false,
-    );
-  }
-
-  @override
-  Future<void> sendMessage({
-    required String quoteId,
-    required String message,
-  }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-  }
-}
-
 class YonkeMessagesInboxContractPendingException implements Exception {
   const YonkeMessagesInboxContractPendingException();
 }
-
-final _demoPreviews = <YonkeMessagePreview>[
-  YonkeMessagePreview(
-    quote: demoYonkeQuotes[0],
-    clientLabel: 'Cliente de prueba',
-    lastMessage: '¿La pieza incluye garantía?',
-    lastMessageAt: DateTime(2026, 8, 31, 12, 10),
-    unreadCount: 1,
-  ),
-  YonkeMessagePreview(
-    quote: demoYonkeQuotes[2],
-    clientLabel: 'Cliente de prueba',
-    lastMessage: 'Perfecto, revisaré tu propuesta.',
-    lastMessageAt: DateTime(2026, 8, 30, 17, 20),
-    unreadCount: 0,
-  ),
-];
-
-final _demoMessages = <String, List<YonkeQuoteMessage>>{
-  'demo-quote-alternador': [
-    YonkeQuoteMessage(
-      id: 'demo-message-1',
-      text: 'Hola, ¿la pieza incluye garantía?',
-      sentAt: DateTime(2026, 8, 31, 12, 10),
-      fromClient: true,
-    ),
-    YonkeQuoteMessage(
-      id: 'demo-message-2',
-      text: 'Sí, cuenta con 30 días de garantía.',
-      sentAt: DateTime(2026, 8, 31, 12, 14),
-      fromClient: false,
-    ),
-  ],
-  'demo-quote-transmision': [
-    YonkeQuoteMessage(
-      id: 'demo-message-3',
-      text: 'Perfecto, revisaré tu propuesta.',
-      sentAt: DateTime(2026, 8, 30, 17, 20),
-      fromClient: true,
-    ),
-  ],
-};

@@ -20,9 +20,6 @@ abstract final class AppConfig {
   static bool get enableNetworkLogs =>
       kDebugMode && const bool.fromEnvironment('ENABLE_NETWORK_LOGS');
 
-  static bool get enableMockAuth =>
-      kDebugMode && const bool.fromEnvironment('MOCK_AUTH', defaultValue: true);
-
   static const connectTimeout = Duration(seconds: 20);
   static const receiveTimeout = Duration(seconds: 30);
 }

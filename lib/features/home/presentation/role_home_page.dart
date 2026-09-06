@@ -1,65 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../core/di/api_providers.dart';
+import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
 
-enum AppRole { client, yonke }
-
 class RoleHomePage extends StatelessWidget {
-  const RoleHomePage.client({super.key})
-    : role = AppRole.client,
-      isDemoSession = false;
-  const RoleHomePage.yonke({super.key, this.isDemoSession = false})
-    : role = AppRole.yonke;
-
-  final AppRole role;
-  final bool isDemoSession;
+  const RoleHomePage.client({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    if (role == AppRole.client) return const _ClientHomePage();
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: Text(isDemoSession ? 'Yonke · Modo prueba' : 'Yonke'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.storefront_outlined,
-                size: 64,
-                color: Color(0xFF114EB0),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Módulo del yonke en desarrollo',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              if (isDemoSession) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  'Sesión de prueba: no representa una autenticación real.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF596276)),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const _ClientHomePage();
 }
 
 class _ClientHomePage extends StatefulWidget {
@@ -179,7 +131,7 @@ class _HomeContent extends StatelessWidget {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
-        _RequestCard(onTap: () => context.push(AppRoutes.clientRequests)),
+        const _RecentRequestCard(),
       ],
     );
   }
@@ -362,44 +314,129 @@ void _showAllCategories(
   );
 }
 
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.onTap});
+/// Última solicitud del cliente, desde
+/// `GET /api/DashboardSuscriptores/mi-solicitud-reciente`.
+class _RecentRequestCard extends ConsumerStatefulWidget {
+  const _RecentRequestCard();
 
-  final VoidCallback onTap;
+  @override
+  ConsumerState<_RecentRequestCard> createState() => _RecentRequestCardState();
+}
+
+class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
+  ClientRequestSummary? _request;
+  bool _loading = true;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+    try {
+      final response = await ref.read(dashboardApiProvider).getRecentRequest();
+      if (!mounted) return;
+      setState(() {
+        _request = clientRequestSummaryFromResponse(response);
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final request = _request;
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
+        key: const Key('home-recent-request'),
         borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
+        onTap: request == null
+            ? () => context.push(AppRoutes.clientRequests)
+            : () => context.push(AppRoutes.clientRequestDetail(request.id)),
         child: Padding(
           padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Alternador Nissan\nSentra 2018',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              const Text('3 cotizaciones'),
-              const SizedBox(height: 8),
-              const Row(
-                children: [
-                  Icon(Icons.circle, size: 9, color: Color(0xFF14951F)),
-                  SizedBox(width: 7),
-                  Text('En proceso'),
-                ],
-              ),
-            ],
-          ),
+          child: _loading
+              ? const SizedBox(
+                  height: 48,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _failed
+              ? _RecentRequestMessage(
+                  text: 'No pudimos consultar tu última solicitud.',
+                  actionLabel: 'Reintentar',
+                  onAction: _load,
+                )
+              : request == null
+              ? _RecentRequestMessage(
+                  text: 'Aún no tienes solicitudes.',
+                  actionLabel: 'Crear solicitud',
+                  onAction: () => context.push(AppRoutes.clientNewRequest),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.title,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('${request.quoteCount} cotizaciones'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 9,
+                          color: request.isInProgress
+                              ? const Color(0xFF14951F)
+                              : const Color(0xFF596276),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(request.status),
+                      ],
+                    ),
+                  ],
+                ),
         ),
       ),
     );
   }
+}
+
+class _RecentRequestMessage extends StatelessWidget {
+  const _RecentRequestMessage({
+    required this.text,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String text;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(text, style: const TextStyle(color: Color(0xFF596276))),
+      ),
+      TextButton(onPressed: onAction, child: Text(actionLabel)),
+    ],
+  );
 }

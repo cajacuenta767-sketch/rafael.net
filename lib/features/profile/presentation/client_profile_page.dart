@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/storage/token_store.dart';
 import '../../auth/presentation/legal_document_page.dart';
@@ -31,11 +30,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
     final TokenStore tokenStore =
         widget.tokenStore ?? ref.read(tokenStoreProvider);
     _controller = ClientProfileController(
-      widget.repository ??
-          LocalClientProfileRepository(
-            tokenStore: tokenStore,
-            demoMode: AppConfig.enableMockAuth,
-          ),
+      widget.repository ?? LocalClientProfileRepository(tokenStore: tokenStore),
       tokenStore,
     )..addListener(_refresh);
     _controller.load();
@@ -220,7 +215,6 @@ class _AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final demo = snapshot.availability == ClientProfileAvailability.demo;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -245,7 +239,7 @@ class _AccountCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            demo ? 'Cliente de prueba' : 'Cuenta del cliente',
+            'Cuenta del cliente',
             style: Theme.of(context).textTheme.titleLarge
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
@@ -253,19 +247,17 @@ class _AccountCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: demo ? const Color(0xFFFFF4DD) : const Color(0xFFF2F4F7),
+              color: const Color(0xFFF2F4F7),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              demo ? 'Modo de prueba' : 'Perfil pendiente de la API',
+              'Perfil pendiente de la API',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(height: 14),
           Text(
-            demo
-                ? 'Este acceso permite revisar la aplicación, pero no representa una cuenta autenticada.'
-                : 'La API todavía no publica una operación para consultar o actualizar tus datos personales.',
+            'La API todavía no publica una operación para consultar o actualizar tus datos personales.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFF596276), height: 1.4),
           ),

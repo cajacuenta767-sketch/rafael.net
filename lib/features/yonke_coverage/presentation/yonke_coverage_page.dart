@@ -6,14 +6,10 @@ import '../data/yonke_coverage_repository.dart';
 import '../domain/yonke_coverage.dart';
 
 class YonkeCoveragePage extends ConsumerStatefulWidget {
-  const YonkeCoveragePage({
-    super.key,
-    required this.isDemoSession,
-    this.yonkeId,
-    this.repository,
-  });
+  const YonkeCoveragePage({super.key, this.yonkeId, this.repository});
 
-  final bool isDemoSession;
+  /// Identificador del yonke. Si no se indica, se lee el `yonkeGuidId` que
+  /// guardó el inicio de sesión.
   final String? yonkeId;
   final YonkeCoverageRepository? repository;
 
@@ -29,15 +25,13 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
   bool _saving = false;
   bool _identityPending = false;
   Object? _error;
+  String? _yonkeId;
 
   @override
   void initState() {
     super.initState();
     _repository =
-        widget.repository ??
-        (widget.isDemoSession
-            ? const DemoYonkeCoverageRepository()
-            : ref.read(yonkeCoverageRepositoryProvider));
+        widget.repository ?? ref.read(yonkeCoverageRepositoryProvider);
     _load();
   }
 
@@ -48,7 +42,10 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
       _error = null;
     });
     try {
-      final snapshot = await _repository.load(yonkeId: widget.yonkeId);
+      _yonkeId =
+          widget.yonkeId ??
+          await ref.read(tokenStoreProvider).readYonkeGuidId();
+      final snapshot = await _repository.load(yonkeId: _yonkeId);
       if (!mounted) return;
       setState(() {
         _snapshot = snapshot;
@@ -73,27 +70,19 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
   }
 
   Future<void> _save() async {
+    final yonkeId = _yonkeId;
     if (_saving ||
         _selectedCityIds.isEmpty ||
-        widget.isDemoSession == false && (widget.yonkeId?.isEmpty ?? true)) {
+        yonkeId == null ||
+        yonkeId.isEmpty) {
       return;
     }
     setState(() => _saving = true);
     try {
-      await _repository.save(
-        yonkeId: widget.yonkeId ?? 'demo-yonke',
-        cityIds: _selectedCityIds,
-      );
+      await _repository.save(yonkeId: yonkeId, cityIds: _selectedCityIds);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isDemoSession
-                  ? 'Cobertura de prueba guardada.'
-                  : 'Cobertura guardada.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Cobertura guardada.')));
       }
     } catch (_) {
       if (mounted) {
@@ -146,10 +135,6 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
           children: [
-            if (snapshot.isDemo) ...[
-              const _DemoBanner(),
-              const SizedBox(height: 16),
-            ],
             Text(
               'Define dónde atenderás solicitudes',
               style: Theme.of(context).textTheme.titleLarge
@@ -225,20 +210,6 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
   );
 }
 
-class _DemoBanner extends StatelessWidget {
-  const _DemoBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Text('Cobertura de prueba: los cambios no se publican.'),
-  );
-}
-
 class _IdentityPending extends StatelessWidget {
   const _IdentityPending();
 
@@ -246,7 +217,7 @@ class _IdentityPending extends StatelessWidget {
   Widget build(BuildContext context) => const _StateCard(
     icon: Icons.admin_panel_settings_outlined,
     title: 'Cobertura pendiente de conexión',
-    message: 'La API permite consultar y actualizar coberturas por yonke, pero el inicio de sesión aún no entrega el identificador del yonke autenticado. Por seguridad, no actualizaremos una cobertura sin ese dato.',
+    message: 'La sesión no incluye el identificador del yonke (yonkeGuidId). Vuelve a iniciar sesión para administrar tu cobertura.',
   );
 }
 

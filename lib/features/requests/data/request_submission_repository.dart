@@ -80,20 +80,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       );
     }
 
-    return RequestSubmissionResult(requestId: requestId, isDemo: false);
-  }
-}
-
-class DemoRequestSubmissionRepository implements RequestSubmissionRepository {
-  const DemoRequestSubmissionRepository();
-
-  @override
-  Future<RequestSubmissionResult> submit(RequestDraft draft) async {
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    return const RequestSubmissionResult(
-      requestId: 'demo-request-created',
-      isDemo: true,
-    );
+    return RequestSubmissionResult(requestId: requestId);
   }
 }
 

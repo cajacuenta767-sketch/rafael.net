@@ -3,8 +3,6 @@ import '../../quotes/data/quotes_api.dart';
 import '../domain/yonke_quote.dart';
 
 abstract interface class YonkeQuotesRepository {
-  bool get usesDemoData;
-
   Future<YonkeQuotesPageResult> getMyQuotes({
     required int page,
     required int pageSize,
@@ -20,9 +18,6 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
 
   final DashboardApi _dashboardApi;
   final QuotesApi _quotesApi;
-
-  @override
-  bool get usesDemoData => false;
 
   @override
   Future<YonkeQuotesPageResult> getMyQuotes({
@@ -49,39 +44,6 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     final quote = yonkeQuoteFromResponse(response);
     if (quote == null) throw const YonkeQuoteNotFoundException();
     return quote;
-  }
-}
-
-class DemoYonkeQuotesRepository implements YonkeQuotesRepository {
-  const DemoYonkeQuotesRepository();
-
-  @override
-  bool get usesDemoData => true;
-
-  @override
-  Future<YonkeQuotesPageResult> getMyQuotes({
-    required int page,
-    required int pageSize,
-    String? search,
-    YonkeQuoteFilters filters = const YonkeQuoteFilters(),
-  }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 180));
-    return _filterAndPage(
-      demoYonkeQuotes,
-      page: page,
-      pageSize: pageSize,
-      search: search,
-      filters: filters,
-    );
-  }
-
-  @override
-  Future<YonkeQuote> getById(String quoteId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 160));
-    for (final quote in demoYonkeQuotes) {
-      if (quote.id == quoteId) return quote;
-    }
-    throw const YonkeQuoteNotFoundException();
   }
 }
 
@@ -152,77 +114,3 @@ DateTime _startOfDay(DateTime value) =>
 
 DateTime _endOfDay(DateTime value) =>
     DateTime(value.year, value.month, value.day, 23, 59, 59, 999);
-
-final demoYonkeQuotes = <YonkeQuote>[
-  YonkeQuote(
-    id: 'demo-quote-alternador',
-    requestYonkeId: 'demo-assignment-alternador',
-    requestId: 'demo-request-alternador',
-    part: 'Alternador',
-    price: 1850,
-    available: true,
-    isNew: false,
-    hasWarranty: true,
-    warrantyDays: 30,
-    shippingAvailable: true,
-    shippingCost: 120,
-    active: true,
-    status: YonkeQuoteStatus.viewed,
-    createdAt: DateTime(2026, 8, 31, 11, 25),
-    imageUrls: const ['demo://alternador'],
-    isDemo: true,
-    brand: 'Nissan',
-    model: 'Sentra',
-    year: 2018,
-    folio: 'DEMO-001',
-    partNumber: '23100-3SH1A',
-    comments: 'Pieza original usada, probada y en buen estado.',
-    deliveryDays: 2,
-  ),
-  YonkeQuote(
-    id: 'demo-quote-faro',
-    requestYonkeId: 'demo-assignment-faro',
-    requestId: 'demo-request-faro',
-    part: 'Faro delantero',
-    price: 950,
-    available: true,
-    isNew: false,
-    hasWarranty: true,
-    warrantyDays: 15,
-    shippingAvailable: false,
-    active: true,
-    status: YonkeQuoteStatus.sent,
-    createdAt: DateTime(2026, 8, 30, 18, 10),
-    imageUrls: const [],
-    isDemo: true,
-    brand: 'Toyota',
-    model: 'Corolla',
-    year: 2016,
-    folio: 'DEMO-002',
-    comments: 'Faro usado completo, sin roturas.',
-  ),
-  YonkeQuote(
-    id: 'demo-quote-transmision',
-    requestYonkeId: 'demo-assignment-transmision',
-    requestId: 'demo-request-transmision',
-    part: 'Transmisión automática',
-    price: 14500,
-    available: true,
-    isNew: false,
-    hasWarranty: true,
-    warrantyDays: 60,
-    shippingAvailable: true,
-    shippingCost: 850,
-    active: true,
-    status: YonkeQuoteStatus.accepted,
-    createdAt: DateTime(2026, 8, 29, 15, 45),
-    imageUrls: const ['demo://transmision'],
-    isDemo: true,
-    brand: 'Ford',
-    model: 'Ranger',
-    year: 2020,
-    folio: 'DEMO-003',
-    comments: 'Transmisión probada con garantía.',
-    deliveryDays: 3,
-  ),
-];
