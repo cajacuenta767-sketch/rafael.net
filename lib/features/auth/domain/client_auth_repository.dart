@@ -1,17 +1,62 @@
 import '../data/auth_api.dart';
+import 'session_payload.dart';
 
 class ClientOtpVerification {
   const ClientOtpVerification({
     this.accessToken,
     this.refreshToken,
+    this.expiresAt,
+    this.userId,
     this.sessionContractPending = false,
+    this.availableKeys = const <String>[],
   });
+
+  /// Interpreta la respuesta cruda del login.
+  ///
+  /// [ignoreToken] evita aceptar como sesión un valor que la propia app acaba
+  /// de enviar. En el login de Google el request lleva `idToken`; si el
+  /// servidor lo devolviera tal cual, tomarlo por token de sesión daría una
+  /// sesión falsa que fallaría en el primer endpoint protegido.
+  factory ClientOtpVerification.fromResponse(
+    Object? response, {
+    String? ignoreToken,
+  }) {
+    final payload = SessionResponseParser.parse(response);
+    final token = payload.accessToken;
+    final usable =
+        payload.hasAccessToken &&
+        (ignoreToken == null || token!.trim() != ignoreToken.trim());
+
+    if (!usable) {
+      return ClientOtpVerification(
+        sessionContractPending: true,
+        availableKeys: payload.availableKeys,
+      );
+    }
+
+    return ClientOtpVerification(
+      accessToken: token,
+      refreshToken: payload.refreshToken,
+      expiresAt: payload.expiresAt,
+      userId: payload.userId,
+      availableKeys: payload.availableKeys,
+    );
+  }
 
   final String? accessToken;
   final String? refreshToken;
+  final DateTime? expiresAt;
+  final String? userId;
   final bool sessionContractPending;
 
+  /// Claves que traía la respuesta. Solo para diagnóstico: permite ver el
+  /// nombre real del token la primera vez que se prueba contra el servidor.
+  final List<String> availableKeys;
+
   bool get hasUsableSession => accessToken?.isNotEmpty == true;
+
+  String get keysSummary =>
+      availableKeys.isEmpty ? 'ninguna' : availableKeys.join(', ');
 }
 
 abstract interface class ClientAuthRepository {
@@ -32,11 +77,8 @@ class ApiClientAuthRepository implements ClientAuthRepository {
 
   @override
   Future<ClientOtpVerification> loginWithGoogle(String idToken) async {
-    await _api.loginClientWithGoogle(idToken);
-
-    // El endpoint existe, pero OpenAPI no define todavía el cuerpo de sesión.
-    // No basta con un indicador de éxito: se necesita un access token explícito.
-    return const ClientOtpVerification(sessionContractPending: true);
+    final response = await _api.loginClientWithGoogle(idToken);
+    return ClientOtpVerification.fromResponse(response, ignoreToken: idToken);
   }
 
   @override
@@ -49,10 +91,7 @@ class ApiClientAuthRepository implements ClientAuthRepository {
     required String phone,
     required String code,
   }) async {
-    await _api.verifyOtp(phone: phone, code: code);
-
-    // El OpenAPI actual no define el JSON de respuesta ni el nombre del token.
-    // No se inspeccionan claves supuestas para evitar crear una sesión falsa.
-    return const ClientOtpVerification(sessionContractPending: true);
+    final response = await _api.verifyOtp(phone: phone, code: code);
+    return ClientOtpVerification.fromResponse(response);
   }
 }

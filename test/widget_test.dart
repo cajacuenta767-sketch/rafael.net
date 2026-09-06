@@ -150,7 +150,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.calls, 1);
-    expect(find.textContaining('contrato de sesión del yonke'), findsOneWidget);
+    expect(find.textContaining('no envió token de sesión'), findsOneWidget);
     expect(find.text('Ingreso para yonkes'), findsOneWidget);
   });
 

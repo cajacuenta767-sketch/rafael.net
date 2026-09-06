@@ -75,7 +75,8 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
       if (!result.hasUsableSession) {
         setState(() {
           _message = result.sessionContractPending
-              ? 'La API respondió, pero el contrato de sesión del yonke aún debe confirmarse.'
+              ? 'La API respondió, pero no envió token de sesión. '
+                    'Claves recibidas: ${result.keysSummary}.'
               : 'No fue posible crear una sesión segura para el yonke.';
         });
         return;
@@ -83,6 +84,8 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
       await ref.read(tokenStoreProvider).writeTokens(
         accessToken: result.accessToken!,
         refreshToken: result.refreshToken,
+        expiresAt: result.expiresAt,
+        yonkeGuidId: result.yonkeId,
       );
       if (!mounted) return;
       context.go(AppRoutes.yonkeHome);

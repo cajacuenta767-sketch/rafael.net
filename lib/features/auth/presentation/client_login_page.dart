@@ -238,7 +238,8 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
       if (!result.hasUsableSession) {
         _showMessage(
           result.sessionContractPending
-              ? 'Google validó la cuenta, pero la API aún no publica el token de sesión.'
+              ? 'Google validó la cuenta, pero la respuesta de la API no trae '
+                    'token de sesión. Claves recibidas: ${result.keysSummary}.'
               : 'No fue posible crear una sesión segura con Google.',
         );
         return;
@@ -247,6 +248,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
       await ref.read(tokenStoreProvider).writeTokens(
         accessToken: result.accessToken!,
         refreshToken: result.refreshToken,
+        expiresAt: result.expiresAt,
       );
       if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
