@@ -14,6 +14,19 @@ que usa cada pantalla, con las claves que la app lee, en
 dart run tool/api_probe.dart --token=<jwt>
 ```
 
+Para la prueba total del ciclo (OTP, solicitud, ciudades, imágenes, envío a
+yonkes, alta y login de yonke, cotización, mensajes, orden, checkout de Stripe,
+calificación y limpieza) hay un script que sólo necesita Python 3.8+:
+
+```shell
+python tool/api_full_test.py --phone=+5215512345678 --create-yonke
+python tool/api_full_test.py --help
+```
+
+Imprime cada paso con su estatus HTTP y un diagnóstico, nunca muestra tokens,
+y deja el detalle en `api_full_test_report.json`. Para probarlo sin conexión,
+`tool/api_mock_server.py` simula las 56 rutas del contrato.
+
 ## Ejecutar
 
 ```shell
@@ -36,7 +49,7 @@ GitHub como colaborador:
 3. Selecciona **Add people** e invita la cuenta del contratista.
 4. El contratista debe aceptar la invitación recibida por GitHub.
 
-Repositorio: <https://github.com/ngamez84/refanet_appmobil>
+Repositorio: <https://github.com/cajacuenta767-sketch/rafael.net>
 
 ### 2. Instalar las herramientas necesarias
 
@@ -68,12 +81,12 @@ desarrollador** para que Flutter pueda crear enlaces requeridos por plugins.
 Abre PowerShell en la carpeta donde guardarás el proyecto y ejecuta:
 
 ```powershell
-git clone https://github.com/ngamez84/refanet_appmobil.git
-cd refanet_appmobil
+git clone https://github.com/cajacuenta767-sketch/rafael.net.git
+cd rafael.net
 flutter pub get
 ```
 
-También puedes abrir la carpeta `refanet_appmobil` directamente con Android
+También puedes abrir la carpeta `rafael.net` directamente con Android
 Studio y esperar a que termine la sincronización.
 
 ### 4. Preparar un celular Android

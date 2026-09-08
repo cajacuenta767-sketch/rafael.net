@@ -55,3 +55,4 @@ app.*.map.json
 output/
 swagger.json
 test/failures/
+api_full_test_report.json

@@ -34,3 +34,21 @@ jobs:
 
       - name: Pruebas
         run: flutter test
+
+  prueba-total-api:
+    name: Prueba total de la API (simulador)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Simulador y prueba total
+        run: |
+          python tool/api_mock_server.py 8765 &
+          sleep 1
+          python tool/api_full_test.py --base-url=http://127.0.0.1:8765 \
+            --phone=+5215500000000 --otp=123456 --create-yonke
