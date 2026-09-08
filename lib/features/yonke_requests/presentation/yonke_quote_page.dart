@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
@@ -191,8 +193,9 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
-      backgroundColor: const Color(0xFFFAFBFD),
-      surfaceTintColor: const Color(0xFFFAFBFD),
+      backgroundColor: YonkeColors.primaryNavy,
+      surfaceTintColor: YonkeColors.primaryNavy,
+      foregroundColor: Colors.white,
       centerTitle: true,
       title: const Text('Nueva cotización'),
     ),
@@ -215,16 +218,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      widget.detail.part,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    if (widget.detail.vehicle.isNotEmpty)
-                      Text(
-                        widget.detail.vehicle,
-                        style: const TextStyle(color: Color(0xFF596276)),
-                      ),
+                    _RequestSummary(detail: widget.detail),
                     const SizedBox(height: 20),
                     TextFormField(
                       key: const Key('quote-price-field'),
@@ -371,7 +365,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
                       onPressed: _submitting ? null : _submit,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(54),
-                        backgroundColor: const Color(0xFF14951F),
+                        backgroundColor: YonkeColors.primaryNavy,
                       ),
                       child: _submitting
                           ? const SizedBox.square(
@@ -391,6 +385,92 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
         ),
       ),
     ),
+  );
+}
+
+class _RequestSummary extends StatelessWidget {
+  const _RequestSummary({required this.detail});
+  final YonkeRequestDetail detail;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 84,
+          height: 84,
+          child: detail.imageUrls.isEmpty
+              ? Container(
+                  color: const Color(0xFFF0F6ED),
+                  child: const Icon(
+                    Icons.settings_input_component_outlined,
+                    color: YonkeColors.primaryNavy,
+                    size: 43,
+                  ),
+                )
+              : RefanetImage(
+                  source: detail.imageUrls.first,
+                  fit: BoxFit.cover,
+                  fallback: Container(
+                    color: const Color(0xFFF0F6ED),
+                    child: const Icon(
+                      Icons.settings_input_component_outlined,
+                      color: YonkeColors.primaryNavy,
+                    ),
+                  ),
+                ),
+        ),
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              detail.part,
+              style: const TextStyle(
+                color: YonkeColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (detail.vehicle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                detail.vehicle,
+                style: const TextStyle(color: YonkeColors.textSecondary),
+              ),
+            ],
+            if (detail.city != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 15,
+                    color: YonkeColors.textSecondary,
+                  ),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Text(
+                      detail.city!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: YonkeColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
   );
 }
 

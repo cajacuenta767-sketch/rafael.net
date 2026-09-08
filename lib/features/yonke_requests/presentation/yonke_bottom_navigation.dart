@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/yonke_theme.dart';
 
-enum YonkeNavigationSection { requests, quotes, messages, profile }
+enum YonkeNavigationSection { home, requests, quotes, messages, profile }
 
 class YonkeBottomNavigation extends StatelessWidget {
   const YonkeBottomNavigation({
@@ -17,48 +18,59 @@ class YonkeBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: YonkeColors.primaryNavy,
     child: SafeArea(
       top: false,
       child: SizedBox(
-        height: 72,
+        height: 78,
         child: Row(
           children: [
+            _YonkeNavItem(
+              icon: Icons.home_outlined,
+              label: 'Inicio',
+              selected: selected == YonkeNavigationSection.home,
+              onTap: selected == YonkeNavigationSection.home
+                  ? null
+                  : () => context.go(AppRoutes.yonkeHome),
+            ),
             _YonkeNavItem(
               icon: Icons.inbox_outlined,
               label: 'Solicitudes',
               selected: selected == YonkeNavigationSection.requests,
               onTap: selected == YonkeNavigationSection.requests
                   ? null
-                  : () => context.go(AppRoutes.yonkeHome),
-            ),
-            _YonkeNavItem(
-              icon: Icons.request_quote_outlined,
-              label: 'Cotizaciones',
-              selected: selected == YonkeNavigationSection.quotes,
-              onTap: selected == YonkeNavigationSection.quotes
-                  ? null
-                  : () => context.go(AppRoutes.yonkeQuotes),
+                  : () => context.go(AppRoutes.yonkeRequests),
             ),
             Expanded(
               child: Semantics(
                 button: true,
-                label: 'Actualizar solicitudes',
+                label: 'Abrir centro de cotizaciones',
                 child: Center(
                   child: InkWell(
-                    onTap: onRefresh,
-                    borderRadius: BorderRadius.circular(28),
+                    onTap: () => _showQuoteActions(context),
+                    borderRadius: BorderRadius.circular(31),
                     child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF114EB0),
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFE4E9F1),
+                          width: 2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x45000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: const Icon(
-                        Icons.refresh,
-                        color: Colors.white,
-                        size: 28,
+                        Icons.add,
+                        color: YonkeColors.primaryNavy,
+                        size: 34,
                       ),
                     ),
                   ),
@@ -86,6 +98,71 @@ class YonkeBottomNavigation extends StatelessWidget {
       ),
     ),
   );
+
+  void _showQuoteActions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Centro de cotizaciones',
+                style: TextStyle(
+                  color: YonkeColors.primaryNavy,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFEAF6EA),
+                  child: Icon(
+                    Icons.request_quote_outlined,
+                    color: Color(0xFF28A745),
+                  ),
+                ),
+                title: const Text('Mis cotizaciones'),
+                subtitle: const Text('Consulta las enviadas y aceptadas'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.go(AppRoutes.yonkeQuotes);
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFEDF2F8),
+                  child: Icon(Icons.add_task, color: YonkeColors.primaryNavy),
+                ),
+                title: const Text('Cotizar una solicitud'),
+                subtitle: const Text('Elige primero la pieza que responderás'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.go(AppRoutes.yonkeRequests);
+                },
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  onRefresh();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Actualizar esta pantalla'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _YonkeNavItem extends StatelessWidget {
@@ -115,8 +192,8 @@ class _YonkeNavItem extends StatelessWidget {
             Icon(
               icon,
               color: selected
-                  ? const Color(0xFF114EB0)
-                  : const Color(0xFF48515A),
+                  ? const Color(0xFF65D34E)
+                  : const Color(0xFFD5DCE8),
             ),
             const SizedBox(height: 4),
             Padding(
@@ -126,7 +203,12 @@ class _YonkeNavItem extends StatelessWidget {
                 child: Text(
                   label,
                   maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: selected
+                        ? const Color(0xFF65D34E)
+                        : const Color(0xFFD5DCE8),
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  ),
                 ),
               ),
             ),

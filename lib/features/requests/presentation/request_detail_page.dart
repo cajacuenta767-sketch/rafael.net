@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../domain/client_request.dart';
@@ -26,6 +27,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
   ClientRequestDetail? _detail;
   List<ClientQuote> _quotes = const [];
   bool _loading = true;
+  bool _cancelling = false;
   String? _error;
 
   @override
@@ -95,21 +97,76 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     }
   }
 
-  void _showCancellationInfo() => showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Cancelar solicitud'),
-      content: const Text(
-        'El API requiere un identificador de estatus de cancelación, pero el Swagger no publica ese catálogo. La solicitud no se modificó.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Entendido'),
+  Future<void> _cancelRequest() async {
+    if (_cancelling) return;
+    final notes = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Cancelar solicitud?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Los yonkes dejarán de recibir este pedido. Esta acción no se puede deshacer.',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: notes,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Motivo (opcional)',
+                hintText: 'Por ejemplo: ya encontré la pieza',
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            key: const Key('confirm-cancel-request'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      notes.dispose();
+      return;
+    }
+    setState(() => _cancelling = true);
+    try {
+      await ref
+          .read(requestsApiProvider)
+          .cancel(
+            requestId: widget.requestId,
+            notes: notes.text.trim().isEmpty ? null : notes.text.trim(),
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud cancelada correctamente.')),
+      );
+      context.go(AppRoutes.clientRequests);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo cancelar la solicitud. Intenta de nuevo.'),
+        ),
+      );
+    } finally {
+      notes.dispose();
+      if (mounted) setState(() => _cancelling = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -204,8 +261,8 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
           ),
         ),
         _BottomActions(
-          canCancel: !detail.summary.closed,
-          onCancel: _showCancellationInfo,
+          canCancel: !detail.summary.closed && !_cancelling,
+          onCancel: _cancelRequest,
           onShare: _share,
         ),
       ],
@@ -592,19 +649,10 @@ class _RequestImage extends StatelessWidget {
               color: _greenDark,
               size: 34,
             )
-          : Image.network(
-              url!,
+          : RefanetImage(
+              source: url,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) =>
-                  const Icon(Icons.broken_image_outlined, color: _muted),
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : const Center(
-                      child: CircularProgressIndicator(
-                        color: _greenDark,
-                        strokeWidth: 2,
-                      ),
-                    ),
+              fallback: const Icon(Icons.broken_image_outlined, color: _muted),
             ),
     ),
   );

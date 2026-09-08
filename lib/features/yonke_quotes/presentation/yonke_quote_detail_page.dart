@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../yonke_messages/presentation/yonke_messages_page.dart';
 import '../data/yonke_quotes_repository.dart';
@@ -30,6 +32,7 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
   YonkeQuote? _quote;
   bool _loading = true;
   Object? _error;
+  bool _updating = false;
 
   @override
   void initState() {
@@ -57,6 +60,34 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
         _loading = false;
         _error = error;
       });
+    }
+  }
+
+  Future<void> _editQuote(YonkeQuote quote) async {
+    final payload = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _QuoteEditSheet(quote: quote),
+    );
+    if (payload == null || !mounted) return;
+    setState(() => _updating = true);
+    try {
+      await ref
+          .read(quotesApiProvider)
+          .update(quoteId: quote.id, payload: payload);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cotización actualizada correctamente.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar la cotización.')),
+      );
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 
@@ -204,10 +235,10 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
                   itemCount: quote.imageUrls.length,
                   itemBuilder: (context, index) => ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      quote.imageUrls[index],
+                    child: RefanetImage(
+                      source: quote.imageUrls[index],
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Center(
+                      fallback: const Center(
                         child: Icon(Icons.broken_image_outlined),
                       ),
                     ),
@@ -231,23 +262,177 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
           ),
           const SizedBox(height: 10),
           FilledButton.icon(
-            onPressed: quote.canEdit ? () {} : null,
+            key: const Key('edit-yonke-quote'),
+            onPressed: quote.canEdit && !_updating
+                ? () => _editQuote(quote)
+                : null,
             icon: const Icon(Icons.edit_outlined),
-            label: const Text('Modificar cotización'),
+            label: Text(
+              _updating ? 'Guardando cambios…' : 'Modificar cotización',
+            ),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
+              backgroundColor: YonkeColors.primaryNavy,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'La API permite actualizar por identificador, pero aún no define en qué estados puede modificarse. La edición permanecerá bloqueada hasta confirmar esa regla.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF596276), fontSize: 12),
-          ),
+          if (!quote.canEdit) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Las cotizaciones aceptadas, rechazadas o cerradas ya no pueden modificarse.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _QuoteEditSheet extends StatefulWidget {
+  const _QuoteEditSheet({required this.quote});
+  final YonkeQuote quote;
+
+  @override
+  State<_QuoteEditSheet> createState() => _QuoteEditSheetState();
+}
+
+class _QuoteEditSheetState extends State<_QuoteEditSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final _price = TextEditingController(
+    text: widget.quote.price.toStringAsFixed(2),
+  );
+  late final _warrantyDays = TextEditingController(
+    text: widget.quote.warrantyDays.toString(),
+  );
+  late final _shippingCost = TextEditingController(
+    text: widget.quote.shippingCost?.toStringAsFixed(2) ?? '',
+  );
+  late final _comments = TextEditingController(text: widget.quote.comments);
+  late bool _hasWarranty = widget.quote.hasWarranty;
+  late bool _shipping = widget.quote.shippingAvailable;
+
+  @override
+  void dispose() {
+    _price.dispose();
+    _warrantyDays.dispose();
+    _shippingCost.dispose();
+    _comments.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    Navigator.pop(context, <String, dynamic>{
+      'guidId': widget.quote.id,
+      'solicitudYonkeGuidId': widget.quote.requestYonkeId,
+      'precio': double.parse(_price.text.replaceAll(',', '.')),
+      'disponible': widget.quote.available,
+      'esNueva': widget.quote.isNew,
+      'numeroParte': widget.quote.partNumber,
+      'comentarios': _comments.text.trim(),
+      'tieneGarantia': _hasWarranty,
+      'diasGarantia': _hasWarranty ? int.tryParse(_warrantyDays.text) ?? 0 : 0,
+      'envioDisponible': _shipping,
+      'costoEnvio': _shipping && _shippingCost.text.trim().isNotEmpty
+          ? double.tryParse(_shippingCost.text.replaceAll(',', '.'))
+          : null,
+      'tiempoEntregaDias': widget.quote.deliveryDays,
+      'activo': widget.quote.active,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      22,
+      0,
+      22,
+      MediaQuery.viewInsetsOf(context).bottom + 24,
+    ),
+    child: Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Modificar cotización',
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              key: const Key('edit-quote-price'),
+              controller: _price,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Precio',
+                prefixText: r'$ ',
+              ),
+              validator: (value) {
+                final number = double.tryParse(
+                  (value ?? '').replaceAll(',', '.'),
+                );
+                return number == null || number <= 0
+                    ? 'Escribe un precio válido'
+                    : null;
+              },
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Incluye garantía'),
+              value: _hasWarranty,
+              onChanged: (value) => setState(() => _hasWarranty = value),
+            ),
+            if (_hasWarranty)
+              TextFormField(
+                controller: _warrantyDays,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Días de garantía',
+                ),
+              ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Envío disponible'),
+              value: _shipping,
+              onChanged: (value) => setState(() => _shipping = value),
+            ),
+            if (_shipping)
+              TextFormField(
+                controller: _shippingCost,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Costo de envío (opcional)',
+                  prefixText: r'$ ',
+                ),
+              ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _comments,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Comentarios'),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              key: const Key('save-edited-quote'),
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                backgroundColor: YonkeColors.primaryNavy,
+              ),
+              child: const Text('Guardar cambios'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _DetailCard extends StatelessWidget {

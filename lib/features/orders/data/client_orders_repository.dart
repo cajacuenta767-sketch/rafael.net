@@ -20,7 +20,15 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
   @override
   Future<ClientOrderCreationResult> createOrder(String quoteId) async {
     final response = await _ordersApi.create(quoteId);
-    final orderId = _orderIdFromResponse(response);
+    var orderId = _orderIdFromResponse(response);
+    if (orderId == null) {
+      try {
+        orderId = (await getForQuote(quoteId))?.id;
+      } catch (_) {
+        // Algunas versiones del backend confirman la creación sin devolver
+        // todavía el detalle de la orden.
+      }
+    }
     return ClientOrderCreationResult(
       orderId: orderId,
       responseContractPending: orderId == null,
@@ -31,6 +39,7 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
   Future<ClientOrder?> getForQuote(String quoteId) async {
     try {
       final response = await _ordersApi.getByQuote(quoteId);
+      if (!_hasOrderPayload(response)) return null;
       return _orderFromResponse(response, quoteId: quoteId);
     } on ApiException catch (error) {
       if (error.statusCode == 404) return null;
@@ -69,6 +78,17 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
       canCancel: false,
     );
   }
+}
+
+bool _hasOrderPayload(dynamic response) {
+  if (response == null) return false;
+  final data = response is Map && response.containsKey('data')
+      ? response['data']
+      : response;
+  if (data == null) return false;
+  if (data is List) return data.isNotEmpty;
+  if (data is Map) return data.isNotEmpty && _orderIdFromResponse(data) != null;
+  return data is String && data.trim().isNotEmpty;
 }
 
 String? _orderIdFromResponse(dynamic response) {

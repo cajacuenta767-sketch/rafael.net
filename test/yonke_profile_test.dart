@@ -19,12 +19,19 @@ void main() {
 
     expect(find.text('Perfil del yonke'), findsOneWidget);
     expect(find.text('Yonke Norte'), findsOneWidget);
-    expect(find.text('Perfil de la API'), findsOneWidget);
-    expect(find.text('+52 631 123 4567'), findsOneWidget);
-    expect(find.text('Solicitudes recibidas'), findsOneWidget);
-    expect(find.text('Cotizaciones enviadas'), findsOneWidget);
-    expect(find.text('Ciudades de cobertura'), findsOneWidget);
+    expect(find.text('Información del negocio'), findsOneWidget);
+    expect(find.text('Editar datos y logotipo'), findsOneWidget);
+    expect(find.text('Configuración'), findsOneWidget);
     expect(find.text('Cerrar sesión'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Información del negocio'));
+    await tester.tap(find.text('Información del negocio'));
+    await tester.pumpAndSettle();
+    expect(find.text('Editar negocio'), findsOneWidget);
+    expect(find.byKey(const Key('change-yonke-logo')), findsOneWidget);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('save-yonke-profile')), findsOneWidget);
   });
 
   testWidgets('yonke sign out clears local credentials and returns to login', (

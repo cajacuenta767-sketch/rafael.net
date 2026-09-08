@@ -157,7 +157,25 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
+    imageUrl: _firstSafeImage(images),
   );
+}
+
+String? _firstSafeImage(dynamic images) {
+  if (images is! List) return null;
+  for (final image in images.whereType<Map>()) {
+    final value = _text(image['urlImagen']);
+    if (value == null) continue;
+    if (value.startsWith('asset://assets/')) return value;
+    if (value.startsWith('data:image/') && value.contains(';base64,')) {
+      return value;
+    }
+    final uri = Uri.tryParse(value);
+    if (uri != null && uri.scheme == 'https' && uri.host.isNotEmpty) {
+      return value;
+    }
+  }
+  return null;
 }
 
 String? _cityName(dynamic cities) {

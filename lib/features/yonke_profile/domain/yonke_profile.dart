@@ -71,7 +71,11 @@ YonkeProfile? yonkeProfileFromResponse(dynamic response) {
     postalCode: (data['cp'] as num?)?.toInt(),
     cityId: (data['ciudadId'] as num?)?.toInt(),
     city: city,
-    logoUrl: logo != null && logo.startsWith('https://') ? logo : null,
+    logoUrl:
+        logo != null &&
+            (logo.startsWith('https://') || logo.startsWith('asset://assets/'))
+        ? logo
+        : null,
   );
 }
 

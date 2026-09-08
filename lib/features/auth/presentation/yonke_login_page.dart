@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
+
+const _developmentYonkeToken = 'development-yonke-session';
 
 class YonkeLoginPage extends ConsumerStatefulWidget {
   const YonkeLoginPage({super.key});
@@ -102,6 +105,21 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// Acceso local para revisar el módulo del yonke mientras el backend aún
+  /// no provee una cuenta de pruebas. Este control no se incluye en release.
+  Future<void> _enterDevelopmentSession() async {
+    if (!kDebugMode || _loading) return;
+    await ref
+        .read(tokenStoreProvider)
+        .writeTokens(
+          accessToken: _developmentYonkeToken,
+          yonkeGuidId: 'demo-yonke',
+        );
+    // Evita que el mismo gesto active un control de la siguiente pantalla.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (mounted) context.go(AppRoutes.yonkeHome);
   }
 
   String _messageFor(ApiException error) {
@@ -353,6 +371,28 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        key: const Key('yonke-go-register-button'),
+                        onPressed: _loading
+                            ? null
+                            : () => context.push(AppRoutes.yonkeRegister),
+                        child: const Text('Registra tu Yonke'),
+                      ),
+                      if (kDebugMode) ...[
+                        const SizedBox(height: 10),
+                        TextButton(
+                          key: const Key('development_yonke_login'),
+                          onPressed: _loading ? null : _enterDevelopmentSession,
+                          child: const Text(
+                            'Entrar en modo de prueba',
+                            style: TextStyle(
+                              color: Color(0xFF596276),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

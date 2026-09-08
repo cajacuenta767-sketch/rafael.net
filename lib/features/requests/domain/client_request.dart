@@ -15,6 +15,7 @@ class ClientRequestSummary {
     this.folio,
     this.createdAt,
     this.closed = false,
+    this.imageUrl,
   });
 
   final String id;
@@ -27,6 +28,7 @@ class ClientRequestSummary {
   final String? folio;
   final DateTime? createdAt;
   final bool closed;
+  final String? imageUrl;
 
   String get vehicle => [
     brand,
@@ -88,6 +90,7 @@ ClientRequestSummary? clientRequestSummaryFromJson(Map<dynamic, dynamic> json) {
   final models = json['modelos'];
   final statusRecord = json['solicitudEstatus'];
   final quotes = json['solicitudYonkes'];
+  final images = json['solicitudesImagenes'];
   final closed = json['cerrada'] == true;
   final status =
       _text(json['estatusSolicitud']) ??
@@ -110,6 +113,7 @@ ClientRequestSummary? clientRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     createdAt: DateTime.tryParse(json['fechaCreacion']?.toString() ?? '')
         ?.toLocal(),
     closed: closed,
+    imageUrl: _firstImage(images),
   );
 }
 
@@ -190,8 +194,21 @@ List<dynamic> _records(dynamic response) {
 }
 
 bool _isSafeImageUrl(String value) {
+  if (value.startsWith('asset://assets/')) return true;
+  if (value.startsWith('data:image/') && value.contains(';base64,')) {
+    return true;
+  }
   final uri = Uri.tryParse(value);
   return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+}
+
+String? _firstImage(dynamic images) {
+  if (images is! List) return null;
+  for (final image in images.whereType<Map>()) {
+    final value = _text(image['urlImagen']);
+    if (value != null && _isSafeImageUrl(value)) return value;
+  }
+  return null;
 }
 
 String? _text(dynamic value) {

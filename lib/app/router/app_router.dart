@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/client_login_page.dart';
 import '../../features/auth/presentation/client_session_gate.dart';
 import '../../features/auth/presentation/yonke_login_page.dart';
+import '../../features/auth/presentation/yonke_register_page.dart';
 import '../../features/auth/presentation/yonke_session_gate.dart';
 import '../../features/home/presentation/role_home_page.dart';
 import '../../features/home/presentation/start_page.dart';
@@ -15,6 +16,7 @@ import '../../features/requests/presentation/my_requests_page.dart';
 import '../../features/requests/presentation/request_detail_page.dart';
 import '../../features/quotes/domain/client_quote.dart';
 import '../../features/quotes/presentation/quote_detail_page.dart';
+import '../../features/quotes/presentation/client_quotes_page.dart';
 import '../../features/quotes/presentation/request_quotes_page.dart';
 import '../../features/search/presentation/parts_search_page.dart';
 import '../../features/profile/presentation/client_profile_page.dart';
@@ -25,6 +27,7 @@ import '../../features/yonke_requests/domain/yonke_request_summary.dart';
 import '../../features/yonke_requests/presentation/yonke_quote_page.dart';
 import '../../features/yonke_requests/presentation/yonke_request_detail_page.dart';
 import '../../features/yonke_requests/presentation/yonke_requests_page.dart';
+import '../../features/yonke_home/presentation/yonke_home_page.dart';
 import '../../features/yonke_quotes/domain/yonke_quote.dart';
 import '../../features/yonke_quotes/presentation/yonke_quote_detail_page.dart';
 import '../../features/yonke_quotes/presentation/yonke_quotes_page.dart';
@@ -52,6 +55,7 @@ abstract final class AppRoutes {
   static const clientRequestCity = '/cliente/solicitudes/ciudad';
   static const clientRequestReview = '/cliente/solicitudes/revision';
   static const clientRequests = '/cliente/solicitudes';
+  static const clientQuotes = '/cliente/cotizaciones';
   static String clientRequestDetail(String requestId) =>
       '/cliente/solicitudes/detalle/${Uri.encodeComponent(requestId)}';
   static String clientRequestQuotes(String requestId) =>
@@ -68,7 +72,9 @@ abstract final class AppRoutes {
   static String clientRating(String quoteId) =>
       '/cliente/cotizaciones/${Uri.encodeComponent(quoteId)}/calificacion';
   static const yonkeHome = '/yonke';
+  static const yonkeRequests = '/yonke/solicitudes';
   static const yonkeLogin = '/yonke/login';
+  static const yonkeRegister = '/yonke/registro';
   static const yonkeQuotes = '/yonke/cotizaciones';
   static const yonkeProfile = '/yonke/perfil';
   static const yonkeMessages = '/yonke/mensajes';
@@ -170,6 +176,11 @@ final GoRouter appRouter = GoRouter(
           ClientSessionGate(builder: (_) => const MyRequestsPage()),
     ),
     GoRoute(
+      path: AppRoutes.clientQuotes,
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const ClientQuotesPage()),
+    ),
+    GoRoute(
       path: '/cliente/solicitudes/detalle/:requestId',
       builder: (context, state) => ClientSessionGate(
         builder: (_) =>
@@ -264,7 +275,16 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const YonkeLoginPage(),
     ),
     GoRoute(
+      path: AppRoutes.yonkeRegister,
+      builder: (context, state) => const YonkeRegisterPage(),
+    ),
+    GoRoute(
       path: AppRoutes.yonkeHome,
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeHomePage()),
+    ),
+    GoRoute(
+      path: AppRoutes.yonkeRequests,
       builder: (context, state) =>
           YonkeSessionGate(builder: (_) => const YonkeRequestsPage()),
     ),

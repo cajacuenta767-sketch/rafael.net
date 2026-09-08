@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../../quotes/domain/client_quote.dart';
@@ -638,10 +639,10 @@ class _QuoteHeader extends StatelessWidget {
                       Icons.directions_car_outlined,
                       color: Color(0xFF269627),
                     )
-                  : Image.network(
-                      quote.imageUrls.first,
+                  : RefanetImage(
+                      source: quote.imageUrls.first,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Icon(
+                      fallback: const Icon(
                         Icons.directions_car_outlined,
                         color: Color(0xFF269627),
                       ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
@@ -288,7 +289,7 @@ class _ShortcutCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(13),
       child: Container(
-        height: 152,
+        height: 156,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(13),
@@ -400,7 +401,7 @@ class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
           title: 'Cotizaciones',
           subtitle: 'Cotizaciones recibidas',
           value: _quoteCount,
-          onTap: () => context.go(AppRoutes.clientRequests),
+          onTap: () => context.go(AppRoutes.clientQuotes),
         ),
       ),
     ],
@@ -470,8 +471,7 @@ class _RecentRequestCard extends ConsumerStatefulWidget {
 }
 
 class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
-  ClientRequestSummary? _request;
-  String? _imageUrl;
+  List<ClientRequestSummary> _requests = const [];
   bool _loading = true;
   bool _failed = false;
 
@@ -487,24 +487,13 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
       _failed = false;
     });
     try {
-      final response = await ref.read(dashboardApiProvider).getRecentRequest();
-      final request = clientRequestSummaryFromResponse(response);
-      String? imageUrl;
-      if (request != null) {
-        try {
-          final imagesResponse = await ref
-              .read(requestsApiProvider)
-              .getImages(request.id);
-          final images = requestImageUrlsFromResponse(imagesResponse);
-          if (images.isNotEmpty) imageUrl = images.first;
-        } catch (_) {
-          // La tarjeta sigue siendo útil aunque la foto no esté disponible.
-        }
-      }
+      final response = await ref
+          .read(dashboardApiProvider)
+          .getMyRequests(pageSize: 3);
+      final requests = clientRequestSummariesFromResponse(response).take(3);
       if (!mounted) return;
       setState(() {
-        _request = request;
-        _imageUrl = imageUrl;
+        _requests = requests.toList(growable: false);
         _loading = false;
       });
     } catch (_) {
@@ -518,16 +507,15 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
 
   @override
   Widget build(BuildContext context) {
-    final request = _request;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         key: const Key('home-recent-request'),
         borderRadius: BorderRadius.circular(14),
-        onTap: request == null
+        onTap: _requests.isEmpty
             ? () => context.go(AppRoutes.clientRequests)
-            : () => context.push(AppRoutes.clientRequestDetail(request.id)),
+            : null,
         child: Container(
           constraints: const BoxConstraints(minHeight: 104),
           padding: const EdgeInsets.all(13),
@@ -556,89 +544,91 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
                   actionLabel: 'Reintentar',
                   onAction: _load,
                 )
-              : request == null
+              : _requests.isEmpty
               ? _RecentRequestMessage(
                   text: 'Aún no tienes solicitudes.',
                   actionLabel: 'Crear solicitud',
                   onAction: () => context.push(AppRoutes.clientNewRequest),
                 )
-              : Row(
+              : Column(
                   children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE7F3E1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _imageUrl == null
-                          ? const Icon(
-                              Icons.directions_car_filled_outlined,
-                              color: _greenDark,
-                              size: 35,
-                            )
-                          : Image.network(
-                              _imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const Icon(
-                                Icons.directions_car_filled_outlined,
-                                color: _greenDark,
-                                size: 35,
-                              ),
-                            ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            request.part,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _navy,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
-                            ),
-                          ),
-                          if (request.vehicle.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              request.vehicle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _muted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Text(
-                            '${request.quoteCount} ${request.quoteCount == 1 ? 'cotización' : 'cotizaciones'}',
-                            style: const TextStyle(
-                              color: _greenDark,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: _greenDark,
-                      size: 25,
-                    ),
+                    for (var index = 0; index < _requests.length; index++) ...[
+                      if (index > 0) const Divider(height: 18),
+                      _RecentRequestTile(request: _requests[index]),
+                    ],
                   ],
                 ),
         ),
       ),
     );
   }
+}
+
+class _RecentRequestTile extends StatelessWidget {
+  const _RecentRequestTile({required this.request});
+  final ClientRequestSummary request;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: () => context.push(AppRoutes.clientRequestDetail(request.id)),
+    borderRadius: BorderRadius.circular(10),
+    child: Row(
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE7F3E1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: RefanetImage(
+            source: request.imageUrl,
+            fallback: const Icon(
+              Icons.directions_car_filled_outlined,
+              color: _greenDark,
+              size: 35,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                request.part,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _navy,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+              if (request.vehicle.isNotEmpty)
+                Text(
+                  request.vehicle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+              const SizedBox(height: 6),
+              Text(
+                '${request.quoteCount} ${request.quoteCount == 1 ? 'cotización' : 'cotizaciones'}',
+                style: const TextStyle(
+                  color: _greenDark,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right_rounded, color: _greenDark, size: 25),
+      ],
+    ),
+  );
 }
 
 class _RecentRequestMessage extends StatelessWidget {

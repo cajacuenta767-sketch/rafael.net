@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
+import '../../../app/theme/yonke_theme.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_messages_repository.dart';
 import '../domain/yonke_message.dart';
@@ -30,6 +31,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
   bool _loading = true;
   bool _contractPending = false;
   Object? _error;
+  bool _unreadOnly = false;
 
   @override
   void initState() {
@@ -73,16 +75,27 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
-      backgroundColor: const Color(0xFFFAFBFD),
-      surfaceTintColor: const Color(0xFFFAFBFD),
+      backgroundColor: YonkeColors.primaryNavy,
+      surfaceTintColor: YonkeColors.primaryNavy,
+      elevation: 0,
+      centerTitle: true,
       automaticallyImplyLeading: false,
-      title: const Text('Mensajes'),
+      title: const Text(
+        'Mensajes',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+        ),
+      ),
       actions: [
         IconButton(
           tooltip: 'Actualizar mensajes',
           onPressed: _loading ? null : _load,
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh, color: Colors.white),
         ),
+        const SizedBox(width: 4),
       ],
     ),
     body: SafeArea(
@@ -101,19 +114,14 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
                 28,
               ),
               children: [
-                Text(
-                  'Conversaciones',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: const Color(0xFF092B61),
-                    fontWeight: FontWeight.w900,
-                  ),
+                _MessageTabs(
+                  unreadOnly: _unreadOnly,
+                  unreadCount: _items
+                      .where((item) => item.unreadCount > 0)
+                      .length,
+                  onChanged: (value) => setState(() => _unreadOnly = value),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Habla con el cliente sobre cada cotización.',
-                  style: TextStyle(color: Color(0xFF596276)),
-                ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 ..._content(),
               ],
             ),
@@ -156,17 +164,20 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
         ),
       ];
     }
-    if (_items.isEmpty) {
+    final visible = _unreadOnly
+        ? _items.where((item) => item.unreadCount > 0).toList()
+        : _items;
+    if (visible.isEmpty) {
       return const [
         _StateCard(
           icon: Icons.chat_bubble_outline,
-          title: 'Todavía no tienes conversaciones',
+          title: 'No hay mensajes en esta sección',
           message:
               'Cuando un cliente escriba sobre una cotización, aparecerá aquí.',
         ),
       ];
     }
-    return _items.map(_conversationTile).toList(growable: false);
+    return visible.map(_conversationTile).toList(growable: false);
   }
 
   Widget _conversationTile(YonkeMessagePreview item) => Padding(
@@ -228,10 +239,91 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
               ),
           ],
         ),
-        onTap: () => context.push(
-          AppRoutes.yonkeConversation(item.quote.id),
-          extra: YonkeConversationArgs(quote: item.quote),
+        onTap: () async {
+          await context.push(
+            AppRoutes.yonkeConversation(item.quote.id),
+            extra: YonkeConversationArgs(quote: item.quote),
+          );
+          if (mounted) await _load();
+        },
+      ),
+    ),
+  );
+}
+
+class _MessageTabs extends StatelessWidget {
+  const _MessageTabs({
+    required this.unreadOnly,
+    required this.unreadCount,
+    required this.onChanged,
+  });
+  final bool unreadOnly;
+  final int unreadCount;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(13),
+      border: Border.all(color: YonkeColors.border),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: _MessageTab(
+            label: 'Todos',
+            selected: !unreadOnly,
+            onTap: () => onChanged(false),
+          ),
         ),
+        Expanded(
+          child: _MessageTab(
+            label: 'No leídos ($unreadCount)',
+            selected: unreadOnly,
+            onTap: () => onChanged(true),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _MessageTab extends StatelessWidget {
+  const _MessageTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? YonkeColors.primaryNavy
+                  : YonkeColors.textSecondary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 7),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 3,
+            width: 55,
+            color: selected ? YonkeColors.primaryNavy : Colors.transparent,
+          ),
+        ],
       ),
     ),
   );

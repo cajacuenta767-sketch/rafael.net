@@ -151,6 +151,10 @@ ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
 
 bool _isSafeImageUrl(String? value) {
   if (value == null || value.isEmpty) return false;
+  if (value.startsWith('asset://assets/')) return true;
+  if (value.startsWith('data:image/') && value.contains(';base64,')) {
+    return true;
+  }
   final uri = Uri.tryParse(value);
   return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
 }

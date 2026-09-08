@@ -177,6 +177,10 @@ String? _text(dynamic value) {
 bool _notBlank(String? value) => value != null && value.trim().isNotEmpty;
 
 bool _isSafeRemoteImage(String value) {
+  if (value.startsWith('asset://assets/')) return true;
+  if (value.startsWith('data:image/') && value.contains(';base64,')) {
+    return true;
+  }
   final uri = Uri.tryParse(value);
   return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
 }

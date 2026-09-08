@@ -941,9 +941,7 @@ void main() {
     expect(find.text('Alternador'), findsNothing);
   });
 
-  testWidgets('shows a safe yonke quote detail with editing blocked', (
-    tester,
-  ) async {
+  testWidgets('allows editing a sent yonke quote', (tester) async {
     final quote = _sampleYonkeQuotes.first;
     await tester.pumpWidget(
       ProviderScope(
@@ -968,8 +966,11 @@ void main() {
       const Offset(0, -500),
     );
     expect(edit, findsOneWidget);
-    expect(tester.widget<FilledButton>(edit).onPressed, isNull);
-    expect(find.textContaining('aún no define'), findsOneWidget);
+    expect(tester.widget<FilledButton>(edit).onPressed, isNotNull);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('edit-quote-price')), findsOneWidget);
+    expect(find.byKey(const Key('save-edited-quote')), findsOneWidget);
   });
 
   testWidgets('shows pending contract instead of inventing quote records', (

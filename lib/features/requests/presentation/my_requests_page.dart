@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../domain/client_request.dart';
@@ -134,39 +135,69 @@ class _RequestSummaryCard extends StatelessWidget {
           onTap: () => context.push(AppRoutes.clientRequestDetail(request.id)),
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  request.title,
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                if (request.folio != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Folio ${request.folio}',
-                    style: const TextStyle(color: Color(0xFF596276)),
+                Container(
+                  width: 72,
+                  height: 72,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF6E5),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_offer_outlined,
-                      size: 18,
-                      color: statusColor,
+                  child: RefanetImage(
+                    source: request.imageUrl,
+                    fallback: const Icon(
+                      Icons.directions_car_outlined,
+                      color: Color(0xFF14951F),
+                      size: 34,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${request.quoteCount} cotizaciones',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.circle, size: 9, color: statusColor),
-                    const SizedBox(width: 6),
-                    Text(request.status, style: TextStyle(color: statusColor)),
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      if (request.folio != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Folio ${request.folio}',
+                          style: const TextStyle(color: Color(0xFF596276)),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.local_offer_outlined,
+                            size: 18,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              '${request.quoteCount} cotizaciones',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.circle, size: 8, color: statusColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            request.status,
+                            style: TextStyle(color: statusColor),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

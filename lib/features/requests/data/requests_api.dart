@@ -56,7 +56,7 @@ class RequestsApi {
 
   Future<dynamic> cancel({
     required String requestId,
-    required int statusId,
+    int? statusId,
     String? userId,
     String? notes,
   }) => _client.delete(

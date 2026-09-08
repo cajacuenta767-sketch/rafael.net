@@ -32,6 +32,7 @@ class YonkeRequestSummary {
     this.folio,
     this.photoCount = 0,
     this.hasQuote = false,
+    this.imageUrl,
   });
 
   final String requestId;
@@ -46,6 +47,7 @@ class YonkeRequestSummary {
   final String? folio;
   final int photoCount;
   final bool hasQuote;
+  final String? imageUrl;
 
   bool get isNew => status == YonkeRequestStatus.newRequest;
 
@@ -69,6 +71,7 @@ class YonkeRequestSummary {
         folio: folio,
         photoCount: photoCount,
         hasQuote: hasQuote,
+        imageUrl: imageUrl,
       );
 }
 

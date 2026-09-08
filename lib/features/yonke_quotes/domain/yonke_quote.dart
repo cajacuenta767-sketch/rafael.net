@@ -72,8 +72,10 @@ class YonkeQuote {
       ? '$warrantyDays ${warrantyDays == 1 ? 'día' : 'días'}'
       : 'Sin garantía';
 
-  // Swagger publica PUT, pero no define qué estados permiten editar.
-  bool get canEdit => false;
+  /// Una propuesta enviada o vista todavía puede rectificarse. Las aceptadas,
+  /// rechazadas o cerradas se conservan como historial inmutable.
+  bool get canEdit =>
+      status == YonkeQuoteStatus.sent || status == YonkeQuoteStatus.viewed;
 }
 
 class YonkeQuoteFilters {
@@ -222,6 +224,10 @@ String? _text(dynamic value) {
 }
 
 bool _isSafeImageUrl(String value) {
+  if (value.startsWith('asset://assets/')) return true;
+  if (value.startsWith('data:image/') && value.contains(';base64,')) {
+    return true;
+  }
   final uri = Uri.tryParse(value);
   return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
 }

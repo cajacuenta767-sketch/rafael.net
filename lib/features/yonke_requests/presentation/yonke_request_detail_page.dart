@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
@@ -333,10 +334,10 @@ class _YonkeRequestDetailPageState
                   minScale: 0.8,
                   maxScale: 4,
                   child: Center(
-                    child: Image.network(
-                      url,
+                    child: RefanetImage(
+                      source: url,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const _ImageError(),
+                      fallback: const _ImageError(),
                     ),
                   ),
                 ),
@@ -545,13 +546,10 @@ class _RequestPhoto extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          url,
+        child: RefanetImage(
+          source: url,
           fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) => progress == null
-              ? child
-              : const Center(child: CircularProgressIndicator()),
-          errorBuilder: (_, _, _) => const _ImageError(),
+          fallback: const _ImageError(),
         ),
       ),
     ),

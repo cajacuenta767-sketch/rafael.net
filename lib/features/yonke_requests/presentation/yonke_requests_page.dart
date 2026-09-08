@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/yonke_theme.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_requests_repository.dart';
 import '../domain/yonke_request_summary.dart';
+import 'widgets/yonke_request_card.dart';
 import 'yonke_bottom_navigation.dart';
 
 class YonkeRequestsPage extends ConsumerStatefulWidget {
@@ -31,6 +33,11 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
   String? _error;
   DateTime? _lastUpdated;
   final _opening = <String>{};
+
+  int _totalCount = 0;
+  int _newCount = 8;
+  int _viewedCount = 3;
+  int _quotedCount = 12;
 
   bool get _hasActiveQuery =>
       _searchController.text.trim().isNotEmpty || !_filters.isEmpty;
@@ -91,6 +98,21 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         _loading = false;
         _loadingMore = false;
         _lastUpdated = DateTime.now();
+
+        if (_filters.status == null && _searchController.text.isEmpty) {
+          _totalCount = _requests.length;
+          _newCount = _requests
+              .where((item) => item.status == YonkeRequestStatus.newRequest)
+              .length;
+          _viewedCount = _requests
+              .where((item) => item.status == YonkeRequestStatus.viewed)
+              .length;
+          _quotedCount = _requests
+              .where((item) => item.status == YonkeRequestStatus.quoted)
+              .length;
+        } else if (_totalCount == 0) {
+          _totalCount = _requests.length;
+        }
       });
     } on AssignedRequestsEndpointPendingException {
       if (!mounted) return;
@@ -144,6 +166,20 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     await _load(refresh: true);
   }
 
+  void _onStatusPillSelected(YonkeRequestStatus? status) {
+    setState(() {
+      if (_filters.status == status) {
+        _filters = _filters.copyWith(clearStatus: true);
+      } else {
+        _filters = _filters.copyWith(
+          status: status,
+          clearStatus: status == null,
+        );
+      }
+    });
+    _load(refresh: true);
+  }
+
   Future<void> _openRequest(YonkeRequestSummary request) async {
     if (_opening.contains(request.requestYonkeId)) return;
     _opening.add(request.requestYonkeId);
@@ -184,138 +220,206 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFFAFBFD),
-    appBar: AppBar(
-      automaticallyImplyLeading: false,
+  Widget build(BuildContext context) {
+    return Scaffold(
       backgroundColor: const Color(0xFFFAFBFD),
-      surfaceTintColor: const Color(0xFFFAFBFD),
-      title: const _YonkeWordmark(),
-      actions: [
-        IconButton(
-          tooltip: 'Actualizar solicitudes',
-          onPressed: _loading ? null : () => _load(refresh: true),
-          icon: const Icon(Icons.refresh),
+      appBar: AppBar(
+        backgroundColor: YonkeColors.primaryNavy,
+        surfaceTintColor: YonkeColors.primaryNavy,
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Solicitudes',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
         ),
-      ],
-    ),
-    body: SafeArea(
-      top: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: RefreshIndicator(
-            onRefresh: () => _load(refresh: true),
-            child: ListView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.fromLTRB(
-                MediaQuery.sizeOf(context).width < 380 ? 16 : 24,
-                8,
-                MediaQuery.sizeOf(context).width < 380 ? 16 : 24,
-                28,
-              ),
-              children: [
-                Text(
-                  'Hola, yonke',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
+        actions: [
+          IconButton(
+            tooltip: 'Filtrar solicitudes',
+            onPressed: _loading ? null : _openFilters,
+            icon: const Icon(Icons.tune, color: Colors.white),
+          ),
+          const SizedBox(width: 4),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(51),
+          child: _buildHeaderTabs(),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: RefreshIndicator(
+              onRefresh: () => _load(refresh: true),
+              child: ListView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.fromLTRB(
+                  MediaQuery.sizeOf(context).width < 380 ? 16 : 20,
+                  14,
+                  MediaQuery.sizeOf(context).width < 380 ? 16 : 20,
+                  28,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Solicitudes recibidas',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: const Color(0xFF092B61),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Revisa las refacciones solicitadas en tu zona.',
-                  style: TextStyle(color: Color(0xFF596276)),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  key: const Key('yonke-requests-search'),
-                  controller: _searchController,
-                  maxLength: 80,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _load(refresh: true),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar pieza, vehículo o folio',
-                    counterText: '',
-                    prefixIcon: IconButton(
-                      tooltip: 'Buscar solicitudes',
-                      onPressed: () => _load(refresh: true),
-                      icon: const Icon(Icons.search),
-                    ),
-                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: _searchController,
-                      builder: (context, value, _) => value.text.isEmpty
-                          ? const SizedBox.shrink()
-                          : IconButton(
-                              tooltip: 'Limpiar búsqueda',
-                              onPressed: () async {
-                                _searchController.clear();
-                                await _load(refresh: true);
-                              },
-                              icon: const Icon(Icons.close),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      key: const Key('yonke-open-filters'),
-                      onPressed: _openFilters,
-                      icon: const Icon(Icons.tune),
-                      label: Text(
-                        _filters.isEmpty
-                            ? 'Filtros'
-                            : 'Filtros (${_filters.activeCount})',
+                children: [
+                  TextField(
+                    key: const Key('yonke-requests-search'),
+                    controller: _searchController,
+                    maxLength: 80,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _load(refresh: true),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar pieza, vehículo o folio',
+                      counterText: '',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                    ),
-                    if (!_filters.isEmpty)
-                      TextButton(
-                        onPressed: _clearSearchAndFilters,
-                        child: const Text('Limpiar filtros'),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: YonkeColors.border),
                       ),
-                    if (_lastUpdated != null)
-                      Text(
-                        'Actualizado ${_formatTime(_lastUpdated!)}',
-                        style: const TextStyle(
-                          color: Color(0xFF596276),
-                          fontSize: 12,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: YonkeColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: YonkeColors.primaryNavy,
+                          width: 1.5,
                         ),
                       ),
-                  ],
-                ),
-                if (!_filters.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  _ActiveFilters(filters: _filters),
-                ],
-                const SizedBox(height: 18),
-                ..._buildContent(context),
-                if (_loadingMore) ...[
+                      prefixIcon: IconButton(
+                        tooltip: 'Buscar solicitudes',
+                        onPressed: () => _load(refresh: true),
+                        icon: const Icon(
+                          Icons.search,
+                          color: YonkeColors.textSecondary,
+                        ),
+                      ),
+                      suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _searchController,
+                        builder: (context, value, _) => value.text.isEmpty
+                            ? const SizedBox.shrink()
+                            : IconButton(
+                                tooltip: 'Limpiar búsqueda',
+                                onPressed: () async {
+                                  _searchController.clear();
+                                  await _load(refresh: true);
+                                },
+                                icon: const Icon(Icons.close),
+                              ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  const Center(child: CircularProgressIndicator()),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        key: const Key('yonke-open-filters'),
+                        onPressed: _openFilters,
+                        icon: const Icon(Icons.tune),
+                        label: Text(
+                          _filters.isEmpty
+                              ? 'Filtros'
+                              : 'Filtros (${_filters.activeCount})',
+                        ),
+                      ),
+                      if (!_filters.isEmpty)
+                        TextButton(
+                          onPressed: _clearSearchAndFilters,
+                          child: const Text('Limpiar filtros'),
+                        ),
+                      if (_lastUpdated != null)
+                        Text(
+                          'Actualizado ${_formatTime(_lastUpdated!)}',
+                          style: const TextStyle(
+                            color: Color(0xFF596276),
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (!_filters.isEmpty) ...[
+                    const SizedBox(height: 8),
+                    _ActiveFilters(filters: _filters),
+                  ],
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Solicitudes recibidas',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: YonkeColors.primaryNavy,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ..._buildContent(context),
+                  if (_loadingMore) ...[
+                    const SizedBox(height: 12),
+                    const Center(child: CircularProgressIndicator()),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-    bottomNavigationBar: YonkeBottomNavigation(
-      onRefresh: () => _load(refresh: true),
-      selected: YonkeNavigationSection.requests,
-    ),
+      bottomNavigationBar: YonkeBottomNavigation(
+        onRefresh: () => _load(refresh: true),
+        selected: YonkeNavigationSection.requests,
+      ),
+    );
+  }
+
+  Widget _buildHeaderTabs() => Row(
+    children: [
+      Expanded(
+        child: _HeaderStatusTab(
+          label: 'Nuevas',
+          count: _newCount,
+          selected: _filters.status == YonkeRequestStatus.newRequest,
+          onTap: () => _onStatusPillSelected(YonkeRequestStatus.newRequest),
+        ),
+      ),
+      Expanded(
+        child: _HeaderStatusTab(
+          label: 'En revisión',
+          count: _viewedCount,
+          selected: _filters.status == YonkeRequestStatus.viewed,
+          onTap: () => _onStatusPillSelected(YonkeRequestStatus.viewed),
+        ),
+      ),
+      Expanded(
+        child: _HeaderStatusTab(
+          label: 'Cotizadas',
+          count: _quotedCount,
+          selected: _filters.status == YonkeRequestStatus.quoted,
+          onTap: () => _onStatusPillSelected(YonkeRequestStatus.quoted),
+        ),
+      ),
+    ],
   );
 
   List<Widget> _buildContent(BuildContext context) {
@@ -372,21 +476,35 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     }
 
     return [
-      _RequestSummaryGrid(requests: _requests),
-      const SizedBox(height: 20),
       Text(
         '${_requests.length} solicitudes',
-        style: Theme.of(context).textTheme.titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: YonkeColors.textSecondary,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       const SizedBox(height: 12),
       ..._requests.map(
         (request) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _YonkeRequestCard(
-            request: request,
-            opening: _opening.contains(request.requestYonkeId),
-            onTap: () => _openRequest(request),
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            children: [
+              YonkeRequestCard(
+                request: request,
+                thumbnailOnLeft: false,
+                onTap: () => _openRequest(request),
+              ),
+              if (_opening.contains(request.requestYonkeId)) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: LinearProgressIndicator(
+                    color: YonkeColors.primaryNavy,
+                    backgroundColor: Color(0xFFE1E6EE),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
           ),
         ),
       ),
@@ -394,220 +512,66 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
   }
 }
 
-class _YonkeWordmark extends StatelessWidget {
-  const _YonkeWordmark();
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'refaNet',
-    child: ExcludeSemantics(
-      child: Text.rich(
-        const TextSpan(
-          children: [
-            TextSpan(
-              text: 'refa',
-              style: TextStyle(color: Color(0xFF092B61)),
-            ),
-            TextSpan(
-              text: 'Net',
-              style: TextStyle(color: Color(0xFF14951F)),
-            ),
-          ],
-        ),
-        style: Theme.of(context).textTheme.titleLarge
-            ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1),
-      ),
-    ),
-  );
-}
-
-class _RequestSummaryGrid extends StatelessWidget {
-  const _RequestSummaryGrid({required this.requests});
-
-  final List<YonkeRequestSummary> requests;
-
-  @override
-  Widget build(BuildContext context) {
-    final values = <(String, int, Color)>[
-      (
-        'Nuevas',
-        requests
-            .where((item) => item.status == YonkeRequestStatus.newRequest)
-            .length,
-        const Color(0xFF114EB0),
-      ),
-      (
-        'Vistas',
-        requests
-            .where((item) => item.status == YonkeRequestStatus.viewed)
-            .length,
-        const Color(0xFF596276),
-      ),
-      (
-        'Cotizadas',
-        requests
-            .where((item) => item.status == YonkeRequestStatus.quoted)
-            .length,
-        const Color(0xFF6D3BB6),
-      ),
-      ('Total', requests.length, const Color(0xFF14951F)),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 620 ? 4 : 2;
-        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: values
-              .map(
-                (value) => SizedBox(
-                  width: width,
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE1E6EE)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${value.$2}',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: value.$3,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        Text(value.$1),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _YonkeRequestCard extends StatelessWidget {
-  const _YonkeRequestCard({
-    required this.request,
-    required this.opening,
+class _HeaderStatusTab extends StatelessWidget {
+  const _HeaderStatusTab({
+    required this.label,
+    required this.count,
+    required this.selected,
     required this.onTap,
   });
-
-  final YonkeRequestSummary request;
-  final bool opening;
+  final String label;
+  final int count;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final statusColor = _statusColor(request.status);
-    return Semantics(
-      button: true,
-      label: '${request.part}, ${request.status.label}',
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          onTap: opening ? null : onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.part,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        request.status.label,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? Colors.white : const Color(0xFFCAD4E3),
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
                 ),
-                if (request.vehicle.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(request.vehicle),
-                ],
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 8,
-                  children: [
-                    if (request.city != null)
-                      _CardMeta(
-                        icon: Icons.location_on_outlined,
-                        text: request.city!,
-                      ),
-                    _CardMeta(
-                      icon: Icons.schedule_outlined,
-                      text: _formatDate(request.receivedAt),
-                    ),
-                    if (request.photoCount > 0)
-                      _CardMeta(
-                        icon: Icons.photo_library_outlined,
-                        text: '${request.photoCount} fotos',
-                      ),
-                    if (request.folio != null)
-                      _CardMeta(icon: Icons.tag, text: request.folio!),
-                  ],
-                ),
-                if (opening) ...[
-                  const SizedBox(height: 12),
-                  const LinearProgressIndicator(),
-                ],
-              ],
+              ),
             ),
-          ),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white : const Color(0xFF445371),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: selected
+                      ? YonkeColors.primaryNavy
+                      : const Color(0xFFE5EAF2),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _CardMeta extends StatelessWidget {
-  const _CardMeta({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 17, color: const Color(0xFF596276)),
-      const SizedBox(width: 4),
-      Text(text, style: const TextStyle(color: Color(0xFF596276))),
-    ],
+        const SizedBox(height: 11),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 3,
+          color: selected ? Colors.white : Colors.transparent,
+        ),
+      ],
+    ),
   );
 }
 
@@ -779,7 +743,7 @@ class _YonkeFiltersSheetState extends State<_YonkeFiltersSheet> {
             onPressed: () => Navigator.pop(context, _filters),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
-              backgroundColor: const Color(0xFF114EB0),
+              backgroundColor: YonkeColors.primaryNavy,
             ),
             child: const Text('Aplicar filtros'),
           ),
@@ -793,15 +757,6 @@ class _YonkeFiltersSheetState extends State<_YonkeFiltersSheet> {
     ),
   );
 }
-
-Color _statusColor(YonkeRequestStatus status) => switch (status) {
-  YonkeRequestStatus.newRequest => const Color(0xFF114EB0),
-  YonkeRequestStatus.viewed => const Color(0xFF596276),
-  YonkeRequestStatus.quoted => const Color(0xFF6D3BB6),
-  YonkeRequestStatus.unavailable => const Color(0xFF9B2C24),
-  YonkeRequestStatus.closed => const Color(0xFF48515A),
-  YonkeRequestStatus.unknown => const Color(0xFF596276),
-};
 
 String _formatDate(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';

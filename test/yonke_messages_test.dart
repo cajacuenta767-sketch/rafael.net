@@ -47,7 +47,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Conversaciones'), findsOneWidget);
+    expect(find.text('Mensajes'), findsWidgets);
     expect(
       api.calls,
       contains('GET /api/DashboardSuscriptores/mis-cotizaciones'),

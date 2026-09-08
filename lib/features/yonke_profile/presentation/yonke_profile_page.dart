@@ -1,11 +1,16 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_file.dart';
 import '../../../core/storage/token_store.dart';
-import '../../auth/presentation/legal_document_page.dart';
+import '../../../app/theme/yonke_theme.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_profile_repository.dart';
 import '../domain/yonke_profile.dart';
@@ -51,11 +56,20 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
-      backgroundColor: const Color(0xFFFAFBFD),
-      surfaceTintColor: const Color(0xFFFAFBFD),
-      automaticallyImplyLeading: false,
+      backgroundColor: YonkeColors.primaryNavy,
+      surfaceTintColor: YonkeColors.primaryNavy,
+      elevation: 0,
       centerTitle: true,
-      title: const Text('Perfil del yonke'),
+      automaticallyImplyLeading: false,
+      title: const Text(
+        'Perfil del yonke',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+        ),
+      ),
     ),
     body: SafeArea(top: false, child: _body()),
     bottomNavigationBar: YonkeBottomNavigation(
@@ -91,84 +105,59 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _AccountCard(snapshot: snapshot),
-                const SizedBox(height: 24),
-                const _SectionTitle('Mi operación'),
-                const SizedBox(height: 10),
-                _ProfileTile(
-                  key: const Key('yonke-profile-requests'),
-                  icon: Icons.inbox_outlined,
-                  title: 'Solicitudes recibidas',
-                  subtitle: 'Revisa las refacciones pendientes de cotizar',
-                  onTap: () => context.go(AppRoutes.yonkeHome),
-                ),
-                const SizedBox(height: 10),
-                _ProfileTile(
-                  key: const Key('yonke-profile-quotes'),
-                  icon: Icons.request_quote_outlined,
-                  title: 'Cotizaciones enviadas',
-                  subtitle: 'Consulta las propuestas que compartiste',
-                  onTap: () => context.go(AppRoutes.yonkeQuotes),
+                _AccountCard(
+                  snapshot: snapshot,
+                  onTap: snapshot.profile == null
+                      ? null
+                      : () => _openBusinessEditor(snapshot.profile!),
                 ),
                 const SizedBox(height: 24),
-                const _SectionTitle('Negocio y cobertura'),
-                const SizedBox(height: 10),
                 _ProfileTile(
                   icon: Icons.storefront_outlined,
-                  title: 'Datos del yonke',
-                  subtitle: 'Nombre, contacto y dirección',
+                  title: 'Información del negocio',
+                  subtitle: 'Editar datos y logotipo',
+                  onTap: snapshot.profile == null
+                      ? null
+                      : () => _openBusinessEditor(snapshot.profile!),
+                ),
+                const SizedBox(height: 10),
+                _ProfileTile(
+                  icon: Icons.schedule_outlined,
+                  title: 'Horario de atención',
+                  onTap: () => _showUnavailable(
+                    'La API todavía no publica el horario del negocio.',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _ProfileTile(
+                  icon: Icons.contact_phone_outlined,
+                  title: 'Métodos de contacto',
                   onTap: () => _showBusinessData(snapshot),
                 ),
                 const SizedBox(height: 10),
                 _ProfileTile(
                   key: const Key('yonke-profile-coverage'),
-                  icon: Icons.location_on_outlined,
-                  title: 'Ciudades de cobertura',
-                  subtitle: 'Define dónde deseas recibir solicitudes',
+                  icon: Icons.settings_outlined,
+                  title: 'Configuración',
+                  subtitle: 'Cobertura y notificaciones',
                   onTap: () => context.push(AppRoutes.yonkeCoverage),
                 ),
                 const SizedBox(height: 10),
                 _ProfileTile(
-                  key: const Key('yonke-profile-notifications'),
-                  icon: Icons.notifications_outlined,
-                  title: 'Notificaciones',
-                  subtitle: 'Alertas cuando llegue una nueva solicitud',
-                  onTap: () => context.push(AppRoutes.yonkeNotifications),
-                ),
-                const SizedBox(height: 24),
-                const _SectionTitle('Legal e información'),
-                const SizedBox(height: 10),
-                _ProfileTile(
-                  icon: Icons.description_outlined,
-                  title: 'Términos y condiciones',
-                  onTap: () => _openLegal(
-                    'Términos y condiciones',
-                    'assets/legal/terms.txt',
+                  icon: Icons.help_outline,
+                  title: 'Ayuda y soporte',
+                  onTap: () => _showUnavailable(
+                    'El canal de soporte será publicado por el backend.',
                   ),
                 ),
-                const SizedBox(height: 10),
-                _ProfileTile(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Aviso de privacidad',
-                  onTap: () => _openLegal(
-                    'Aviso de privacidad',
-                    'assets/legal/privacy.txt',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const _ProfileTile(
-                  icon: Icons.info_outline,
-                  title: 'Versión de la aplicación',
-                  trailingText: '1.0.0',
-                ),
-                const SizedBox(height: 28),
-                OutlinedButton.icon(
+                const SizedBox(height: 14),
+                TextButton.icon(
                   key: const Key('yonke-sign-out'),
                   onPressed: _controller.signingOut ? null : _confirmSignOut,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
                     foregroundColor: const Color(0xFFB3261E),
-                    side: const BorderSide(color: Color(0xFFB3261E)),
+                    alignment: Alignment.centerLeft,
                   ),
                   icon: _controller.signingOut
                       ? const SizedBox.square(
@@ -178,18 +167,17 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                       : const Icon(Icons.logout),
                   label: const Text('Cerrar sesión'),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'El cierre elimina la sesión de este dispositivo. La revocación en el servidor está pendiente de la API.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF596276), fontSize: 12),
-                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _showUnavailable(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showBusinessData(YonkeProfileSnapshot snapshot) {
@@ -236,11 +224,12 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     );
   }
 
-  void _openLegal(String title, String assetPath) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => LegalDocumentPage(title: title, assetPath: assetPath),
-    ),
-  );
+  Future<void> _openBusinessEditor(YonkeProfile profile) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => _YonkeProfileEditor(profile: profile)),
+    );
+    if (changed == true) await _controller.load();
+  }
 
   Future<void> _confirmSignOut() async {
     final confirmed = await showDialog<bool>(
@@ -273,8 +262,9 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
 }
 
 class _AccountCard extends StatelessWidget {
-  const _AccountCard({required this.snapshot});
+  const _AccountCard({required this.snapshot, this.onTap});
   final YonkeProfileSnapshot snapshot;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -282,67 +272,281 @@ class _AccountCard extends StatelessWidget {
     final connected =
         snapshot.availability == YonkeProfileAvailability.available &&
         profile != null;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE0E4EA)),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEAF1FF),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.storefront_outlined,
-              size: 38,
-              color: Color(0xFF114EB0),
-            ),
+    return Material(
+      color: YonkeColors.primaryNavy,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF162A50),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: YonkeColors.accentGreen,
+                    width: 1.5,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: RefanetImage(
+                  source: profile?.logoUrl,
+                  fit: BoxFit.cover,
+                  fallback: Image.asset(
+                    YonkeAssets.icon,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.storefront_outlined,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      connected
+                          ? profile.name ?? 'Cuenta del yonke'
+                          : 'Cuenta del yonke',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      connected
+                          ? 'Yonke verificado'
+                          : 'Perfil pendiente de sesión',
+                      style: const TextStyle(
+                        color: Color(0xFFD6DEEB),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (connected && profile.email != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        profile.email!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFD6DEEB),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                onTap == null ? Icons.storefront_outlined : Icons.edit_outlined,
+                color: YonkeColors.accentGreen,
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            connected ? profile.name ?? 'Cuenta del yonke' : 'Cuenta del yonke',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: connected
-                  ? const Color(0xFFE8F5EA)
-                  : const Color(0xFFF2F4F7),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              connected ? 'Perfil de la API' : 'Perfil pendiente de sesión',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: 14),
-          if (connected) ...[
-            if (profile.manager != null)
-              _DataRow('Responsable', profile.manager),
-            if (profile.phone != null) _DataRow('Teléfono', profile.phone),
-            if (profile.email != null) _DataRow('Correo', profile.email),
-            if (profile.fullAddress.isNotEmpty)
-              _DataRow('Dirección', profile.fullAddress),
-          ] else
-            const Text(
-              'El inicio de sesión no entregó el identificador del yonke (yonkeGuidId). Vuelve a iniciar sesión para consultar tu perfil.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF596276), height: 1.4),
-            ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _YonkeProfileEditor extends ConsumerStatefulWidget {
+  const _YonkeProfileEditor({required this.profile});
+  final YonkeProfile profile;
+
+  @override
+  ConsumerState<_YonkeProfileEditor> createState() =>
+      _YonkeProfileEditorState();
+}
+
+class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
+  final _formKey = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.profile.name);
+  late final _manager = TextEditingController(text: widget.profile.manager);
+  late final _phone = TextEditingController(text: widget.profile.phone);
+  late final _email = TextEditingController(text: widget.profile.email);
+  late final _address = TextEditingController(text: widget.profile.address);
+  late final _postalCode = TextEditingController(
+    text: widget.profile.postalCode?.toString(),
+  );
+  XFile? _logo;
+  Uint8List? _logoBytes;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _manager.dispose();
+    _phone.dispose();
+    _email.dispose();
+    _address.dispose();
+    _postalCode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickLogo() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 88,
+      maxWidth: 1200,
+    );
+    if (file != null && mounted) {
+      final bytes = await file.readAsBytes();
+      if (mounted) {
+        setState(() {
+          _logo = file;
+          _logoBytes = bytes;
+        });
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    if (_saving || !(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    try {
+      final api = ref.read(yonkesApiProvider);
+      await api.updateInfo(
+        yonkeId: widget.profile.guidId,
+        payload: {
+          'guidId': widget.profile.guidId,
+          'nombre': _name.text.trim(),
+          'responsable': _manager.text.trim(),
+          'telefono': _phone.text.trim(),
+          'correo': _email.text.trim().toLowerCase(),
+          'direccion': _address.text.trim(),
+          'cp': int.tryParse(_postalCode.text.trim()),
+          'ciudadId': widget.profile.cityId,
+        },
+      );
+      final logo = _logo;
+      if (logo != null) {
+        await api.updateLogo(
+          yonkeId: widget.profile.guidId,
+          logo: ApiFile(
+            fieldName: 'LogoUrl',
+            fileName: logo.name,
+            bytes: _logoBytes ?? await logo.readAsBytes(),
+          ),
+        );
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudieron guardar los cambios.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFFFAFBFD),
+    appBar: AppBar(centerTitle: true, title: const Text('Editar negocio')),
+    body: Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(22),
+        children: [
+          Center(
+            child: Stack(
+              children: [
+                Container(
+                  width: 104,
+                  height: 104,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFEAF0FA),
+                  ),
+                  child: _logoBytes == null
+                      ? RefanetImage(
+                          source: widget.profile.logoUrl,
+                          fit: BoxFit.cover,
+                          fallback: const Icon(
+                            Icons.storefront_outlined,
+                            color: YonkeColors.primaryNavy,
+                            size: 44,
+                          ),
+                        )
+                      : Image.memory(_logoBytes!, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: IconButton.filled(
+                    key: const Key('change-yonke-logo'),
+                    onPressed: _pickLogo,
+                    icon: const Icon(Icons.camera_alt_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _field(_name, 'Nombre del yonke', required: true),
+          _field(_manager, 'Responsable', required: true),
+          _field(_phone, 'Teléfono', keyboard: TextInputType.phone),
+          _field(_email, 'Correo', keyboard: TextInputType.emailAddress),
+          _field(_address, 'Dirección'),
+          _field(_postalCode, 'Código postal', keyboard: TextInputType.number),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: const Key('save-yonke-profile'),
+            onPressed: _saving ? null : _save,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(54),
+              backgroundColor: YonkeColors.primaryNavy,
+            ),
+            icon: _saving
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(_saving ? 'Guardando…' : 'Guardar cambios'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = false,
+    TextInputType? keyboard,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: keyboard,
+      decoration: InputDecoration(labelText: label),
+      validator: required
+          ? (value) => value?.trim().isEmpty == true
+                ? 'Este dato es obligatorio'
+                : null
+          : null,
+    ),
+  );
 }
 
 class _DataRow extends StatelessWidget {
@@ -371,30 +575,17 @@ class _DataRow extends StatelessWidget {
   );
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.titleMedium
-        ?.copyWith(fontWeight: FontWeight.w700),
-  );
-}
-
 class _ProfileTile extends StatelessWidget {
   const _ProfileTile({
     super.key,
     required this.icon,
     required this.title,
     this.subtitle,
-    this.trailingText,
     this.onTap,
   });
   final IconData icon;
   final String title;
   final String? subtitle;
-  final String? trailingText;
   final VoidCallback? onTap;
 
   @override
@@ -410,14 +601,7 @@ class _ProfileTile extends StatelessWidget {
       leading: Icon(icon, color: const Color(0xFF114EB0)),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
-      trailing: trailingText != null
-          ? Text(
-              trailingText!,
-              style: const TextStyle(color: Color(0xFF596276)),
-            )
-          : onTap == null
-          ? null
-          : const Icon(Icons.chevron_right),
+      trailing: onTap == null ? null : const Icon(Icons.chevron_right),
       onTap: onTap,
     ),
   );

@@ -88,7 +88,7 @@ class _ClientOrderConfirmationPageState
         backgroundColor: const Color(0xFFFCFCFC),
         surfaceTintColor: const Color(0xFFFCFCFC),
         centerTitle: true,
-        title: const Text('Confirmar orden'),
+        title: const Text('Aceptar cotización'),
       ),
       body: SafeArea(
         top: false,
@@ -112,7 +112,7 @@ class _ClientOrderConfirmationPageState
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Al confirmar, crearemos una orden para esta cotización.',
+                  'Al aceptar, confirmaremos esta cotización y crearemos tu orden.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Color(0xFF596276)),
                 ),
@@ -162,7 +162,7 @@ class _ClientOrderConfirmationPageState
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Confirmar y crear orden'),
+                      : const Text('Aceptar y crear orden'),
                 ),
               ],
             ),

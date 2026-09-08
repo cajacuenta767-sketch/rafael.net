@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../messages/presentation/client_conversation_page.dart';
 import '../../orders/domain/client_order.dart';
@@ -257,11 +258,12 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
                 itemCount: quote.imageUrls.length,
                 itemBuilder: (context, index) => ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    quote.imageUrls[index],
+                  child: RefanetImage(
+                    source: quote.imageUrls[index],
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        const Center(child: Icon(Icons.broken_image_outlined)),
+                    fallback: const Center(
+                      child: Icon(Icons.broken_image_outlined),
+                    ),
                   ),
                 ),
               ),
@@ -364,7 +366,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
             )
           : null,
       icon: const Icon(Icons.shopping_bag_outlined),
-      label: const Text('Elegir esta cotización'),
+      label: const Text('Aceptar esta cotización'),
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
         backgroundColor: const Color(0xFF147A1D),

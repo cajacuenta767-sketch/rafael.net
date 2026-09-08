@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../app/theme/yonke_theme.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_quotes_repository.dart';
 import '../domain/yonke_quote.dart';
@@ -30,6 +31,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   bool _hasMore = false;
   Object? _error;
   DateTime? _updatedAt;
+  bool _acceptedTab = false;
 
   @override
   void initState() {
@@ -225,16 +227,27 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
+      backgroundColor: YonkeColors.primaryNavy,
+      surfaceTintColor: YonkeColors.primaryNavy,
+      elevation: 0,
+      centerTitle: true,
       automaticallyImplyLeading: false,
-      backgroundColor: const Color(0xFFFAFBFD),
-      surfaceTintColor: const Color(0xFFFAFBFD),
-      title: const _Wordmark(),
+      title: const Text(
+        'Cotizaciones',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+        ),
+      ),
       actions: [
         IconButton(
           tooltip: 'Actualizar cotizaciones',
           onPressed: _loading ? null : () => _load(refresh: true),
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh, color: Colors.white),
         ),
+        const SizedBox(width: 4),
       ],
     ),
     body: SafeArea(
@@ -283,8 +296,22 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
                             },
                             icon: const Icon(Icons.close),
                           ),
+                    filled: true,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: YonkeColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: YonkeColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: YonkeColors.primaryNavy,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -375,11 +402,29 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
     final accepted = _quotes
         .where((quote) => quote.status == YonkeQuoteStatus.accepted)
         .length;
-    final active = _quotes.where((quote) => quote.active).length;
+    // Una cotización aceptada también fue enviada. La primera pestaña conserva
+    // el historial completo y la segunda sirve como acceso rápido a aceptadas.
+    final sent = _quotes;
+    final visible = _acceptedTab
+        ? _quotes
+              .where((quote) => quote.status == YonkeQuoteStatus.accepted)
+              .toList(growable: false)
+        : sent;
     return [
-      _SummaryRow(total: _quotes.length, active: active, accepted: accepted),
+      _QuoteTabs(
+        acceptedTab: _acceptedTab,
+        sentCount: sent.length,
+        acceptedCount: accepted,
+        onChanged: (value) => setState(() => _acceptedTab = value),
+      ),
       const SizedBox(height: 14),
-      ..._quotes.map(
+      if (visible.isEmpty)
+        const _StateCard(
+          icon: Icons.request_quote_outlined,
+          title: 'No hay cotizaciones en esta sección',
+          message: 'Las cotizaciones aparecerán aquí cuando cambien de estado.',
+        ),
+      ...visible.map(
         (quote) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: _QuoteCard(
@@ -402,58 +447,103 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   }
 }
 
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.total,
-    required this.active,
-    required this.accepted,
+class _QuoteTabs extends StatelessWidget {
+  const _QuoteTabs({
+    required this.acceptedTab,
+    required this.sentCount,
+    required this.acceptedCount,
+    required this.onChanged,
   });
-
-  final int total;
-  final int active;
-  final int accepted;
+  final bool acceptedTab;
+  final int sentCount;
+  final int acceptedCount;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
       Expanded(
-        child: _SummaryCard(label: 'Total', value: total),
+        child: _QuoteTab(
+          label: 'Enviadas',
+          count: sentCount,
+          selected: !acceptedTab,
+          onTap: () => onChanged(false),
+        ),
       ),
-      const SizedBox(width: 8),
       Expanded(
-        child: _SummaryCard(label: 'Activas', value: active),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _SummaryCard(label: 'Aceptadas', value: accepted),
+        child: _QuoteTab(
+          label: 'Aceptadas',
+          count: acceptedCount,
+          selected: acceptedTab,
+          onTap: () => onChanged(true),
+        ),
       ),
     ],
   );
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.label, required this.value});
-
+class _QuoteTab extends StatelessWidget {
+  const _QuoteTab({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
   final String label;
-  final int value;
-
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: const Color(0xFFE1E6EC)),
-    ),
-    child: Column(
-      children: [
-        Text(
-          '$value',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        FittedBox(child: Text(label)),
-      ],
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected
+                        ? YonkeColors.primaryNavy
+                        : YonkeColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? YonkeColors.primaryNavy
+                      : const Color(0xFFE5E8ED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: selected ? Colors.white : YonkeColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 3,
+            color: selected ? YonkeColors.primaryNavy : Colors.transparent,
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -474,7 +564,7 @@ class _QuoteCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE1E6EC)),
+        side: const BorderSide(color: YonkeColors.border),
       ),
       child: InkWell(
         onTap: onTap,
@@ -513,7 +603,7 @@ class _QuoteCard extends StatelessWidget {
                           ? formatYonkeQuotePrice(quote.price)
                           : 'No disponible',
                       style: const TextStyle(
-                        color: Color(0xFF147A1D),
+                        color: YonkeColors.accentGreen,
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
                       ),
@@ -601,27 +691,6 @@ class _StateCard extends StatelessWidget {
         const SizedBox(height: 7),
         Text(message, textAlign: TextAlign.center),
         if (action != null) ...[const SizedBox(height: 14), action!],
-      ],
-    ),
-  );
-}
-
-class _Wordmark extends StatelessWidget {
-  const _Wordmark();
-
-  @override
-  Widget build(BuildContext context) => RichText(
-    text: const TextSpan(
-      style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
-      children: [
-        TextSpan(
-          text: 'refa',
-          style: TextStyle(color: Color(0xFF123B7A)),
-        ),
-        TextSpan(
-          text: 'Net',
-          style: TextStyle(color: Color(0xFF14951F)),
-        ),
       ],
     ),
   );
