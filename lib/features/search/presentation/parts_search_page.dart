@@ -322,7 +322,7 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
               ),
             ),
           ),
-          const ClientBottomNavigation(currentIndex: 1),
+          const ClientBottomNavigation(currentIndex: -1),
         ],
       ),
     ),

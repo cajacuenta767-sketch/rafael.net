@@ -4,6 +4,8 @@ import 'package:app_yonke/core/network/api_exception.dart';
 import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/messages/presentation/client_conversation_page.dart';
+import 'package:app_yonke/features/messages/data/client_messages_repository.dart';
+import 'package:app_yonke/features/messages/domain/client_message.dart';
 import 'package:app_yonke/features/quotes/domain/client_quote.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +18,106 @@ const _jwt =
     'ZmFrZS1zaWduYXR1cmU';
 
 void main() {
+  testWidgets('modo de prueba usa chat local cuando el API responde 401', (
+    tester,
+  ) async {
+    final api = _FakeApiClient(unauthorizedChat: true);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          apiClientProvider.overrideWithValue(api),
+          tokenStoreProvider.overrideWithValue(
+            _MemoryTokenStore('development-client-session'),
+          ),
+        ],
+        child: const MaterialApp(
+          home: ClientConversationPage(
+            args: ClientConversationArgs(quote: _quote),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.fling(
+      find.byType(CustomScrollView),
+      const Offset(0, 600),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Modo de prueba'), findsOneWidget);
+    expect(
+      find.text('Buen día, tenemos disponible la pieza que buscas.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('client-message-input')),
+      'Mensaje guardado localmente',
+    );
+    await tester.tap(find.byKey(const Key('client-send-message')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mensaje guardado localmente'), findsOneWidget);
+    expect(api.sentMessages, isEmpty);
+  });
+
+  testWidgets('chat conserva la composición visual de la referencia', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ClientConversationPage(
+            args: ClientConversationArgs(quote: _visualQuote),
+            repository: _VisualMessagesRepository(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Faro izquierdo'), findsOneWidget);
+    expect(find.text('¿Incluye envío a Nogales?'), findsOneWidget);
+    await expectLater(
+      find.byType(ClientConversationPage),
+      matchesGoldenFile('goldens/client_chat_reference.png'),
+    );
+  });
+
+  testWidgets('bandeja del cliente reúne cotizaciones e historiales del API', (
+    tester,
+  ) async {
+    final api = _FakeApiClient();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          apiClientProvider.overrideWithValue(api),
+          tokenStoreProvider.overrideWithValue(_MemoryTokenStore(_jwt)),
+        ],
+        child: const MaterialApp(home: ClientMessagesPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Conversaciones'), findsOneWidget);
+    expect(find.text('Yonke Norte'), findsOneWidget);
+    expect(find.text('Alternador · Nissan · SOL-0042/2026'), findsOneWidget);
+    expect(find.text('Sí, cuenta con 15 días de garantía.'), findsOneWidget);
+    expect(
+      api.calls,
+      containsAll([
+        'GET /api/DashboardSuscriptores/mis-cotizaciones',
+        'GET /api/SolicitudCotizacionMensajes/quote-norte',
+        'GET /api/SolicitudCotizacionMensajes/quote-norte/no-leidos',
+      ]),
+    );
+  });
+
   testWidgets('cliente ve la conversación real y envía un mensaje', (
     tester,
   ) async {
@@ -80,6 +182,82 @@ const _quote = ClientQuote(
   imageUrls: [],
 );
 
+const _visualQuote = ClientQuote(
+  id: 'quote-visual',
+  requestId: 'request-visual',
+  requestFolio: 'SR-2024-0187',
+  yonkeId: 'yonke-norte',
+  yonkeName: 'Yonke del Norte',
+  partName: 'Faro izquierdo',
+  brand: 'Nissan',
+  model: 'Versa',
+  year: 2020,
+  price: 2800,
+  available: true,
+  isNew: false,
+  hasWarranty: true,
+  warrantyDays: 15,
+  shippingAvailable: true,
+  active: true,
+  status: 'Enviada',
+  imageUrls: [],
+);
+
+class _VisualMessagesRepository implements ClientMessagesRepository {
+  const _VisualMessagesRepository();
+
+  @override
+  Future<List<ClientMessagePreview>> getInbox() async => const [];
+
+  @override
+  Future<List<ClientQuoteMessage>> getConversation(String quoteId) async => [
+    ClientQuoteMessage(
+      id: 'v1',
+      text: 'Buen día, tenemos disponible el faro que buscas.',
+      sentAt: DateTime(2026, 9, 8, 10, 31),
+      fromClient: false,
+    ),
+    ClientQuoteMessage(
+      id: 'v2',
+      text: '¿Me puedes enviar más fotos por favor?',
+      sentAt: DateTime(2026, 9, 8, 10, 32),
+      fromClient: true,
+      read: true,
+    ),
+    ClientQuoteMessage(
+      id: 'v3',
+      text: 'Claro, la pieza está en buen estado.',
+      sentAt: DateTime(2026, 9, 8, 10, 33),
+      fromClient: false,
+    ),
+    ClientQuoteMessage(
+      id: 'v4',
+      text: '¿Te sirve en \$2,800?',
+      sentAt: DateTime(2026, 9, 8, 10, 34),
+      fromClient: false,
+    ),
+    ClientQuoteMessage(
+      id: 'v5',
+      text: '¿Incluye envío a Nogales?',
+      sentAt: DateTime(2026, 9, 8, 10, 34),
+      fromClient: true,
+      read: true,
+    ),
+    ClientQuoteMessage(
+      id: 'v6',
+      text: 'Así es, envío incluido.',
+      sentAt: DateTime(2026, 9, 8, 10, 35),
+      fromClient: false,
+    ),
+  ];
+
+  @override
+  Future<void> sendMessage({
+    required String quoteId,
+    required String message,
+  }) async {}
+}
+
 Map<String, dynamic> _message({
   required String id,
   required String text,
@@ -98,6 +276,9 @@ Map<String, dynamic> _message({
 };
 
 class _FakeApiClient implements ApiClient {
+  _FakeApiClient({this.unauthorizedChat = false});
+
+  final bool unauthorizedChat;
   final calls = <String>[];
   final sentMessages = <Object?>[];
   final _history = <Map<String, dynamic>>[
@@ -131,8 +312,35 @@ class _FakeApiClient implements ApiClient {
     Map<String, dynamic>? queryParameters,
   }) async {
     calls.add('GET $path');
+    if (unauthorizedChat &&
+        path.startsWith('/api/SolicitudCotizacionMensajes/')) {
+      throw const ApiException(message: 'Unauthorized', statusCode: 401);
+    }
+    if (path == '/api/DashboardSuscriptores/mis-cotizaciones') {
+      return _ok([
+        {
+          'guidId': 'quote-norte',
+          'solicitudYonkeGuidId': 'request-yonke-norte',
+          'folio': 'SOL-0042/2026',
+          'piezaBuscada': 'Alternador',
+          'marca': 'Nissan',
+          'precio': 1700,
+          'disponible': true,
+          'esNueva': false,
+          'tieneGarantia': true,
+          'diasGarantia': 15,
+          'envioDisponible': true,
+          'activo': true,
+          'fechaCreacionCotizacion': '2026-08-31T12:00:00Z',
+          'yonkeNombre': 'Yonke Norte',
+        },
+      ]);
+    }
     if (path == '/api/SolicitudCotizacionMensajes/quote-norte') {
       return _ok(List<Map<String, dynamic>>.from(_history));
+    }
+    if (path == '/api/SolicitudCotizacionMensajes/quote-norte/no-leidos') {
+      return _ok({'cantidad': 1});
     }
     throw ApiException(message: 'Sin ruta $path', statusCode: 404);
   }

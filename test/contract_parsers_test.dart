@@ -1,5 +1,6 @@
 import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_file.dart';
+import 'package:app_yonke/features/quotes/domain/client_quote.dart';
 import 'package:app_yonke/features/quotes/domain/quote_message.dart';
 import 'package:app_yonke/features/requests/domain/client_request.dart';
 import 'package:app_yonke/features/yonke_coverage/data/yonke_coverage_repository.dart';
@@ -13,6 +14,65 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Parsers frente a los esquemas de docs/openapi_v1.json.
 void main() {
+  test('solicitudes acepta la paginación real data dentro de data', () {
+    final requests = clientRequestSummariesFromResponse({
+      'success': true,
+      'data': {
+        'data': [
+          {
+            'guidId': 'request-nested',
+            'piezaBuscada': 'Espejo derecho',
+            'totalCotizaciones': 1,
+          },
+        ],
+        'meta': {'page': 1, 'itemCount': 1},
+      },
+    });
+
+    expect(requests, hasLength(1));
+    expect(requests.single.id, 'request-nested');
+    expect(requests.single.quoteCount, 1);
+  });
+
+  test('ciudades acepta solicitudHeader del API real', () {
+    final cities = requestCityNamesFromResponse({
+      'data': {
+        'solicitudHeader': {
+          'ciudadesSaveBySolicitud': [
+            {'ciudadId': 3, 'ciudad': 'Agua Prieta'},
+            {'ciudadId': 2, 'ciudad': 'Hermosillo'},
+          ],
+        },
+      },
+    });
+
+    expect(cities, ['Agua Prieta', 'Hermosillo']);
+  });
+
+  test('mis-cotizaciones acepta la proyección plana del API real', () {
+    final quotes = clientQuotesFromDashboard({
+      'data': [
+        {
+          'guidId': 'quote-flat',
+          'solicitudYonkeGuidId': 'assignment-flat',
+          'folio': 'SOL-00014/2026',
+          'precio': 1500,
+          'disponible': true,
+          'esNueva': true,
+          'tieneGarantia': false,
+          'diasGarantia': 0,
+          'envioDisponible': false,
+          'activo': false,
+        },
+      ],
+    });
+
+    expect(quotes, hasLength(1));
+    expect(quotes.single.id, 'quote-flat');
+    expect(quotes.single.requestFolio, 'SOL-00014/2026');
+    expect(quotes.single.price, 1500);
+  });
+
   group('Solicitud_Busqueda_DTO', () {
     test('lee estatus y total de cotizaciones con sus nombres reales', () {
       final summary = clientRequestSummaryFromJson({

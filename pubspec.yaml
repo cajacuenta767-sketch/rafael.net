@@ -70,6 +70,7 @@ flutter:
 
   assets:
     - assets/images/refanet_logo_transparent.png
+    - assets/images/home_hero_car_v2.png
     - assets/images/google_signin_logo.png
     - assets/images/apple_signin_logo.png
     - assets/legal/

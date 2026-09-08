@@ -7,6 +7,11 @@ import '../../../core/di/api_providers.dart';
 import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
 
+const _navy = Color(0xFF07284D);
+const _green = Color(0xFF54B91B);
+const _greenDark = Color(0xFF258A1B);
+const _muted = Color(0xFF68707C);
+
 class RoleHomePage extends StatelessWidget {
   const RoleHomePage.client({super.key});
 
@@ -14,41 +19,29 @@ class RoleHomePage extends StatelessWidget {
   Widget build(BuildContext context) => const _ClientHomePage();
 }
 
-class _ClientHomePage extends StatefulWidget {
+class _ClientHomePage extends StatelessWidget {
   const _ClientHomePage();
 
   @override
-  State<_ClientHomePage> createState() => _ClientHomePageState();
-}
-
-class _ClientHomePageState extends State<_ClientHomePage> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final smallScreen = MediaQuery.sizeOf(context).width < 380;
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFC),
+      backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
-                  MediaQuery.sizeOf(context).width < 380 ? 20 : 28,
-                  18,
-                  MediaQuery.sizeOf(context).width < 380 ? 20 : 28,
+                  smallScreen ? 18 : 22,
+                  10,
+                  smallScreen ? 18 : 22,
                   20,
                 ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: _HomeContent(searchController: _searchController),
+                    child: const _HomeContent(),
                   ),
                 ),
               ),
@@ -62,250 +55,291 @@ class _ClientHomePageState extends State<_ClientHomePage> {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.searchController});
-
-  final TextEditingController searchController;
+  const _HomeContent();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Center(child: _HomeWordmark()),
-        const SizedBox(height: 24),
-        Text('Hola, cliente', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 30),
-        Text(
-          '¿Qué refacción buscas?',
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: searchController,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (value) {
-            final query = value.trim();
-            if (query.isNotEmpty) {
-              context.push(
-                '${AppRoutes.clientSearch}?q=${Uri.encodeQueryComponent(query)}',
-              );
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Ej. Alternador Nissan',
-            prefixIcon: const Icon(Icons.search, size: 21),
-            suffixIcon: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: searchController,
-              builder: (context, value, _) => value.text.isEmpty
-                  ? const SizedBox.shrink()
-                  : IconButton(
-                      tooltip: 'Limpiar búsqueda',
-                      onPressed: searchController.clear,
-                      icon: const Icon(Icons.close),
-                    ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 30),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Categorías',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            TextButton(
-              onPressed: () => _showAllCategories(context, searchController),
-              child: const Text('Ver todas ›'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        _Categories(searchController: searchController),
-        const SizedBox(height: 28),
-        Text(
-          'Mis solicitudes',
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        const _RecentRequestCard(),
-      ],
-    );
-  }
-}
-
-class _HomeWordmark extends StatelessWidget {
-  const _HomeWordmark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'refaNet',
-      child: ExcludeSemantics(
-        child: Text.rich(
-          const TextSpan(
-            children: [
-              TextSpan(
-                text: 'refa',
-                style: TextStyle(color: Color(0xFF092B61)),
-              ),
-              TextSpan(
-                text: 'Net',
-                style: TextStyle(color: Color(0xFF14951F)),
-              ),
-            ],
-          ),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -1.1,
-            fontSize: 25,
-          ),
-        ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const _HomeHeader(),
+      const SizedBox(height: 12),
+      const _WelcomeArtwork(),
+      const SizedBox(height: 14),
+      _CreateRequestBanner(
+        onTap: () => context.push(AppRoutes.clientNewRequest),
       ),
-    );
-  }
+      const SizedBox(height: 14),
+      const _HomeShortcutCards(),
+      const SizedBox(height: 22),
+      _SectionTitle(
+        title: 'Solicitudes recientes',
+        action: 'Ver todas',
+        onAction: () => context.go(AppRoutes.clientRequests),
+      ),
+      const SizedBox(height: 4),
+      const _RecentRequestCard(),
+    ],
+  );
 }
 
-class _Categories extends StatelessWidget {
-  const _Categories({required this.searchController});
-
-  final TextEditingController searchController;
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: _categoryItems
-          .take(4)
-          .map(
-            (item) => Expanded(
-              child: Semantics(
-                button: true,
-                label: 'Categoría ${item.label}',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _selectCategory(searchController, item.label),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3F5F5),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            item.icon,
-                            color: const Color(0xFF384049),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Semantics(
+        label: 'REFANET',
+        image: true,
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 40,
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    maxWidth: 90,
+                    maxHeight: 61,
+                    child: Image.asset(
+                      'assets/images/refanet_logo_transparent.png',
+                      width: 90,
+                      height: 61,
+                      fit: BoxFit.fill,
                     ),
                   ),
                 ),
               ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-typedef _Category = ({String label, IconData icon});
-
-const _categoryItems = <_Category>[
-  (label: 'Motor', icon: Icons.settings_outlined),
-  (label: 'Transmisión', icon: Icons.album_outlined),
-  (label: 'Frenos', icon: Icons.radio_button_checked_outlined),
-  (label: 'Eléctrico', icon: Icons.electric_bolt_outlined),
-  (label: 'Suspensión', icon: Icons.car_repair_outlined),
-  (label: 'Dirección', icon: Icons.turn_slight_right_outlined),
-  (label: 'Enfriamiento', icon: Icons.ac_unit_outlined),
-  (label: 'Combustible', icon: Icons.local_gas_station_outlined),
-  (label: 'Escape', icon: Icons.air_outlined),
-  (label: 'Clutch', icon: Icons.settings_input_component_outlined),
-  (label: 'Carrocería', icon: Icons.directions_car_outlined),
-  (label: 'Iluminación', icon: Icons.lightbulb_outline),
-  (label: 'Cristales', icon: Icons.window_outlined),
-  (label: 'Interior', icon: Icons.event_seat_outlined),
-  (label: 'Aire acondicionado', icon: Icons.air_outlined),
-  (label: 'Llantas y rines', icon: Icons.tire_repair_outlined),
-  (label: 'Seguridad', icon: Icons.health_and_safety_outlined),
-  (label: 'Accesorios', icon: Icons.extension_outlined),
-  (label: 'Herramientas', icon: Icons.handyman_outlined),
-];
-
-void _selectCategory(TextEditingController controller, String category) {
-  controller.value = TextEditingValue(
-    text: category,
-    selection: TextSelection.collapsed(offset: category.length),
+              const SizedBox(width: 7),
+              Text.rich(
+                const TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'REFA',
+                      style: TextStyle(color: _navy),
+                    ),
+                    TextSpan(
+                      text: 'NET',
+                      style: TextStyle(color: _greenDark),
+                    ),
+                  ],
+                ),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: -1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      IconButton(
+        tooltip: 'Notificaciones',
+        onPressed: () => context.push(AppRoutes.clientNotifications),
+        icon: const Icon(
+          Icons.notifications_none_rounded,
+          color: _navy,
+          size: 25,
+        ),
+      ),
+    ],
   );
 }
 
-void _showAllCategories(
-  BuildContext context,
-  TextEditingController controller,
-) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+class _WelcomeArtwork extends StatelessWidget {
+  const _WelcomeArtwork();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 164,
+    width: double.infinity,
+    color: Colors.white,
+    child: Stack(
+      clipBehavior: Clip.hardEdge,
+      children: [
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: .64,
+              heightFactor: 1,
+              child: Image.asset(
+                'assets/images/home_hero_car_v2.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 2,
+          top: 44,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hola, cliente',
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 3),
+              const SizedBox(
+                width: 160,
+                child: Text(
+                  '¿Qué autoparte necesitas hoy?',
+                  style: TextStyle(color: _muted, fontSize: 13, height: 1.25),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CreateRequestBanner extends StatelessWidget {
+  const _CreateRequestBanner({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(13),
+      child: Ink(
+        height: 84,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(13),
+          gradient: const LinearGradient(colors: [_green, _greenDark]),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x3354B91B),
+              blurRadius: 14,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 19),
+          child: Row(
+            children: [
+              Icon(Icons.add, color: Colors.white, size: 34),
+              SizedBox(width: 14),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nueva solicitud',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Publica la autoparte que buscas',
+                    style: TextStyle(color: Color(0xE6FFFFFF), fontSize: 12),
+                  ),
+                ],
+              ),
+              Spacer(),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 17,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _ShortcutCard extends StatelessWidget {
+  const _ShortcutCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final int? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(13),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(13),
+      child: Container(
+        height: 152,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: const Color(0xFFEDEFF1)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A16233A),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Icon(icon, color: _greenDark, size: 31),
+            const Spacer(),
             Text(
-              'Todas las categorías',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 1.15,
-                ),
-                itemCount: _categoryItems.length,
-                itemBuilder: (context, index) {
-                  final item = _categoryItems[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      _selectCategory(controller, item.label);
-                      Navigator.pop(sheetContext);
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(item.icon, color: const Color(0xFF384049)),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              title,
+              style: const TextStyle(
+                color: _navy,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
               ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value?.toString() ?? '—',
+              style: const TextStyle(
+                color: _green,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _muted, fontSize: 10),
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: _greenDark,
+                  size: 18,
+                ),
+              ],
             ),
           ],
         ),
@@ -314,17 +348,130 @@ void _showAllCategories(
   );
 }
 
+class _HomeShortcutCards extends ConsumerStatefulWidget {
+  const _HomeShortcutCards();
+
+  @override
+  ConsumerState<_HomeShortcutCards> createState() => _HomeShortcutCardsState();
+}
+
+class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
+  int? _requestCount;
+  int? _quoteCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final responses = await Future.wait<dynamic>([
+        ref.read(dashboardApiProvider).getMyRequests(pageSize: 100),
+        ref.read(dashboardApiProvider).getMyQuotes(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _requestCount = _recordCount(responses[0]);
+        _quoteCount = _recordCount(responses[1]);
+      });
+    } catch (_) {
+      // El guion evita mostrar cifras inventadas si el resumen no responde.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: _ShortcutCard(
+          icon: Icons.assignment_outlined,
+          title: 'Mis solicitudes',
+          subtitle: 'Ver mis solicitudes',
+          value: _requestCount,
+          onTap: () => context.go(AppRoutes.clientRequests),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: _ShortcutCard(
+          icon: Icons.sell_outlined,
+          title: 'Cotizaciones',
+          subtitle: 'Cotizaciones recibidas',
+          value: _quoteCount,
+          onTap: () => context.go(AppRoutes.clientRequests),
+        ),
+      ),
+    ],
+  );
+}
+
+int _recordCount(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  if (data is List) return data.length;
+  if (data is Map) {
+    const totalKeys = <String>[
+      'total',
+      'totalRegistros',
+      'cantidadTotal',
+      'totalCount',
+      'recordCount',
+      'itemCount',
+    ];
+    for (final key in totalKeys) {
+      final value = data[key];
+      if (value is num) return value.toInt();
+    }
+    final records = data['items'] ?? data['registros'];
+    if (records is List) return records.length;
+    final nested = data['data'];
+    if (nested != null && !identical(nested, data)) {
+      return _recordCount(nested);
+    }
+  }
+  return 0;
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.title,
+    required this.action,
+    required this.onAction,
+  });
+  final String title;
+  final String action;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+      ),
+      TextButton(
+        onPressed: onAction,
+        style: TextButton.styleFrom(foregroundColor: _greenDark),
+        child: Text(action),
+      ),
+    ],
+  );
+}
+
 /// Última solicitud del cliente, desde
 /// `GET /api/DashboardSuscriptores/mi-solicitud-reciente`.
 class _RecentRequestCard extends ConsumerStatefulWidget {
   const _RecentRequestCard();
-
   @override
   ConsumerState<_RecentRequestCard> createState() => _RecentRequestCardState();
 }
 
 class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
   ClientRequestSummary? _request;
+  String? _imageUrl;
   bool _loading = true;
   bool _failed = false;
 
@@ -341,9 +488,23 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
     });
     try {
       final response = await ref.read(dashboardApiProvider).getRecentRequest();
+      final request = clientRequestSummaryFromResponse(response);
+      String? imageUrl;
+      if (request != null) {
+        try {
+          final imagesResponse = await ref
+              .read(requestsApiProvider)
+              .getImages(request.id);
+          final images = requestImageUrlsFromResponse(imagesResponse);
+          if (images.isNotEmpty) imageUrl = images.first;
+        } catch (_) {
+          // La tarjeta sigue siendo útil aunque la foto no esté disponible.
+        }
+      }
       if (!mounted) return;
       setState(() {
-        _request = clientRequestSummaryFromResponse(response);
+        _request = request;
+        _imageUrl = imageUrl;
         _loading = false;
       });
     } catch (_) {
@@ -358,22 +519,36 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
   @override
   Widget build(BuildContext context) {
     final request = _request;
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         key: const Key('home-recent-request'),
         borderRadius: BorderRadius.circular(14),
         onTap: request == null
-            ? () => context.push(AppRoutes.clientRequests)
+            ? () => context.go(AppRoutes.clientRequests)
             : () => context.push(AppRoutes.clientRequestDetail(request.id)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 104),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFEDEFF1)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A16233A),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
           child: _loading
-              ? const SizedBox(
-                  height: 48,
-                  child: Center(child: CircularProgressIndicator()),
+              ? const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 )
               : _failed
               ? _RecentRequestMessage(
@@ -387,29 +562,76 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
                   actionLabel: 'Crear solicitud',
                   onAction: () => context.push(AppRoutes.clientNewRequest),
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              : Row(
                   children: [
-                    Text(
-                      request.title,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE7F3E1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _imageUrl == null
+                          ? const Icon(
+                              Icons.directions_car_filled_outlined,
+                              color: _greenDark,
+                              size: 35,
+                            )
+                          : Image.network(
+                              _imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.directions_car_filled_outlined,
+                                color: _greenDark,
+                                size: 35,
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 16),
-                    Text('${request.quoteCount} cotizaciones'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 9,
-                          color: request.isInProgress
-                              ? const Color(0xFF14951F)
-                              : const Color(0xFF596276),
-                        ),
-                        const SizedBox(width: 7),
-                        Text(request.status),
-                      ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            request.part,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _navy,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          if (request.vehicle.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              request.vehicle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            '${request.quoteCount} ${request.quoteCount == 1 ? 'cotización' : 'cotizaciones'}',
+                            style: const TextStyle(
+                              color: _greenDark,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: _greenDark,
+                      size: 25,
                     ),
                   ],
                 ),
@@ -425,7 +647,6 @@ class _RecentRequestMessage extends StatelessWidget {
     required this.actionLabel,
     required this.onAction,
   });
-
   final String text;
   final String actionLabel;
   final VoidCallback onAction;
@@ -433,8 +654,10 @@ class _RecentRequestMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
+      const Icon(Icons.assignment_outlined, color: _greenDark),
+      const SizedBox(width: 10),
       Expanded(
-        child: Text(text, style: const TextStyle(color: Color(0xFF596276))),
+        child: Text(text, style: const TextStyle(color: _muted, fontSize: 13)),
       ),
       TextButton(onPressed: onAction, child: Text(actionLabel)),
     ],

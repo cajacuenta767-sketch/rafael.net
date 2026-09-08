@@ -32,6 +32,9 @@ import '../../features/yonke_profile/presentation/yonke_profile_page.dart';
 import '../../features/yonke_messages/presentation/yonke_messages_page.dart';
 import '../../features/yonke_coverage/presentation/yonke_coverage_page.dart';
 import '../../features/yonke_notifications/presentation/yonke_notifications_page.dart';
+import '../../features/yonkes/domain/client_yonke.dart';
+import '../../features/yonkes/presentation/client_yonkes_page.dart';
+import '../../features/notifications/presentation/client_notifications_page.dart';
 
 abstract final class AppRoutes {
   static const start = '/';
@@ -39,6 +42,11 @@ abstract final class AppRoutes {
   static const clientHome = '/cliente';
   static const clientSearch = '/cliente/buscar';
   static const clientProfile = '/cliente/perfil';
+  static const clientMessages = '/cliente/mensajes';
+  static const clientNotifications = '/cliente/notificaciones';
+  static const clientYonkes = '/cliente/yonkes';
+  static String clientYonkeProfile(String yonkeId) =>
+      '$clientYonkes/${Uri.encodeComponent(yonkeId)}';
   static const clientNewRequest = '/cliente/solicitudes/nueva';
   static const clientRequestPhotos = '/cliente/solicitudes/fotografias';
   static const clientRequestCity = '/cliente/solicitudes/ciudad';
@@ -105,6 +113,30 @@ final GoRouter appRouter = GoRouter(
           ClientSessionGate(builder: (_) => const ClientProfilePage()),
     ),
     GoRoute(
+      path: AppRoutes.clientMessages,
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const ClientMessagesPage()),
+    ),
+    GoRoute(
+      path: AppRoutes.clientNotifications,
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const ClientNotificationsPage()),
+    ),
+    GoRoute(
+      path: AppRoutes.clientYonkes,
+      builder: (context, state) =>
+          ClientSessionGate(builder: (_) => const ClientYonkesPage()),
+    ),
+    GoRoute(
+      path: '/cliente/yonkes/:yonkeId',
+      redirect: (context, state) =>
+          state.extra is ClientYonke ? null : AppRoutes.clientYonkes,
+      builder: (context, state) => ClientSessionGate(
+        builder: (_) =>
+            ClientYonkeProfilePage(initial: state.extra! as ClientYonke),
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.clientNewRequest,
       builder: (context, state) => ClientSessionGate(
         builder: (_) => NewRequestPage(
@@ -146,12 +178,19 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/cliente/solicitudes/detalle/:requestId/cotizaciones',
-      builder: (context, state) => ClientSessionGate(
-        builder: (_) => RequestQuotesPage(
-          requestId: state.pathParameters['requestId']!,
-          requestTitle: state.extra as String?,
-        ),
-      ),
+      builder: (context, state) {
+        final extra = state.extra;
+        final quoteArgs = extra is Map ? extra : null;
+        return ClientSessionGate(
+          builder: (_) => RequestQuotesPage(
+            requestId: state.pathParameters['requestId']!,
+            requestTitle:
+                quoteArgs?['title']?.toString() ??
+                (extra is String ? extra : null),
+            requestFolio: quoteArgs?['folio']?.toString(),
+          ),
+        );
+      },
     ),
     GoRoute(
       path: '/cliente/cotizaciones/:quoteId',

@@ -147,7 +147,7 @@ List<String> requestImageUrlsFromResponse(dynamic response) =>
 /// `GET /api/SolicitudCiudades/{id}/ciudades`: registros `SolicitudesCiudades`
 /// (con `ciudades` anidada) o `Ciudades` directamente.
 List<String> requestCityNamesFromResponse(dynamic response) =>
-    _records(response)
+    _requestCityRecords(response)
         .whereType<Map>()
         .map((record) {
           final nested = record['ciudades'];
@@ -161,6 +161,17 @@ List<String> requestCityNamesFromResponse(dynamic response) =>
         .whereType<String>()
         .toList(growable: false);
 
+List<dynamic> _requestCityRecords(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  if (data is Map) {
+    final header = data['solicitudHeader'];
+    if (header is Map && header['ciudadesSaveBySolicitud'] is List) {
+      return header['ciudadesSaveBySolicitud'] as List;
+    }
+  }
+  return _records(response);
+}
+
 int _quoteCount(List<dynamic> assignments) => assignments
     .whereType<Map>()
     .map((assignment) => assignment['solicitudCotizaciones'])
@@ -171,6 +182,7 @@ List<dynamic> _records(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
   return switch (data) {
     List() => data,
+    Map() when data['data'] is List => data['data'] as List,
     Map() when data['items'] is List => data['items'] as List,
     Map() when data['registros'] is List => data['registros'] as List,
     _ => const <dynamic>[],

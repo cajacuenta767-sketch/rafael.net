@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../quotes/domain/client_quote.dart';
 import '../domain/client_request.dart';
+
+const _navy = Color(0xFF072C4F);
+const _greenDark = Color(0xFF26971F);
+const _muted = Color(0xFF7F8790);
+const _line = Color(0xFFE9ECEF);
 
 class RequestDetailPage extends ConsumerStatefulWidget {
   const RequestDetailPage({super.key, required this.requestId});
@@ -17,6 +24,7 @@ class RequestDetailPage extends ConsumerStatefulWidget {
 
 class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
   ClientRequestDetail? _detail;
+  List<ClientQuote> _quotes = const [];
   bool _loading = true;
   String? _error;
 
@@ -31,23 +39,33 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       _loading = true;
       _error = null;
     });
-
     try {
-      final api = ref.read(requestsApiProvider);
+      final requests = ref.read(requestsApiProvider);
       final results = await Future.wait<dynamic>([
-        api.getById(widget.requestId),
-        // Fotos y ciudades son complementarias: si fallan, el detalle se
-        // muestra igual.
-        _optional(api.getImages(widget.requestId)),
-        _optional(api.getCities(widget.requestId)),
+        requests.getById(widget.requestId),
+        _optional(requests.getImages(widget.requestId)),
+        _optional(requests.getCities(widget.requestId)),
+        _optional(ref.read(dashboardApiProvider).getMyQuotes()),
       ]);
+      final detail = clientRequestDetailFromResponses(
+        requestResponse: results[0],
+        imagesResponse: results[1],
+        citiesResponse: results[2],
+      );
       if (!mounted) return;
       setState(() {
-        _detail = clientRequestDetailFromResponses(
-          requestResponse: results[0],
-          imagesResponse: results[1],
-          citiesResponse: results[2],
-        );
+        _detail = detail;
+        _quotes = detail == null
+            ? const []
+            : clientQuotesFromDashboard(results[3])
+                  .where((quote) {
+                    if (quote.requestId.isNotEmpty) {
+                      return quote.requestId == widget.requestId;
+                    }
+                    return quote.requestFolio != null &&
+                        quote.requestFolio == detail.summary.folio;
+                  })
+                  .toList(growable: false);
         _loading = false;
       });
     } catch (_) {
@@ -59,259 +77,465 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFC),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFCFCFC),
-        surfaceTintColor: const Color(0xFFFCFCFC),
-        centerTitle: true,
-        title: const Text('Detalle de solicitud'),
-        actions: [
-          IconButton(
-            tooltip: 'Actualizar detalle',
-            onPressed: _loading ? null : _loadDetail,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: _buildBody(context),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-
-    if (_error != null) {
-      return _DetailMessage(
-        icon: Icons.cloud_off_outlined,
-        title: 'No pudimos cargar la solicitud',
-        message: _error!,
-        onRetry: _loadDetail,
+  Future<void> _share() async {
+    final detail = _detail;
+    if (detail == null) return;
+    final summary = detail.summary;
+    final text = [
+      'Solicitud ${summary.folio ?? summary.id}',
+      summary.part,
+      if (summary.vehicle.isNotEmpty) summary.vehicle,
+      if (detail.description != null) detail.description!,
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud copiada para compartir.')),
       );
     }
+  }
 
+  void _showCancellationInfo() => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Cancelar solicitud'),
+      content: const Text(
+        'El API requiere un identificador de estatus de cancelación, pero el Swagger no publica ese catálogo. La solicitud no se modificó.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Entendido'),
+        ),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.white,
+    appBar: AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        tooltip: 'Regresar',
+        onPressed: () => context.pop(),
+        icon: const Icon(Icons.arrow_back_ios_new, color: _navy, size: 18),
+      ),
+      title: const Text(
+        'Detalle de solicitud',
+        style: TextStyle(
+          color: _navy,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      actions: [
+        PopupMenuButton<String>(
+          tooltip: 'Más opciones',
+          color: Colors.white,
+          icon: const Icon(Icons.more_vert, color: _navy),
+          onSelected: (value) {
+            if (value == 'refresh') _loadDetail();
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'refresh', child: Text('Actualizar')),
+          ],
+        ),
+      ],
+    ),
+    body: SafeArea(
+      top: false,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: _body(),
+        ),
+      ),
+    ),
+  );
+
+  Widget _body() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: _greenDark));
+    }
+    if (_error != null) {
+      return _DetailMessage(message: _error!, onRetry: _loadDetail);
+    }
     final detail = _detail;
     if (detail == null) {
       return _DetailMessage(
-        icon: Icons.search_off_outlined,
-        title: 'Solicitud no encontrada',
-        message: 'La solicitud solicitada no está disponible.',
+        message: 'La solicitud no está disponible.',
         onRetry: _loadDetail,
       );
     }
-
-    return RefreshIndicator(
-      onRefresh: _loadDetail,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  detail.summary.part,
-                  style: Theme.of(context).textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w800),
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            color: _greenDark,
+            onRefresh: _loadDetail,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+              children: [
+                _RequestMeta(detail: detail),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Divider(height: 1, color: _line),
                 ),
-              ),
-              _StatusChip(status: detail.summary.status),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _DetailCard(
-            title: 'Información de la pieza',
-            children: [
-              _DetailRow(
-                label: 'Marca',
-                value: detail.summary.brand ?? 'Sin información',
-              ),
-              _DetailRow(
-                label: 'Modelo',
-                value: detail.summary.model ?? 'Sin información',
-              ),
-              _DetailRow(
-                label: 'Año',
-                value: detail.summary.year?.toString() ?? 'Sin información',
-              ),
-              if (detail.engine != null)
-                _DetailRow(label: 'Motor', value: detail.engine!),
-              if (detail.transmission != null)
-                _DetailRow(label: 'Transmisión', value: detail.transmission!),
-              if (detail.partNumber != null)
-                _DetailRow(label: 'No. de parte', value: detail.partNumber!),
-              if (detail.description != null)
-                _DetailRow(label: 'Descripción', value: detail.description!),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _DetailCard(
-            title: 'Ubicación',
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.location_on_outlined, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(detail.city)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _DetailCard(
-            title: 'Fotografías (${detail.imageUrls.length})',
-            children: [
-              if (detail.imageUrls.isEmpty)
-                const Text(
-                  'Esta solicitud no tiene fotografías disponibles.',
-                  style: TextStyle(color: Color(0xFF596276)),
-                )
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: detail.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    final imageUrl = detail.imageUrls[index];
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const _ImageError(),
-                        loadingBuilder: (context, child, progress) =>
-                            progress == null
-                            ? child
-                            : const Center(child: CircularProgressIndicator()),
-                      ),
-                    );
-                  },
+                _RequestSummary(detail: detail),
+                const SizedBox(height: 18),
+                _PhotosSection(imageUrls: detail.imageUrls),
+                const SizedBox(height: 20),
+                const _DispatchSection(),
+                const SizedBox(height: 20),
+                _QuotesSection(
+                  quotes: _quotes,
+                  expectedCount: detail.summary.quoteCount,
+                  requestId: widget.requestId,
+                  requestTitle: detail.summary.title.replaceAll('\n', ' '),
+                  requestFolio: detail.summary.folio,
                 ),
-            ],
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
-          _DetailCard(
-            title: 'Cotizaciones recibidas',
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.local_offer_outlined,
-                    color: Color(0xFF14951F),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${detail.summary.quoteCount} cotizaciones',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: detail.summary.quoteCount > 0
-                    ? () => context.push(
-                        AppRoutes.clientRequestQuotes(widget.requestId),
-                        extra: detail.summary.title.replaceAll('\n', ' '),
-                      )
-                    : null,
-                child: const Text('Ver cotizaciones'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        _BottomActions(
+          canCancel: !detail.summary.closed,
+          onCancel: _showCancellationInfo,
+          onShare: _share,
+        ),
+      ],
     );
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-    decoration: BoxDecoration(
-      color: const Color(0xFFE8F5EA),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      status,
-      style: const TextStyle(
-        color: Color(0xFF147A1D),
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}
-
-class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
+class _RequestMeta extends StatelessWidget {
+  const _RequestMeta({required this.detail});
+  final ClientRequestDetail detail;
 
   @override
-  Widget build(BuildContext context) => Card(
-    elevation: 0,
-    margin: EdgeInsets.zero,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      _StatusChip(status: detail.summary.status),
+      const Spacer(),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+            'Solicitud ${detail.summary.folio ?? detail.summary.id}',
+            style: const TextStyle(color: _muted, fontSize: 10),
           ),
-          const SizedBox(height: 14),
-          ...children,
+          if (detail.summary.createdAt != null)
+            Text(
+              _date(detail.summary.createdAt!),
+              style: const TextStyle(color: Color(0xFFA0A6AC), fontSize: 9),
+            ),
         ],
       ),
-    ),
+    ],
   );
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+class _RequestSummary extends StatelessWidget {
+  const _RequestSummary({required this.detail});
+  final ClientRequestDetail detail;
 
-  final String label;
-  final String value;
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = detail.imageUrls.firstOrNull;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _RequestImage(url: imageUrl, size: 86),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                detail.summary.part,
+                style: const TextStyle(
+                  color: _navy,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                detail.summary.vehicle.isEmpty
+                    ? 'Vehículo sin información'
+                    : detail.summary.vehicle,
+                style: const TextStyle(
+                  color: _navy,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (detail.partNumber != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'No. de parte: ${detail.partNumber}',
+                  style: const TextStyle(color: _muted, fontSize: 10),
+                ),
+              ],
+              if (detail.description != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  detail.description!,
+                  style: const TextStyle(
+                    color: Color(0xFF4D555D),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+              if (detail.cities.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: _greenDark,
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        detail.city,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _muted, fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotosSection extends StatelessWidget {
+  const _PhotosSection({required this.imageUrls});
+  final List<String> imageUrls;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _SectionHeader(
+        title: 'Fotos',
+        action: imageUrls.isEmpty
+            ? '0 disponibles'
+            : '${imageUrls.length} disponibles',
+      ),
+      const SizedBox(height: 9),
+      if (imageUrls.isEmpty)
+        Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F9F7),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: _line),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.photo_outlined, color: _muted, size: 21),
+              SizedBox(width: 8),
+              Text(
+                'Esta solicitud no tiene fotos',
+                style: TextStyle(color: _muted, fontSize: 11),
+              ),
+            ],
+          ),
+        )
+      else
+        SizedBox(
+          height: 82,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: imageUrls.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 9),
+            itemBuilder: (_, index) =>
+                _RequestImage(url: imageUrls[index], size: 82),
+          ),
+        ),
+    ],
+  );
+}
+
+class _DispatchSection extends StatelessWidget {
+  const _DispatchSection();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const _SectionHeader(title: 'Enviada a yonkes con cobertura', action: ''),
+      const SizedBox(height: 9),
+      Container(
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6FBF3),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: const Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFE2F4D9),
+              child: Icon(Icons.send_outlined, color: _greenDark, size: 19),
+            ),
+            SizedBox(width: 11),
+            Expanded(
+              child: Text(
+                'La lista de destinatarios no está disponible en el API.',
+                style: TextStyle(color: Color(0xFF56605A), fontSize: 10.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _QuotesSection extends StatelessWidget {
+  const _QuotesSection({
+    required this.quotes,
+    required this.expectedCount,
+    required this.requestId,
+    required this.requestTitle,
+    required this.requestFolio,
+  });
+  final List<ClientQuote> quotes;
+  final int expectedCount;
+  final String requestId;
+  final String requestTitle;
+  final String? requestFolio;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _SectionHeader(
+        title: 'Cotizaciones recibidas',
+        action:
+            '$expectedCount ${expectedCount == 1 ? 'cotización' : 'cotizaciones'}',
+      ),
+      const SizedBox(height: 9),
+      if (quotes.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: _line),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            expectedCount > 0
+                ? 'El API reporta $expectedCount, pero no entregó sus datos completos.'
+                : 'Aún no hay cotizaciones para esta solicitud.',
+            style: const TextStyle(color: _muted, fontSize: 11),
+          ),
+        )
+      else
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: _line),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              for (var index = 0; index < quotes.length; index++) ...[
+                _QuoteRow(quote: quotes[index]),
+                if (index < quotes.length - 1)
+                  const Divider(
+                    height: 1,
+                    indent: 14,
+                    endIndent: 14,
+                    color: _line,
+                  ),
+              ],
+            ],
+          ),
+        ),
+      if (quotes.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            style: TextButton.styleFrom(foregroundColor: _greenDark),
+            onPressed: () => context.push(
+              AppRoutes.clientRequestQuotes(requestId),
+              extra: {'title': requestTitle, 'folio': requestFolio},
+            ),
+            child: const Text('Ver todas'),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+class _QuoteRow extends StatelessWidget {
+  const _QuoteRow({required this.quote});
+  final ClientQuote quote;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
     child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 92,
-          child: Text(label, style: const TextStyle(color: Color(0xFF596276))),
-        ),
         Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _price(quote.price),
+                style: const TextStyle(
+                  color: _navy,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                quote.yonkeName,
+                style: const TextStyle(
+                  color: _navy,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '${quote.condition} · ${quote.availability}',
+                style: const TextStyle(color: _muted, fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+        FilledButton(
+          onPressed: () =>
+              context.push(AppRoutes.clientQuoteDetail(quote.id), extra: quote),
+          style: FilledButton.styleFrom(
+            backgroundColor: _navy,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(64, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            shape: const StadiumBorder(),
+          ),
+          child: const Text(
+            'Ver',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -319,47 +543,182 @@ class _DetailRow extends StatelessWidget {
   );
 }
 
-class _ImageError extends StatelessWidget {
-  const _ImageError();
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.action});
+  final String title;
+  final String action;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: _navy,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      if (action.isNotEmpty)
+        Text(
+          action,
+          style: const TextStyle(
+            color: _greenDark,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+    ],
+  );
+}
+
+class _RequestImage extends StatelessWidget {
+  const _RequestImage({required this.url, required this.size});
+  final String? url;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      width: size,
+      height: size,
+      color: const Color(0xFFEAF6E5),
+      child: url == null
+          ? const Icon(
+              Icons.directions_car_outlined,
+              color: _greenDark,
+              size: 34,
+            )
+          : Image.network(
+              url!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.broken_image_outlined, color: _muted),
+              loadingBuilder: (_, child, progress) => progress == null
+                  ? child
+                  : const Center(
+                      child: CircularProgressIndicator(
+                        color: _greenDark,
+                        strokeWidth: 2,
+                      ),
+                    ),
+            ),
+    ),
+  );
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+  final String status;
 
   @override
   Widget build(BuildContext context) => Container(
-    color: const Color(0xFFE9ECEF),
-    child: const Center(child: Icon(Icons.broken_image_outlined)),
+    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [Color(0xFF79D631), _greenDark]),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Text(
+      status,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
+class _BottomActions extends StatelessWidget {
+  const _BottomActions({
+    required this.canCancel,
+    required this.onCancel,
+    required this.onShare,
+  });
+  final bool canCancel;
+  final VoidCallback onCancel;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(top: BorderSide(color: _line)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: canCancel ? onCancel : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _navy,
+              minimumSize: const Size.fromHeight(48),
+              side: const BorderSide(color: _line),
+              shape: const StadiumBorder(),
+            ),
+            child: const Text(
+              'Cancelar solicitud',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF72D22D), _greenDark],
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const Key('share-request-button'),
+                onTap: onShare,
+                borderRadius: BorderRadius.circular(25),
+                child: const SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: Text(
+                      'Compartir',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
 class _DetailMessage extends StatelessWidget {
-  const _DetailMessage({
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.onRetry,
-  });
-
-  final IconData icon;
-  final String title;
+  const _DetailMessage({required this.message, required this.onRetry});
   final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(30),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 54, color: const Color(0xFF596276)),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
+          const Icon(Icons.cloud_off_outlined, size: 50, color: _muted),
+          const SizedBox(height: 14),
           Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
         ],
       ),
@@ -373,4 +732,19 @@ Future<dynamic> _optional(Future<dynamic> request) async {
   } catch (_) {
     return null;
   }
+}
+
+String _date(DateTime value) {
+  String two(int number) => number.toString().padLeft(2, '0');
+  return '${two(value.day)}/${two(value.month)}/${value.year} · ${two(value.hour)}:${two(value.minute)}';
+}
+
+String _price(double value) {
+  final digits = value.round().toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+    buffer.write(digits[index]);
+  }
+  return '\$$buffer';
 }

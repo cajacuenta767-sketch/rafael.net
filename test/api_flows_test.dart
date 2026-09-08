@@ -6,7 +6,9 @@ import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/features/quotes/presentation/quote_detail_page.dart';
 import 'package:app_yonke/features/quotes/presentation/request_quotes_page.dart';
 import 'package:app_yonke/features/requests/domain/request_draft.dart';
+import 'package:app_yonke/features/requests/presentation/new_request_page.dart';
 import 'package:app_yonke/features/requests/presentation/request_city_page.dart';
+import 'package:app_yonke/features/requests/presentation/request_detail_page.dart';
 import 'package:app_yonke/features/search/data/parts_search_repository.dart';
 import 'package:app_yonke/features/search/data/search_history_repository.dart';
 import 'package:app_yonke/features/search/presentation/parts_search_page.dart';
@@ -25,6 +27,119 @@ import 'package:go_router/go_router.dart';
 /// Si el servidor publica otros nombres, `tool/api_probe.dart` lo reporta al
 /// ejecutarse contra la API real.
 void main() {
+  testWidgets(
+    'Detalle de solicitud une detalle, ciudades y cotización reales',
+    (tester) async {
+      final api = _FakeApiClient({
+        'GET /api/Solicitudes/request-real': (_) => _ok({
+          'guidId': 'request-real',
+          'estatusSolicitud': 'Cotizada',
+          'marca': 'Nissan',
+          'modelo': 'Altima',
+          'año': 2020,
+          'piezaBuscada': 'Espejo derecho',
+          'descripcion': 'Blanco',
+          'folio': 'SOL-00014/2026',
+          'totalCotizaciones': 1,
+          'cerrada': false,
+        }),
+        'GET /api/SolicitudesImagenes/solicitud/request-real': (_) => _ok([]),
+        'GET /api/SolicitudCiudades/request-real/ciudades': (_) => _ok({
+          'solicitudHeader': {
+            'ciudadesSaveBySolicitud': [
+              {'ciudadId': 1, 'ciudad': 'Nogales'},
+            ],
+          },
+        }),
+        'GET /api/DashboardSuscriptores/mis-cotizaciones': (_) => _ok([
+          {
+            'guidId': 'quote-real',
+            'solicitudYonkeGuidId': 'assignment-real',
+            'folio': 'SOL-00014/2026',
+            'precio': 1500,
+            'disponible': true,
+            'esNueva': false,
+            'tieneGarantia': false,
+            'diasGarantia': 0,
+            'envioDisponible': false,
+            'activo': false,
+          },
+        ]),
+      });
+
+      await tester.pumpWidget(
+        _app(api, home: const RequestDetailPage(requestId: 'request-real')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detalle de solicitud'), findsOneWidget);
+      expect(find.text('Cotizada'), findsOneWidget);
+      expect(find.text('Espejo derecho'), findsOneWidget);
+      expect(find.text('Nissan Altima 2020'), findsOneWidget);
+      expect(find.text('Nogales'), findsOneWidget);
+      expect(find.text(r'$1,500'), findsOneWidget);
+      expect(find.text('Yonke asignado'), findsOneWidget);
+      expect(find.byKey(const Key('share-request-button')), findsOneWidget);
+      expect(api.callsTo('/api/Solicitudes/request-real'), hasLength(1));
+      expect(
+        api.callsTo('/api/DashboardSuscriptores/mis-cotizaciones'),
+        hasLength(1),
+      );
+    },
+  );
+
+  testWidgets('Nueva solicitud replica la etapa Parte y avanza a Vehículo', (
+    tester,
+  ) async {
+    final api = _FakeApiClient({
+      'GET /api/Utilerias/marcas': (_) => _ok([
+        {'id': 1, 'marca': 'Nissan'},
+      ]),
+      'GET /api/Utilerias/modelos': (_) => _ok([
+        {'id': 1, 'marcaId': 1, 'modelo': 'Altima'},
+      ]),
+    });
+    await tester.pumpWidget(_app(api, home: const NewRequestPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Qué autoparte buscas?'), findsOneWidget);
+    expect(find.text('Categorías populares'), findsOneWidget);
+    expect(find.text('Carrocería'), findsOneWidget);
+    expect(find.text('Enfriamiento'), findsOneWidget);
+    expect(find.byKey(const Key('request-continue-button')), findsOneWidget);
+
+    await tester.tap(find.text('Carrocería'));
+    await tester.tap(find.byKey(const Key('request-continue-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cuéntanos de tu vehículo'), findsOneWidget);
+    expect(find.text('Selecciona una marca'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('request-brand-select')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nissan').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('request-model-select-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Altima').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('request-year-select')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('${DateTime.now().year}').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('request-continue-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Agrega más detalles'), findsOneWidget);
+    expect(find.text('Carrocería'), findsOneWidget);
+    expect(find.text('Nissan Altima ${DateTime.now().year}'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('request-continue-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Agrega fotografías'), findsOneWidget);
+    expect(find.byKey(const Key('request-add-photo')), findsOneWidget);
+  });
+
   group('Ciudad de la solicitud (Utilerias)', () {
     testWidgets('carga estados y ciudades del catálogo y continúa con la '
         'ciudad elegida', (tester) async {
@@ -217,6 +332,41 @@ void main() {
         expect(find.text('Yonke Otro'), findsNothing);
         expect(find.text(r'$1850.00'), findsOneWidget);
         expect(find.text('Cotizaciones de prueba.'), findsNothing);
+      });
+
+      testWidgets('filtra por folio cuando el API omite solicitudGuidId', (
+        tester,
+      ) async {
+        final api = _FakeApiClient({
+          'GET /api/DashboardSuscriptores/mis-cotizaciones': (_) => _ok([
+            {
+              'guidId': 'quote-flat',
+              'solicitudYonkeGuidId': 'assignment-flat',
+              'folio': 'SOL-00014/2026',
+              'precio': 1500,
+              'disponible': true,
+              'esNueva': true,
+              'tieneGarantia': false,
+              'diasGarantia': 0,
+              'envioDisponible': false,
+              'activo': false,
+            },
+          ]),
+        });
+        await tester.pumpWidget(
+          _app(
+            api,
+            home: const RequestQuotesPage(
+              requestId: 'request-real',
+              requestFolio: 'SOL-00014/2026',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('1 cotización recibida'), findsOneWidget);
+        expect(find.text('Yonke asignado'), findsOneWidget);
+        expect(find.text(r'$1500.00'), findsOneWidget);
       });
 
       testWidgets(

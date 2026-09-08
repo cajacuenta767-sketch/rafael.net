@@ -14,6 +14,12 @@ class ClientQuote {
     required this.status,
     required this.imageUrls,
     this.logoUrl,
+    this.requestFolio,
+    this.partName,
+    this.brand,
+    this.model,
+    this.year,
+    this.createdAt,
     this.phone,
     this.partNumber,
     this.comments,
@@ -26,6 +32,12 @@ class ClientQuote {
   final String yonkeId;
   final String yonkeName;
   final String? logoUrl;
+  final String? requestFolio;
+  final String? partName;
+  final String? brand;
+  final String? model;
+  final int? year;
+  final DateTime? createdAt;
   final String? phone;
   final double price;
   final bool available;
@@ -69,13 +81,19 @@ ClientQuote? clientQuoteFromResponse(dynamic response) {
 }
 
 ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
-  final requestYonke = json['solicitudYonkes'];
-  if (requestYonke is! Map) return null;
-  final yonke = requestYonke['yonkes'];
+  final rawRequestYonke = json['solicitudYonkes'];
+  final requestYonke = rawRequestYonke is Map ? rawRequestYonke : null;
+  final yonke = requestYonke?['yonkes'];
   final status = json['solicitudCotizacionEstatus'];
   final id = json['guidId']?.toString() ?? '';
-  final requestId = requestYonke['solicitudGuidId']?.toString() ?? '';
-  if (id.isEmpty || requestId.isEmpty) return null;
+  final requestId =
+      requestYonke?['solicitudGuidId']?.toString() ??
+      json['solicitudGuidId']?.toString() ??
+      '';
+  final requestFolio = json['folio']?.toString();
+  if (id.isEmpty || (requestId.isEmpty && (requestFolio?.isEmpty ?? true))) {
+    return null;
+  }
 
   final imageRecords = json['solicitudCotizacionesImagenes'];
   final imageUrls = imageRecords is List
@@ -90,12 +108,27 @@ ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
   return ClientQuote(
     id: id,
     requestId: requestId,
-    yonkeId: requestYonke['yonkeGuidId']?.toString() ?? '',
+    requestFolio: requestFolio,
+    partName: _cleanText(json['piezaBuscada']),
+    brand: _cleanText(json['marca']),
+    model: _cleanText(json['modelo']),
+    year: (json['anio'] as num?)?.toInt(),
+    createdAt: DateTime.tryParse(
+      json['fechaCreacionCotizacion']?.toString() ??
+          json['fechaCreacion']?.toString() ??
+          '',
+    )?.toLocal(),
+    yonkeId:
+        requestYonke?['yonkeGuidId']?.toString() ??
+        json['solicitudYonkeGuidId']?.toString() ??
+        '',
     yonkeName: yonke is Map && yonke['nombre'] != null
         ? yonke['nombre'].toString()
-        : 'Yonke sin nombre',
+        : json['yonkeNombre']?.toString() ?? 'Yonke asignado',
     logoUrl: yonke is Map && _isSafeImageUrl(yonke['logoUrl']?.toString())
         ? yonke['logoUrl'].toString()
+        : _isSafeImageUrl(json['logoUrl']?.toString())
+        ? json['logoUrl'].toString()
         : null,
     phone: yonke is Map ? yonke['telefono']?.toString() : null,
     price: (json['precio'] as num?)?.toDouble() ?? 0,
@@ -111,7 +144,7 @@ ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
     active: json['activo'] == true,
     status: status is Map && status['descripcion'] != null
         ? status['descripcion'].toString()
-        : 'Sin estado',
+        : json['estatusSolicitud']?.toString() ?? 'Sin estado',
     imageUrls: imageUrls,
   );
 }
@@ -123,3 +156,8 @@ bool _isSafeImageUrl(String? value) {
 }
 
 String formatQuotePrice(double value) => '\$${value.toStringAsFixed(2)}';
+
+String? _cleanText(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}

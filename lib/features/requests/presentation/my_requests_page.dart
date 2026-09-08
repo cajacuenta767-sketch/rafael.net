@@ -72,7 +72,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
           ),
         ),
       ),
-      bottomNavigationBar: const ClientBottomNavigation(currentIndex: 3),
+      bottomNavigationBar: const ClientBottomNavigation(currentIndex: 1),
     );
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:country_picker/country_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ const _green = Color(0xFF119823);
 const _body = Color(0xFF596276);
 const _legalVersion = '2026-08-26';
 const _legalStorage = FlutterSecureStorage();
+const _developmentClientToken = 'development-client-session';
 
 double _responsiveSize(
   BuildContext context,
@@ -192,7 +194,21 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     onBack: _goBack,
     onGoogle: _signInWithGoogle,
     onPending: _showPendingWithConsent,
+    onDevelopmentLogin: _enterDevelopmentSession,
   );
+
+  /// Acceso local para revisar pantallas mientras el backend aún no entrega
+  /// una cuenta de pruebas. No existe fuera del modo de depuración.
+  Future<void> _enterDevelopmentSession() async {
+    if (!kDebugMode) return;
+    await ref
+        .read(tokenStoreProvider)
+        .writeTokens(accessToken: _developmentClientToken);
+    // Deja terminar el gesto actual antes de mostrar Inicio; evita que el
+    // mismo toque active el botón central de "Nueva solicitud".
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (mounted) context.go(AppRoutes.clientHome);
+  }
 
   Future<void> _requestCodeWithConsent() async {
     if (await _ensureLegalAccepted()) await _requestCode();
@@ -454,6 +470,15 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                             ),
                           ],
                         ),
+                        if (kDebugMode)
+                          TextButton(
+                            key: const Key('development_client_login_consent'),
+                            onPressed: () async {
+                              Navigator.of(sheetContext).pop();
+                              await _enterDevelopmentSession();
+                            },
+                            child: const Text('Entrar en modo de prueba'),
+                          ),
                       ],
                     ),
                   ),
@@ -689,6 +714,7 @@ class _LoginCard extends StatelessWidget {
     required this.onBack,
     required this.onGoogle,
     required this.onPending,
+    required this.onDevelopmentLogin,
   });
 
   final ClientLoginController controller;
@@ -704,6 +730,7 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onGoogle;
   final ValueChanged<String> onPending;
+  final Future<void> Function() onDevelopmentLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -901,6 +928,24 @@ class _LoginCard extends StatelessWidget {
             ),
           ),
         ),
+        if (kDebugMode) ...[
+          SizedBox(height: _responsiveSize(context, dense, 1, 2, 4)),
+          TextButton(
+            key: const Key('development_client_login'),
+            onPressed: onDevelopmentLogin,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Entrar en modo de prueba',
+              style: TextStyle(
+                color: const Color(0xFF596276),
+                fontSize: _responsiveSize(context, dense, 9, 10, 11),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

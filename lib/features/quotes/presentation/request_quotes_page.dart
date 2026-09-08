@@ -13,10 +13,12 @@ class RequestQuotesPage extends ConsumerStatefulWidget {
     super.key,
     required this.requestId,
     this.requestTitle,
+    this.requestFolio,
   });
 
   final String requestId;
   final String? requestTitle;
+  final String? requestFolio;
 
   @override
   ConsumerState<RequestQuotesPage> createState() => _RequestQuotesPageState();
@@ -50,7 +52,13 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
     try {
       final response = await ref.read(dashboardApiProvider).getMyQuotes();
       final quotes = clientQuotesFromDashboard(response)
-          .where((quote) => quote.requestId == widget.requestId)
+          .where(
+            (quote) =>
+                quote.requestId == widget.requestId ||
+                (quote.requestId.isEmpty &&
+                    widget.requestFolio != null &&
+                    quote.requestFolio == widget.requestFolio),
+          )
           .toList();
       if (!mounted) return;
       setState(() {

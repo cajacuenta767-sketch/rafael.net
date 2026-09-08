@@ -16,6 +16,7 @@ import '../../features/ratings/data/yonke_reputation_repository.dart';
 import '../../features/search/data/parts_search_repository.dart';
 import '../../features/search/data/search_history_repository.dart';
 import '../../features/yonkes/data/yonkes_api.dart';
+import '../../features/yonkes/data/client_yonkes_repository.dart';
 import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
@@ -72,6 +73,12 @@ final paymentsApiProvider = Provider<PaymentsApi>(
 final yonkesApiProvider = Provider<YonkesApi>(
   (ref) => YonkesApi(ref.watch(apiClientProvider)),
 );
+final clientYonkesRepositoryProvider = Provider<ClientYonkesRepository>(
+  (ref) => ApiClientYonkesRepository(
+    ref.watch(yonkesApiProvider),
+    ref.watch(catalogsApiProvider),
+  ),
+);
 final clientRatingsRepositoryProvider = Provider<ClientRatingsRepository>(
   (ref) => ApiClientRatingsRepository(ref.watch(yonkesApiProvider)),
 );
@@ -123,6 +130,7 @@ final yonkeNotificationsRepositoryProvider =
 final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
   (ref) => ApiClientMessagesRepository(
     ref.watch(quotesApiProvider),
+    ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
   ),
 );
