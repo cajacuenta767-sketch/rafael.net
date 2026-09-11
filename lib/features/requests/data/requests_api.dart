@@ -29,6 +29,10 @@ class RequestsApi {
   Future<dynamic> getById(String requestId) =>
       _client.get(ApiEndpoints.request(requestId));
 
+  /// `POST /api/Solicitudes` con `Solicitudes_Create_DTO`. El usuario lo
+  /// determina el servidor a partir del token; el DTO no lleva `usuarioId`.
+  /// Los campos de texto que el formulario no captura se envían con un valor
+  /// neutro porque el servidor no acepta nulos en ellos.
   Future<dynamic> create({
     required int brandId,
     required int modelId,
@@ -39,12 +43,9 @@ class RequestsApi {
     String? transmission,
     String? partNumber,
     String? description,
-    String? userId,
   }) => _client.post(
     ApiEndpoints.requests,
     data: {
-      if (userId != null && userId.trim().isNotEmpty)
-        'usuarioId': userId.trim(),
       'marcaId': brandId,
       'modeloId': modelId,
       'año': year,
@@ -65,6 +66,9 @@ class RequestsApi {
     },
   );
 
+  /// `DELETE /api/Solicitudes/{guidId}` con `SolicitudUpdateStatusDTO`.
+  /// [userId] es el identificador del cliente que cancela (claim del token);
+  /// se omite cuando la sesión no lo incluye.
   Future<dynamic> cancel({
     required String requestId,
     int? statusId,
@@ -74,10 +78,9 @@ class RequestsApi {
     ApiEndpoints.request(requestId),
     data: {
       'guidId': requestId,
-      'estatusId': statusId,
-      'userId': userId ?? 'Cliente',
-      'UserId': userId ?? 'Cliente',
-      'notas': notes,
+      'estatusId': ?statusId,
+      if (userId != null && userId.trim().isNotEmpty) 'userId': userId.trim(),
+      if (notes != null && notes.trim().isNotEmpty) 'notas': notes.trim(),
     },
   );
 

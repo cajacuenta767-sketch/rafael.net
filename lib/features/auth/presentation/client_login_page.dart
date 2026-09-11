@@ -192,18 +192,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     onBack: _goBack,
     onGoogle: _signInWithGoogle,
     onPending: _showPendingWithConsent,
-    onTestMode: _enterTestMode,
   );
-
-  Future<void> _enterTestMode() async {
-    if (!await _ensureLegalAccepted()) return;
-    await ref.read(tokenStoreProvider).writeTokens(
-      accessToken: 'development-client-session',
-      refreshToken: null,
-      expiresAt: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (mounted) context.go(AppRoutes.clientHome);
-  }
 
   Future<void> _requestCodeWithConsent() async {
     if (await _ensureLegalAccepted()) await _requestCode();
@@ -700,7 +689,6 @@ class _LoginCard extends StatelessWidget {
     required this.onBack,
     required this.onGoogle,
     required this.onPending,
-    required this.onTestMode,
   });
 
   final ClientLoginController controller;
@@ -716,7 +704,6 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onGoogle;
   final ValueChanged<String> onPending;
-  final VoidCallback onTestMode;
 
   @override
   Widget build(BuildContext context) {
@@ -891,34 +878,6 @@ class _LoginCard extends StatelessWidget {
             filterQuality: FilterQuality.high,
           ),
           onPressed: () => onPending('El acceso con Apple'),
-        ),
-        SizedBox(height: _responsiveSize(context, dense, 3, 4, 7)),
-        OutlinedButton.icon(
-          key: const Key('client_test_mode_button'),
-          onPressed: onTestMode,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _navy,
-            minimumSize: Size(
-              double.infinity,
-              _responsiveSize(context, dense, 30, 38, 48),
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: _responsiveSize(context, dense, 9, 12, 16),
-            ),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            side: const BorderSide(color: Color(0xFFD1D3D9)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          icon: const Icon(Icons.science_outlined, color: _green, size: 20),
-          label: Text(
-            'Ingresar en modo prueba',
-            style: TextStyle(
-              fontSize: _responsiveSize(context, dense, 12, 13, 15),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ),
         Align(
           alignment: Alignment.centerLeft,

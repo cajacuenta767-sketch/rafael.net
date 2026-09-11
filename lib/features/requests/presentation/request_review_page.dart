@@ -171,6 +171,22 @@ class _SubmissionSuccess extends StatelessWidget {
   const _SubmissionSuccess({required this.result});
   final RequestSubmissionResult result;
 
+  String get _title =>
+      result.reachedNoYonke ? 'Solicitud registrada' : 'Solicitud enviada';
+
+  String get _message {
+    final count = result.notifiedYonkes;
+    if (count == null) {
+      return 'Los yonkes con cobertura en tu ciudad podrán revisar tu solicitud y enviarte cotizaciones.';
+    }
+    if (count == 0) {
+      return 'Todavía no hay yonkes con cobertura en tu ciudad. La solicitud quedó guardada en el servidor y podrás consultarla en Mis solicitudes.';
+    }
+    return count == 1
+        ? 'Se envió a 1 yonke con cobertura en tu ciudad. Recibirás su cotización en la app.'
+        : 'Se envió a $count yonkes con cobertura en tu ciudad. Recibirás sus cotizaciones en la app.';
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.white,
@@ -183,23 +199,27 @@ class _SubmissionSuccess extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.send_rounded,
+                Icon(
+                  result.reachedNoYonke
+                      ? Icons.store_mall_directory_outlined
+                      : Icons.send_rounded,
                   size: 76,
-                  color: Color(0xFF14951F),
+                  color: const Color(0xFF14951F),
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Solicitud enviada',
+                  _title,
+                  key: const Key('request-submission-title'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Los yonkes con cobertura en tu ciudad podrán revisar tu solicitud y enviarte cotizaciones.',
+                Text(
+                  _message,
+                  key: const Key('request-submission-message'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF596276)),
+                  style: const TextStyle(color: Color(0xFF596276)),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(

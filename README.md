@@ -5,10 +5,15 @@ yonke de la API Refanet.
 
 ## Estado
 
-Todas las pantallas consumen la API publicada; no hay modo demo ni datos de
-ejemplo. El contrato revisado está en `docs/openapi_v1.json` y los endpoints
-que usa cada pantalla, con las claves que la app lee, en
-`docs/API_INTEGRATION.md`. Para comprobar el servidor desde tu máquina:
+Todas las pantallas consumen la API publicada; no hay modo demo, botón de
+"modo prueba" ni datos de ejemplo. Una solicitud creada por un cliente llega a
+los yonkes únicamente a través del servidor: el yonke debe tener cobertura en
+la ciudad de la solicitud y la app llama a `SolicitudYonkes/{id}/enviar` al
+terminar de crearla (ver `docs/API_INTEGRATION.md`, sección "Cómo llega una
+solicitud del cliente al yonke"). El contrato revisado está en
+`docs/openapi_v1.json` y los endpoints que usa cada pantalla, con las claves
+que la app lee, en `docs/API_INTEGRATION.md`. Para comprobar el servidor desde
+tu máquina:
 
 ```shell
 dart run tool/api_probe.dart --token=<jwt>
@@ -117,7 +122,19 @@ Desde Android Studio:
 La primera compilación puede tardar porque Gradle descarga herramientas de
 Android y dependencias. Las ejecuciones posteriores serán más rápidas.
 
-### 6. Probar el acceso por SMS
+### 6. Probar el flujo completo cliente → yonke
+
+1. Entra como **yonke**, abre **Cobertura** y guarda al menos una ciudad.
+2. Entra como **cliente** (SMS o Google), crea una solicitud eligiendo esa
+   misma ciudad y confirma el envío. La pantalla final indica si la solicitud
+   llegó a los yonkes o si el servidor la rechazó.
+3. Vuelve a entrar como yonke: la solicitud aparece en **Solicitudes**; al
+   cotizar, el cliente la ve en **Cotizaciones recibidas**.
+
+Si alguna llamada falla, la app muestra el mensaje exacto del servidor y no
+guarda nada localmente.
+
+### 7. Probar el acceso por SMS
 
 El flujo OTP de cliente está conectado a la API publicada de refaNet:
 
@@ -130,7 +147,7 @@ La entrega de SMS está confirmada para números mexicanos. Para una prueba real
 utiliza únicamente un número autorizado por el cliente o por el equipo de
 desarrollo. No pruebes números ajenos encontrados en Internet.
 
-### 7. Estado de Google y Apple
+### 8. Estado de Google y Apple
 
 Los botones de Google y Apple están incluidos en la interfaz.
 
@@ -143,7 +160,7 @@ Los botones de Google y Apple están incluidos en la interfaz.
 No agregues contraseñas, Client Secrets, API keys privadas ni archivos de
 credenciales al repositorio.
 
-### 8. Problemas frecuentes
+### 9. Problemas frecuentes
 
 Si Flutter indica que falta `.dart_tool/package_config.json`:
 
@@ -163,7 +180,7 @@ Si necesitas más detalle sobre la configuración local, ejecuta:
 flutter doctor -v
 ```
 
-### 9. Actualizar el proyecto
+### 10. Actualizar el proyecto
 
 Antes de continuar un trabajo ya iniciado, descarga los últimos cambios:
 
