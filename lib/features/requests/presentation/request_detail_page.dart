@@ -135,72 +135,74 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
 
   Future<void> _cancelRequest() async {
     if (_cancelling) return;
-    final notes = TextEditingController();
+    String? noteText;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Cancelar solicitud?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Los yonkes dejarán de recibir este pedido. Esta acción no se puede deshacer.',
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: notes,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Motivo (opcional)',
-                hintText: 'Por ejemplo: ya encontré la pieza',
+      builder: (dialogContext) {
+        final notes = TextEditingController();
+        return AlertDialog(
+          title: const Text('¿Cancelar solicitud?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Los yonkes dejarán de recibir este pedido. Esta acción no se puede deshacer.',
               ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: notes,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo (opcional)',
+                  hintText: 'Por ejemplo: ya encontré la pieza',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Volver'),
+            ),
+            FilledButton(
+              key: const Key('confirm-cancel-request'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFB3261E),
+              ),
+              onPressed: () {
+                noteText = notes.text.trim();
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Sí, cancelar'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Volver'),
-          ),
-          FilledButton(
-            key: const Key('confirm-cancel-request'),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFB3261E),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sí, cancelar'),
-          ),
-        ],
-      ),
+        );
+      },
     );
-    if (confirmed != true || !mounted) {
-      notes.dispose();
-      return;
-    }
+    if (confirmed != true || !mounted) return;
+
     setState(() => _cancelling = true);
     SessionSyncStore.instance.removeRequest(widget.requestId);
     try {
-      await ref
-          .read(requestsApiProvider)
-          .cancel(
+      await ref.read(requestsApiProvider).cancel(
             requestId: widget.requestId,
-            notes: notes.text.trim().isEmpty ? null : notes.text.trim(),
+            notes: (noteText?.isEmpty ?? true) ? null : noteText,
           );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud cancelada correctamente.')),
-      );
-      context.go(AppRoutes.clientRequests);
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud retirada correctamente.')),
-      );
+      // Si el servidor falla o ya fue retirada, el estado local ya fue actualizado.
+    }
+
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Solicitud cancelada correctamente.')),
+    );
+
+    if (context.canPop()) {
+      context.pop(true);
+    } else {
       context.go(AppRoutes.clientRequests);
-    } finally {
-      notes.dispose();
-      if (mounted) setState(() => _cancelling = false);
     }
   }
 

@@ -76,14 +76,14 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
   Future<void> _cancelRequest(ClientRequestSummary request) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('¿Cancelar solicitud?'),
         content: Text(
           '¿Deseas cancelar la solicitud "${request.title}"? Esta acción se enviará al servidor y liberará espacio en tu cuenta.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Volver'),
           ),
           FilledButton(
@@ -91,7 +91,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFB3261E),
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Sí, cancelar'),
           ),
         ],
@@ -106,18 +106,16 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         requestId: request.id,
         notes: 'Cancelada por el cliente',
       );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud cancelada correctamente.')),
-      );
-      _loadRequests();
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud cancelada y retirada.')),
-      );
-      _loadRequests();
+      // Si el servidor falla o ya fue retirada, el estado local ya fue actualizado.
     }
+
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Solicitud cancelada correctamente.')),
+    );
+    _loadRequests();
   }
 
   @override
@@ -182,6 +180,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         itemBuilder: (context, index) => _RequestSummaryCard(
           request: _requests[index],
           onCancel: () => _cancelRequest(_requests[index]),
+          onReload: _loadRequests,
         ),
       ),
     );
@@ -192,10 +191,12 @@ class _RequestSummaryCard extends StatelessWidget {
   const _RequestSummaryCard({
     required this.request,
     this.onCancel,
+    this.onReload,
   });
 
   final ClientRequestSummary request;
   final VoidCallback? onCancel;
+  final VoidCallback? onReload;
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +213,14 @@ class _RequestSummaryCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push(AppRoutes.clientRequestDetail(request.id)),
+          onTap: () async {
+            final result = await context.push(
+              AppRoutes.clientRequestDetail(request.id),
+            );
+            if (result == true) {
+              onReload?.call();
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(

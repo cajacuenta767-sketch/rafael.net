@@ -75,7 +75,8 @@ class RequestsApi {
     data: {
       'guidId': requestId,
       'estatusId': statusId,
-      'userId': userId,
+      'userId': userId ?? 'Cliente',
+      'UserId': userId ?? 'Cliente',
       'notas': notes,
     },
   );
