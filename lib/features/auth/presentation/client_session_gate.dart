@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/api_providers.dart';
+import 'session_check.dart';
 
+/// Protege las secciones privadas del cliente: sin token guardado, o con una
+/// sesión ya vencida, redirige al inicio de sesión.
 class ClientSessionGate extends ConsumerStatefulWidget {
   const ClientSessionGate({super.key, required this.builder});
 
@@ -20,13 +23,7 @@ class _ClientSessionGateState extends ConsumerState<ClientSessionGate> {
   @override
   void initState() {
     super.initState();
-    _session = _hasSession();
-  }
-
-  Future<bool> _hasSession() async {
-    final tokenStore = ref.read(tokenStoreProvider);
-    final token = await tokenStore.readAccessToken();
-    return token?.isNotEmpty == true;
+    _session = hasUsableSession(ref.read(tokenStoreProvider));
   }
 
   @override

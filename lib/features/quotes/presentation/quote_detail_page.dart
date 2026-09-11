@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../../messages/presentation/client_conversation_page.dart';
 import '../../orders/domain/client_order.dart';
 import '../../orders/presentation/client_order_pages.dart';
@@ -62,17 +62,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       return;
     }
 
-    final local = SessionSyncStore.instance.clientQuotes
-        .cast<ClientQuote?>()
-        .firstWhere((q) => q?.id == widget.quoteId, orElse: () => null);
-    if (local != null) {
-      setState(() {
-        _quote = local;
-        _loading = false;
-      });
-      return;
-    }
-
     try {
       final response = await ref
           .read(quotesApiProvider)
@@ -84,50 +73,16 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       });
       final quote = _quote;
       if (quote != null) unawaited(_loadExistingOrder(quote));
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       if (_quote != null) return;
       setState(() {
         _loading = false;
-        _error = 'No se pudo cargar la cotización. Inténtalo nuevamente.';
+        _error = error is ApiException
+            ? error.message
+            : 'No se pudo cargar la cotización. Inténtalo nuevamente.';
       });
     }
-  }
-
-  Future<void> _deleteThisQuote() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar cotización?'),
-        content: const Text(
-          '¿Deseas descartar esta cotización? Ya no aparecerá en tu lista.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            key: const Key('confirm-delete-quote-detail-button'),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFB3261E),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    SessionSyncStore.instance.removeRequest(widget.quoteId);
-    if (_quote?.requestId != null) {
-      SessionSyncStore.instance.removeRequest(_quote!.requestId);
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cotización eliminada.')),
-    );
-    context.pop();
   }
 
   Future<void> _loadExistingOrder(ClientQuote quote) async {
@@ -190,12 +145,6 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
         centerTitle: true,
         title: const Text('Detalle de cotización'),
         actions: [
-          IconButton(
-            key: const Key('delete-quote-detail-appbar-button'),
-            tooltip: 'Eliminar cotización',
-            icon: const Icon(Icons.delete_outline, color: Color(0xFFB3261E)),
-            onPressed: _deleteThisQuote,
-          ),
           IconButton(
             tooltip: 'Actualizar cotización',
             onPressed: _loading ? null : _loadQuote,

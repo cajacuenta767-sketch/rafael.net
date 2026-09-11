@@ -1,6 +1,5 @@
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_detail.dart';
@@ -18,6 +17,8 @@ abstract interface class YonkeRequestDetailRepository {
   /// y el resto de campos obligatorios en cero.
   Future<void> markUnavailable(String requestYonkeId, {int? brandId});
 
+  /// `POST /api/CotizacionYonke?solicitudYonkeGuidId=` (multipart). Lanza
+  /// [ApiException] cuando el servidor rechaza la cotización.
   Future<void> submitQuote(
     String requestYonkeId,
     YonkeQuoteSubmission submission, {
@@ -38,52 +39,40 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeRequestSummary? summary,
   }) async {
     if (requestId.isEmpty) throw const YonkeRequestDetailNotFoundException();
-    final responses = await Future.wait<dynamic>([
-      _requestsApi.getById(requestId),
-      _requestsApi.getImages(requestId),
-    ]);
+    final request = await _requestsApi.getById(requestId);
+    dynamic images;
+    try {
+      images = await _requestsApi.getImages(requestId);
+    } catch (_) {
+      // Las fotografías no impiden ver ni responder la solicitud.
+      images = null;
+    }
     final detail = yonkeRequestDetailFromResponses(
-      requestResponse: responses[0],
-      imagesResponse: responses[1],
+      requestResponse: request,
+      imagesResponse: images,
       requestYonkeId: requestYonkeId,
       summary: summary,
     );
     if (detail == null) throw const YonkeRequestDetailNotFoundException();
-    if (SessionSyncStore.instance.isUnavailable(requestYonkeId)) {
-      return detail.copyWith(status: YonkeRequestStatus.unavailable);
-    }
-    if (SessionSyncStore.instance.isQuoted(requestYonkeId)) {
-      return detail.copyWith(status: YonkeRequestStatus.quoted);
-    }
     return detail;
   }
 
   @override
   Future<void> markUnavailable(String requestYonkeId, {int? brandId}) async {
-    try {
-      await _quotesApi.create(
-        requestYonkeId: requestYonkeId,
-        fields: {
-          'Precio': 0,
-          'Disponible': false,
-          'EsNueva': false,
-          'MarcaId': ?brandId,
-          'Comentarios': 'Pieza no disponible',
-          'DiasGarantia': 0,
-          'EnvioDisponible': false,
-          'TieneGarantia': false,
-        },
-      );
-    } catch (e) {
-      final msg = (e is ApiException ? e.message : e.toString()).toLowerCase();
-      if (msg.contains('no existe') ||
-          msg.contains('solicitud enviada al yonke')) {
-        SessionSyncStore.instance.recordUnavailable(requestYonkeId);
-        return;
-      }
-      rethrow;
-    }
-    SessionSyncStore.instance.recordUnavailable(requestYonkeId);
+    final response = await _quotesApi.create(
+      requestYonkeId: requestYonkeId,
+      fields: {
+        'Precio': 0,
+        'Disponible': false,
+        'EsNueva': false,
+        'MarcaId': ?brandId,
+        'Comentarios': 'Pieza no disponible',
+        'DiasGarantia': 0,
+        'EnvioDisponible': false,
+        'TieneGarantia': false,
+      },
+    );
+    _ensureAccepted(response);
   }
 
   @override
@@ -92,54 +81,51 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeQuoteSubmission submission, {
     YonkeRequestDetail? detail,
   }) async {
-    try {
-      await _quotesApi.create(
-        requestYonkeId: requestYonkeId,
-        fields: {
-          'Precio': submission.price,
-          'Disponible': true,
-          'EsNueva': submission.isNew,
-          if (submission.brandId != null) 'MarcaId': submission.brandId,
-          if (_notBlank(submission.partNumber))
-            'NumeroParte': submission.partNumber!.trim(),
-          if (_notBlank(submission.comments))
-            'Comentarios': submission.comments!.trim(),
-          if (submission.deliveryDays != null)
-            'TiempoEntregaDias': submission.deliveryDays,
-          'DiasGarantia': submission.hasWarranty ? submission.warrantyDays : 0,
-          'EnvioDisponible': submission.shippingAvailable,
-          if (submission.shippingAvailable && submission.shippingCost != null)
-            'CostoEnvio': submission.shippingCost,
-          'TieneGarantia': submission.hasWarranty,
-        },
-        images: submission.images
-            .map(
-              (image) => ApiFile(
-                fieldName: 'Imagenes',
-                fileName: image.fileName,
-                bytes: image.bytes,
-              ),
-            )
-            .toList(),
-      );
-    } catch (e) {
-      final msg = (e is ApiException ? e.message : e.toString()).toLowerCase();
-      if (msg.contains('no existe') ||
-          msg.contains('solicitud enviada al yonke')) {
-        SessionSyncStore.instance.recordQuote(
-          requestYonkeId: requestYonkeId,
-          submission: submission,
-          detail: detail,
-        );
-        return;
-      }
-      rethrow;
-    }
-    SessionSyncStore.instance.recordQuote(
+    final response = await _quotesApi.create(
       requestYonkeId: requestYonkeId,
-      submission: submission,
-      detail: detail,
+      fields: {
+        'Precio': submission.price,
+        'Disponible': true,
+        'EsNueva': submission.isNew,
+        if (submission.brandId != null) 'MarcaId': submission.brandId,
+        if (_notBlank(submission.partNumber))
+          'NumeroParte': submission.partNumber!.trim(),
+        if (_notBlank(submission.comments))
+          'Comentarios': submission.comments!.trim(),
+        if (submission.deliveryDays != null)
+          'TiempoEntregaDias': submission.deliveryDays,
+        'DiasGarantia': submission.hasWarranty ? submission.warrantyDays : 0,
+        'EnvioDisponible': submission.shippingAvailable,
+        if (submission.shippingAvailable && submission.shippingCost != null)
+          'CostoEnvio': submission.shippingCost,
+        'TieneGarantia': submission.hasWarranty,
+      },
+      images: submission.images
+          .map(
+            (image) => ApiFile(
+              fieldName: 'Imagenes',
+              fileName: image.fileName,
+              bytes: image.bytes,
+            ),
+          )
+          .toList(),
     );
+    _ensureAccepted(response);
+  }
+
+  /// El sobre `ApiResponseGlobal` puede llegar con HTTP 200 y
+  /// `success: false`; en ese caso el servidor no guardó la cotización.
+  void _ensureAccepted(dynamic response) {
+    if (response is Map && response['success'] == false) {
+      final message = response['message']?.toString().trim();
+      throw ApiException(
+        message: message == null || message.isEmpty
+            ? 'El servidor no aceptó la cotización.'
+            : message,
+        statusCode: (response['statusCode'] as num?)?.toInt(),
+        details: response,
+      );
+    }
   }
 }
 
@@ -217,7 +203,6 @@ String? _text(dynamic value) {
 bool _notBlank(String? value) => value != null && value.trim().isNotEmpty;
 
 bool _isSafeRemoteImage(String value) {
-  if (value.startsWith('asset://assets/')) return true;
   if (value.startsWith('data:image/') && value.contains(';base64,')) {
     return true;
   }
