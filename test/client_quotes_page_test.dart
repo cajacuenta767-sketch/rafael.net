@@ -13,7 +13,11 @@ void main() {
     tester,
   ) async {
     final tokens = _MemoryTokenStore('development-client-session');
-    final api = DevelopmentApiClient(_UnexpectedRemote(), tokens);
+    final api = DevelopmentApiClient(
+      _UnexpectedRemote(),
+      tokens,
+      seedDemoData: true,
+    );
 
     await tester.pumpWidget(
       ProviderScope(

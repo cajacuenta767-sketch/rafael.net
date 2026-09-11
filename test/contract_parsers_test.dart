@@ -263,12 +263,30 @@ void main() {
       expect(items.single.status, YonkeRequestStatus.viewed);
     });
 
-    test('devuelve null cuando la forma no permite actuar', () {
-      // Sin guid de asignación no se puede cotizar: contrato pendiente.
+    test('acepta una proyección plana con solo guidId como en la API real', () {
+      final items = yonkeAssignedRequestsFromResponse({
+        'data': [
+          {
+            'guidId': 'request-x',
+            'piezaBuscada': 'Faro',
+            'marca': 'Nissan',
+            'modelo': 'Altima',
+            'folio': 'SOL-00003/2026',
+          },
+        ],
+      });
+
+      expect(items, hasLength(1));
+      expect(items!.single.requestId, 'request-x');
+      expect(items.single.requestYonkeId, 'request-x');
+      expect(items.single.part, 'Faro');
+    });
+
+    test('devuelve null cuando la forma no contiene identificadores válidos', () {
       expect(
         yonkeAssignedRequestsFromResponse({
           'data': [
-            {'guidId': 'request-x', 'piezaBuscada': 'Faro'},
+            {'invalidKey': 'none'},
           ],
         }),
         isNull,
@@ -370,6 +388,22 @@ void main() {
     });
 
     test('la cobertura ignora registros inactivos y lee entidades.entidad', () {
+      expect(
+        coverageCityIdsFromResponse({
+          'data': {
+            'yunkeHeader': {
+              'id': 3,
+              'nombre': 'Yonke Test',
+              'yunkeCoberturas': [
+                {'ciudadId': 1, 'activo': true},
+                {'ciudadId': 2, 'activo': false},
+                {'ciudadId': 3, 'activo': true},
+              ],
+            },
+          },
+        }),
+        {1, 3},
+      );
       expect(
         coverageCityIdsFromResponse({
           'data': [

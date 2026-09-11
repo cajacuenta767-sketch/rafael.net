@@ -21,7 +21,7 @@ class NewRequestPage extends ConsumerStatefulWidget {
 }
 
 class _NewRequestPageState extends ConsumerState<NewRequestPage> {
-  static const _maxPhotos = 5;
+  static const _maxPhotos = 3;
   static const _maxPhotoBytes = 10 * 1024 * 1024;
   final _partKey = GlobalKey<FormState>();
   final _vehicleKey = GlobalKey<FormState>();
@@ -786,7 +786,7 @@ class _DetailsStep extends StatelessWidget {
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
             labelText: 'Descripción adicional',
-            hintText: 'Original o compatible en buen estado.',
+            hintText: 'Escribe detalles adicionales de la pieza (opcional)...',
             alignLabelWithHint: true,
             labelStyle: const TextStyle(color: _muted),
             filled: true,

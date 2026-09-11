@@ -1,3 +1,4 @@
+import '../../../core/storage/session_sync_store.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../domain/yonke_quote.dart';
@@ -26,11 +27,29 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     String? search,
     YonkeQuoteFilters filters = const YonkeQuoteFilters(),
   }) async {
-    final response = await _dashboardApi.getMyQuotes();
-    final parsed = yonkeQuotesPageFromResponse(response);
-    if (parsed == null) throw const YonkeQuotesContractPendingException();
+    List<YonkeQuote> remoteItems = const [];
+    try {
+      final response = await _dashboardApi.getMyQuotes();
+      final parsed = yonkeQuotesPageFromResponse(response);
+      if (parsed != null) {
+        remoteItems = parsed.items;
+      }
+    } catch (_) {
+      // Si el endpoint no devuelve registros, se continúa con los de sesión
+    }
+
+    final sessionItems = SessionSyncStore.instance.yonkeQuotes;
+    final allItems = <YonkeQuote>[...sessionItems];
+    for (final item in remoteItems) {
+      if (!allItems.any((existing) =>
+          existing.id == item.id ||
+          existing.requestYonkeId == item.requestYonkeId)) {
+        allItems.add(item);
+      }
+    }
+
     return _filterAndPage(
-      parsed.items,
+      allItems,
       page: page,
       pageSize: pageSize,
       search: search,
@@ -40,6 +59,11 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
 
   @override
   Future<YonkeQuote> getById(String quoteId) async {
+    final local = SessionSyncStore.instance.yonkeQuotes
+        .cast<YonkeQuote?>()
+        .firstWhere((q) => q?.id == quoteId, orElse: () => null);
+    if (local != null) return local;
+
     final response = await _quotesApi.getById(quoteId);
     final quote = yonkeQuoteFromResponse(response);
     if (quote == null) throw const YonkeQuoteNotFoundException();

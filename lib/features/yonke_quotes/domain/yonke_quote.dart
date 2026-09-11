@@ -195,6 +195,7 @@ YonkeQuote? yonkeQuoteFromJson(Map<dynamic, dynamic> json) {
 List<dynamic>? _extractRecords(dynamic response) {
   final data = response is Map ? response['data'] : response;
   if (data is List) return data;
+  if (data is Map && data['data'] is List) return data['data'] as List;
   if (data is Map && data['items'] is List) return data['items'] as List;
   if (data is Map && data['registros'] is List) {
     return data['registros'] as List;

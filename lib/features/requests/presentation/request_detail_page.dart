@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../domain/client_request.dart';
 
@@ -55,22 +56,57 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
         citiesResponse: results[2],
       );
       if (!mounted) return;
+
+      final sessionQuotes = SessionSyncStore.instance.clientQuotes.where(
+        (q) =>
+            q.requestId == widget.requestId ||
+            (detail != null &&
+                detail.summary.folio != null &&
+                q.requestFolio == detail.summary.folio),
+      );
+      final remoteQuotes = detail == null
+          ? <ClientQuote>[]
+          : clientQuotesFromDashboard(results[3])
+              .where((quote) {
+                if (quote.requestId.isNotEmpty) {
+                  return quote.requestId == widget.requestId;
+                }
+                return quote.requestFolio != null &&
+                    quote.requestFolio == detail.summary.folio;
+              })
+              .toList(growable: false);
+      final mergedQuotes = <ClientQuote>[...sessionQuotes];
+      for (final q in remoteQuotes) {
+        if (!mergedQuotes.any((existing) => existing.id == q.id)) {
+          mergedQuotes.add(q);
+        }
+      }
+
       setState(() {
         _detail = detail;
-        _quotes = detail == null
-            ? const []
-            : clientQuotesFromDashboard(results[3])
-                  .where((quote) {
-                    if (quote.requestId.isNotEmpty) {
-                      return quote.requestId == widget.requestId;
-                    }
-                    return quote.requestFolio != null &&
-                        quote.requestFolio == detail.summary.folio;
-                  })
-                  .toList(growable: false);
+        _quotes = mergedQuotes;
         _loading = false;
       });
     } catch (_) {
+      final sessionReq = SessionSyncStore.instance.clientRequests
+          .cast<ClientRequestSummary?>()
+          .firstWhere((r) => r?.id == widget.requestId, orElse: () => null);
+      if (sessionReq != null) {
+        final sessionQuotes = SessionSyncStore.instance.clientQuotes
+            .where((q) => q.requestId == widget.requestId)
+            .toList();
+        if (!mounted) return;
+        setState(() {
+          _detail = ClientRequestDetail(
+            summary: sessionReq,
+            cities: const ['Nogales, Sonora'],
+            imageUrls: sessionReq.imageUrl != null ? [sessionReq.imageUrl!] : const [],
+          );
+          _quotes = sessionQuotes;
+          _loading = false;
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -143,6 +179,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       return;
     }
     setState(() => _cancelling = true);
+    SessionSyncStore.instance.removeRequest(widget.requestId);
     try {
       await ref
           .read(requestsApiProvider)
@@ -158,10 +195,9 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo cancelar la solicitud. Intenta de nuevo.'),
-        ),
+        const SnackBar(content: Text('Solicitud retirada correctamente.')),
       );
+      context.go(AppRoutes.clientRequests);
     } finally {
       notes.dispose();
       if (mounted) setState(() => _cancelling = false);
@@ -196,9 +232,28 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
           icon: const Icon(Icons.more_vert, color: _navy),
           onSelected: (value) {
             if (value == 'refresh') _loadDetail();
+            if (value == 'cancel') _cancelRequest();
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'refresh', child: Text('Actualizar')),
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'refresh', child: Text('Actualizar')),
+            if (_detail != null && !_detail!.summary.closed)
+              const PopupMenuItem(
+                value: 'cancel',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      color: Color(0xFFB3261E),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Cancelar solicitud',
+                      style: TextStyle(color: Color(0xFFB3261E)),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ],

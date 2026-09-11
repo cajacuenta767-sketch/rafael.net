@@ -18,7 +18,11 @@ void main() {
     'links a client request and a yonke quote in development mode',
     () async {
       final tokens = _MemoryTokenStore('development-client-session');
-      final api = DevelopmentApiClient(_UnexpectedRemote(), tokens);
+      final api = DevelopmentApiClient(
+        _UnexpectedRemote(),
+        tokens,
+        seedDemoData: true,
+      );
 
       final initialClient =
           await api.get(ApiEndpoints.dashboardRequests) as Map;

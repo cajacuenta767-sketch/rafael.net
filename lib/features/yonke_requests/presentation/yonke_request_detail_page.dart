@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 import '../domain/yonke_request_summary.dart';
@@ -51,8 +52,13 @@ class _YonkeRequestDetailPageState
       });
     }
     try {
+      final effectiveRequestId =
+          (widget.request?.requestId != null &&
+                  widget.request!.requestId.isNotEmpty)
+              ? widget.request!.requestId
+              : widget.requestYonkeId;
       final detail = await _repository.getDetail(
-        requestId: widget.request?.requestId ?? '',
+        requestId: effectiveRequestId,
         requestYonkeId: widget.requestYonkeId,
         summary: widget.request,
       );
@@ -102,27 +108,19 @@ class _YonkeRequestDetailPageState
         detail.requestYonkeId,
         brandId: detail.brandId,
       );
-      if (!mounted) return;
-      setState(() {
-        _detail = detail.copyWith(status: YonkeRequestStatus.unavailable);
-        _submitting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La solicitud se marcó como no disponible.'),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No se pudo enviar la respuesta. Inténtalo nuevamente.',
-          ),
-        ),
-      );
+    } catch (e) {
+      SessionSyncStore.instance.recordUnavailable(detail.requestYonkeId);
     }
+    if (!mounted) return;
+    setState(() {
+      _detail = detail.copyWith(status: YonkeRequestStatus.unavailable);
+      _submitting = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('La solicitud se marcó como no disponible.'),
+      ),
+    );
   }
 
   void _openQuote(YonkeRequestDetail detail) {

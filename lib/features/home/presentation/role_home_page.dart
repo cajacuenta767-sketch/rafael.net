@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
 
@@ -372,13 +373,31 @@ class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
         ref.read(dashboardApiProvider).getMyRequests(pageSize: 100),
         ref.read(dashboardApiProvider).getMyQuotes(),
       ]);
+      var count = _recordCount(responses[0]);
+      if (count == 0) {
+        try {
+          final recentResponse =
+              await ref.read(dashboardApiProvider).getRecentRequest();
+          if (clientRequestSummaryFromResponse(recentResponse) != null) {
+            count = 1;
+          }
+        } catch (_) {}
+      }
+      final sessionReqCount = SessionSyncStore.instance.clientRequests.length;
+      final sessionQuoteCount = SessionSyncStore.instance.clientQuotes.length;
       if (!mounted) return;
       setState(() {
-        _requestCount = _recordCount(responses[0]);
-        _quoteCount = _recordCount(responses[1]);
+        _requestCount = count + sessionReqCount;
+        _quoteCount = _recordCount(responses[1]) + sessionQuoteCount;
       });
     } catch (_) {
-      // El guion evita mostrar cifras inventadas si el resumen no responde.
+      final sessionReqCount = SessionSyncStore.instance.clientRequests.length;
+      final sessionQuoteCount = SessionSyncStore.instance.clientQuotes.length;
+      if (!mounted) return;
+      setState(() {
+        _requestCount = sessionReqCount;
+        _quoteCount = sessionQuoteCount;
+      });
     }
   }
 
@@ -490,18 +509,43 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
       final response = await ref
           .read(dashboardApiProvider)
           .getMyRequests(pageSize: 3);
-      final requests = clientRequestSummariesFromResponse(response).take(3);
+      var requests =
+          clientRequestSummariesFromResponse(response).take(3).toList();
+      if (requests.isEmpty) {
+        try {
+          final recentResponse =
+              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recent = clientRequestSummaryFromResponse(recentResponse);
+          if (recent != null) {
+            requests = [recent];
+          }
+        } catch (_) {}
+      }
+      final sessionRequests = SessionSyncStore.instance.clientRequests;
+      final existingIds = requests.map((r) => r.id).toSet();
+      final merged = [
+        ...sessionRequests.where((r) => !existingIds.contains(r.id)),
+        ...requests,
+      ].take(3).toList();
       if (!mounted) return;
       setState(() {
-        _requests = requests.toList(growable: false);
+        _requests = merged;
         _loading = false;
       });
     } catch (_) {
+      final sessionRequests = SessionSyncStore.instance.clientRequests;
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _failed = true;
-      });
+      if (sessionRequests.isNotEmpty) {
+        setState(() {
+          _requests = sessionRequests.take(3).toList();
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _loading = false;
+          _failed = true;
+        });
+      }
     }
   }
 

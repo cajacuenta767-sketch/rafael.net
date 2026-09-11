@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../domain/client_quote.dart';
 
 enum QuoteSort { lowestPrice, highestPrice, longestWarranty }
@@ -60,12 +61,40 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
                     quote.requestFolio == widget.requestFolio),
           )
           .toList();
+
+      final sessionQuotes = SessionSyncStore.instance.clientQuotes.where(
+        (quote) =>
+            quote.requestId == widget.requestId ||
+            (widget.requestFolio != null &&
+                quote.requestFolio == widget.requestFolio),
+      );
+      final combined = <ClientQuote>[...sessionQuotes];
+      for (final item in quotes) {
+        if (!combined.any((existing) => existing.id == item.id)) {
+          combined.add(item);
+        }
+      }
+
       if (!mounted) return;
       setState(() {
-        _quotes = quotes;
+        _quotes = combined;
         _loading = false;
       });
     } catch (_) {
+      final sessionQuotes = SessionSyncStore.instance.clientQuotes.where(
+        (quote) =>
+            quote.requestId == widget.requestId ||
+            (widget.requestFolio != null &&
+                quote.requestFolio == widget.requestFolio),
+      ).toList();
+      if (sessionQuotes.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _quotes = sessionQuotes;
+          _loading = false;
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -73,6 +102,41 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
             'No se pudieron cargar las cotizaciones. Inténtalo nuevamente.';
       });
     }
+  }
+
+  Future<void> _deleteQuote(String quoteId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar cotización?'),
+        content: const Text(
+          '¿Deseas descartar esta cotización? Ya no aparecerá en tu lista.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-request-quote-button'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _quotes = _quotes.where((q) => q.id != quoteId).toList();
+    });
+    SessionSyncStore.instance.removeRequest(quoteId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cotización eliminada.')),
+    );
   }
 
   List<ClientQuote> get _sortedQuotes {
@@ -173,6 +237,7 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
               AppRoutes.clientQuoteDetail(quote.id),
               extra: quote,
             ),
+            onDelete: () => _deleteQuote(quote.id),
           );
         },
       ),
@@ -239,11 +304,13 @@ class _QuoteCard extends StatelessWidget {
     required this.quote,
     required this.bestPrice,
     required this.onTap,
+    this.onDelete,
   });
 
   final ClientQuote quote;
   final bool bestPrice;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -273,6 +340,17 @@ class _QuoteCard extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
+                  if (onDelete != null)
+                    IconButton(
+                      key: Key('delete-request-quote-${quote.id}'),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Color(0xFFB3261E),
+                        size: 20,
+                      ),
+                      tooltip: 'Eliminar cotización',
+                      onPressed: onDelete,
+                    ),
                   const Icon(Icons.chevron_right),
                 ],
               ),

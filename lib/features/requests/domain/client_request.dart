@@ -39,7 +39,8 @@ class ClientRequestSummary {
   /// Pieza y vehículo en dos líneas, como se muestra en las tarjetas.
   String get title => vehicle.isEmpty ? part : '$part\n$vehicle';
 
-  bool get isInProgress => !closed;
+  bool get isInProgress =>
+      !closed && status.toLowerCase().trim() != 'cancelada';
 }
 
 class ClientRequestDetail {

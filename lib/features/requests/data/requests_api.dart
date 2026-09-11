@@ -39,17 +39,28 @@ class RequestsApi {
     String? transmission,
     String? partNumber,
     String? description,
+    String? userId,
   }) => _client.post(
     ApiEndpoints.requests,
     data: {
+      if (userId != null && userId.trim().isNotEmpty)
+        'usuarioId': userId.trim(),
       'marcaId': brandId,
       'modeloId': modelId,
       'año': year,
-      'motor': engine,
-      'transmicion': transmission,
-      'piezaBuscada': part,
-      'numeroParte': partNumber,
-      'descripcion': description,
+      'motor': (engine != null && engine.trim().isNotEmpty)
+          ? engine.trim()
+          : 'Estándar',
+      'transmicion': (transmission != null && transmission.trim().isNotEmpty)
+          ? transmission.trim()
+          : 'Estándar',
+      'piezaBuscada': part.trim(),
+      'numeroParte': (partNumber != null && partNumber.trim().isNotEmpty)
+          ? partNumber.trim()
+          : 'S/N',
+      'descripcion': (description != null && description.trim().isNotEmpty)
+          ? description.trim()
+          : '',
       'ciudadesIds': cityIds,
     },
   );

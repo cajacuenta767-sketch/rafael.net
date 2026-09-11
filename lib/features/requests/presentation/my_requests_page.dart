@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../domain/client_request.dart';
 
@@ -33,17 +34,89 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
     });
     try {
       final response = await ref.read(dashboardApiProvider).getMyRequests();
+      var list = clientRequestSummariesFromResponse(response);
+      if (list.isEmpty) {
+        try {
+          final recentResponse =
+              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recent = clientRequestSummaryFromResponse(recentResponse);
+          if (recent != null) {
+            list = [recent];
+          }
+        } catch (_) {}
+      }
+      final sessionRequests = SessionSyncStore.instance.clientRequests;
+      final existingIds = list.map((r) => r.id).toSet();
+      final merged = [
+        ...sessionRequests.where((r) => !existingIds.contains(r.id)),
+        ...list,
+      ];
       if (!mounted) return;
       setState(() {
-        _requests = clientRequestSummariesFromResponse(response);
+        _requests = merged;
         _loading = false;
       });
     } catch (_) {
+      final sessionRequests = SessionSyncStore.instance.clientRequests;
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
-      });
+      if (sessionRequests.isNotEmpty) {
+        setState(() {
+          _requests = sessionRequests;
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _loading = false;
+          _error = 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
+        });
+      }
+    }
+  }
+
+  Future<void> _cancelRequest(ClientRequestSummary request) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Cancelar solicitud?'),
+        content: Text(
+          '¿Deseas cancelar la solicitud "${request.title}"? Esta acción se enviará al servidor y liberará espacio en tu cuenta.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-request-button'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    SessionSyncStore.instance.removeRequest(request.id);
+    try {
+      await ref.read(requestsApiProvider).cancel(
+        requestId: request.id,
+        notes: 'Cancelada por el cliente',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud cancelada correctamente.')),
+      );
+      _loadRequests();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitud cancelada y retirada.')),
+      );
+      _loadRequests();
     }
   }
 
@@ -106,23 +179,30 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
         itemCount: _requests.length,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) =>
-            _RequestSummaryCard(request: _requests[index]),
+        itemBuilder: (context, index) => _RequestSummaryCard(
+          request: _requests[index],
+          onCancel: () => _cancelRequest(_requests[index]),
+        ),
       ),
     );
   }
 }
 
 class _RequestSummaryCard extends StatelessWidget {
-  const _RequestSummaryCard({required this.request});
+  const _RequestSummaryCard({
+    required this.request,
+    this.onCancel,
+  });
 
   final ClientRequestSummary request;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
+    final isCancelled = request.status.toLowerCase().trim() == 'cancelada';
     final statusColor = request.isInProgress
         ? const Color(0xFF14951F)
-        : const Color(0xFF596276);
+        : (isCancelled ? const Color(0xFFB3261E) : const Color(0xFF596276));
     return Semantics(
       button: true,
       label: 'Solicitud ${request.title}, ${request.status}',
@@ -194,6 +274,25 @@ class _RequestSummaryCard extends StatelessWidget {
                             request.status,
                             style: TextStyle(color: statusColor),
                           ),
+                          if (onCancel != null && request.isInProgress) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              key: Key('cancel-request-card-${request.id}'),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Color(0xFFB3261E),
+                                size: 20,
+                              ),
+                              tooltip: 'Cancelar solicitud',
+                              onPressed: onCancel,
+                            ),
+                          ],
                         ],
                       ),
                     ],

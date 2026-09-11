@@ -26,8 +26,8 @@ import '../../features/messages/data/client_messages_repository.dart';
 import '../../features/yonke_requests/data/yonke_request_detail_repository.dart';
 import '../../features/yonke_requests/data/yonke_requests_repository.dart';
 import '../network/api_client.dart';
-import '../network/dio_api_client.dart';
 import '../network/development_api_client.dart';
+import '../network/dio_api_client.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 

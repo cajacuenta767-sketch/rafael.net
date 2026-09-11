@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
 import '../data/request_submission_repository.dart';
 import '../domain/request_draft.dart';
 import '../domain/request_submission.dart';
@@ -39,11 +40,12 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
       if (mounted) setState(() => _result = result);
     } on RequestSubmissionException catch (error) {
       if (mounted) setState(() => _submissionError = error);
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(
-          () => _submissionError = const RequestSubmissionException(
+          () => _submissionError = RequestSubmissionException(
             stage: RequestSubmissionStage.create,
+            customMessage: e is ApiException ? e.message : null,
           ),
         );
       }
@@ -254,19 +256,64 @@ class _SubmissionError extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(error.message, textAlign: TextAlign.center),
-              if (error.requestId != null) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'No reintentes desde esta pantalla para evitar crear una solicitud duplicada.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+              if (error.message.toLowerCase().contains('límite') ||
+                  error.message.toLowerCase().contains('limite')) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFD54F)),
+                  ),
+                  child: const Column(
+                    children: [
+                      Text(
+                        'Límite diario alcanzado',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE65100),
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'La API permite registrar un máximo de 3 solicitudes por día. '
+                        'Puedes entrar a "Mis solicitudes" para ver o cancelar solicitudes previas.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF5D4037),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => context.go(AppRoutes.clientRequests),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Ver mis solicitudes'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () => context.go(AppRoutes.clientHome),
+                  child: const Text('Ir al inicio'),
+                ),
+              ] else ...[
+                if (error.requestId != null) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No reintentes desde esta pantalla para evitar crear una solicitud duplicada.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => context.go(AppRoutes.clientHome),
+                  child: const Text('Ir al inicio'),
                 ),
               ],
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () => context.go(AppRoutes.clientHome),
-                child: const Text('Ir al inicio'),
-              ),
             ],
           ),
         ),

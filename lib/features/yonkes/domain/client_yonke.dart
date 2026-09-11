@@ -161,21 +161,52 @@ ClientYonke? clientYonkeFromJson(Map<dynamic, dynamic> json) {
   );
 }
 
-List<String> clientYonkeCoverageFromResponse(dynamic response) =>
-    _records(response)
-        .whereType<Map>()
-        .where((record) => record['activo'] != false)
-        .map((record) {
-          final city = record['ciudades'];
-          if (city is! Map) return null;
+List<String> clientYonkeCoverageFromResponse(dynamic response) {
+  final records = _coverageRecords(response);
+  return records
+      .whereType<Map>()
+      .where((record) => record['activo'] != false)
+      .map((record) {
+        if (record['ciudad'] is String &&
+            (record['ciudad'] as String).trim().isNotEmpty) {
+          final cityName = (record['ciudad'] as String).trim();
+          final stateName = _text(record['estado'] ?? record['entidad']);
+          return stateName == null ? cityName : '$cityName, $stateName';
+        }
+        final city = record['ciudades'];
+        if (city is Map) {
           final name = _text(city['ciudad']);
           final state = city['entidades'];
           final stateName = state is Map ? _text(state['entidad']) : null;
           if (name == null) return null;
           return stateName == null ? name : '$name, $stateName';
-        })
-        .whereType<String>()
-        .toList(growable: false);
+        }
+        final fallback = _text(record['nombre'] ?? record['ciudadNombre']);
+        return fallback;
+      })
+      .whereType<String>()
+      .toList(growable: false);
+}
+
+List<dynamic> _coverageRecords(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  if (data is Map) {
+    final header = data['yunkeHeader'] ?? data['yonkeHeader'];
+    if (header is Map) {
+      final coberturas =
+          header['yunkeCoberturas'] ??
+          header['yonkeCoberturas'] ??
+          header['coberturas'];
+      if (coberturas is List) return coberturas;
+    }
+    final direct =
+        data['yunkeCoberturas'] ??
+        data['yonkeCoberturas'] ??
+        data['coberturas'];
+    if (direct is List) return direct;
+  }
+  return _records(response);
+}
 
 List<ClientYonkeCity> clientYonkeCitiesFromRecords(
   List<dynamic> records, {

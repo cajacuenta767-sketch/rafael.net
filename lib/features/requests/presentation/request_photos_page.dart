@@ -15,7 +15,7 @@ class RequestPhotosPage extends StatefulWidget {
 }
 
 class _RequestPhotosPageState extends State<RequestPhotosPage> {
-  static const _maxPhotos = 5;
+  static const _maxPhotos = 3;
   static const _maxPhotoBytes = 10 * 1024 * 1024;
   final _picker = ImagePicker();
   bool _picking = false;

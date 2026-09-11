@@ -77,14 +77,35 @@ List<CoverageCity> coverageCitiesFromRecords(
     .toList(growable: false);
 
 /// Registros `YonkesCoberturas`: solo las coberturas con `activo` verdadero
-/// (o sin el campo) cuentan como seleccionadas.
+/// (o sin el campo) cuentan como seleccionadas. Acepta la estructura anidada
+/// `yunkeHeader.yunkeCoberturas` de la API real de Azure y listas directas.
 Set<int> coverageCityIdsFromResponse(dynamic response) =>
-    _records(response)
+    _coverageRecords(response)
         .whereType<Map>()
         .where((item) => item['activo'] != false)
         .map((item) => item['ciudadId'])
         .whereType<int>()
         .toSet();
+
+List<dynamic> _coverageRecords(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  if (data is Map) {
+    final header = data['yunkeHeader'] ?? data['yonkeHeader'];
+    if (header is Map) {
+      final coberturas =
+          header['yunkeCoberturas'] ??
+          header['yonkeCoberturas'] ??
+          header['coberturas'];
+      if (coberturas is List) return coberturas;
+    }
+    final direct =
+        data['yunkeCoberturas'] ??
+        data['yonkeCoberturas'] ??
+        data['coberturas'];
+    if (direct is List) return direct;
+  }
+  return _records(response);
+}
 
 List<dynamic> _records(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;

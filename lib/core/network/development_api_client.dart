@@ -11,13 +11,16 @@ import 'api_file.dart';
 /// prueba. Las mismas solicitudes y cotizaciones viajan por los repositorios
 /// normales, por lo que ambas experiencias permanecen enlazadas.
 class DevelopmentApiClient implements ApiClient {
-  DevelopmentApiClient(this._remote, this._tokens);
+  DevelopmentApiClient(this._remote, this._tokens, {bool? seedDemoData})
+      : _marketplace = seedDemoData != null
+            ? _DevelopmentMarketplace(seedDemoData: seedDemoData)
+            : _sharedMarketplace;
 
   final ApiClient _remote;
   final TokenStore _tokens;
   static final _DevelopmentMarketplace _sharedMarketplace =
-      _DevelopmentMarketplace();
-  final _DevelopmentMarketplace _marketplace = _sharedMarketplace;
+      _DevelopmentMarketplace(seedDemoData: true);
+  final _DevelopmentMarketplace _marketplace;
 
   Future<String?> get _role async {
     if (!kDebugMode) return null;
@@ -112,65 +115,67 @@ class DevelopmentApiClient implements ApiClient {
 }
 
 class _DevelopmentMarketplace {
-  _DevelopmentMarketplace() {
-    _requests.addAll([
-      _request(
-        'demo-request-1',
-        'Alternador',
-        'Nissan',
-        'Sentra',
-        2018,
-        'SOL-001/2026',
-        1,
-      ),
-      _request(
-        'demo-request-2',
-        'Compresor A/C',
-        'Chevrolet',
-        'Aveo',
-        2016,
-        'SOL-002/2026',
-        0,
-      ),
-      _request(
-        'demo-request-3',
-        'Transmisión automática',
-        'Honda',
-        'Civic',
-        2015,
-        'SOL-003/2026',
-        1,
-      ),
-      _request(
-        'demo-request-4',
-        'Motor de arranque',
-        'Toyota',
-        'Corolla',
-        2015,
-        'SOL-004/2026',
-        1,
-      ),
-    ]);
-    _quotes.addAll([
-      _quote('demo-quote-1', _requests[0], 1850, 'Enviada'),
-      _quote('demo-quote-2', _requests[2], 3800, 'Aceptada'),
-      _quote('demo-quote-3', _requests[3], 2400, 'Vista'),
-    ]);
-    _orders.add(_order('demo-order-1', 'demo-quote-2', status: 'Confirmada'));
-    _messages['demo-quote-1'] = [
-      _message(
-        'demo-message-1',
-        'demo-quote-1',
-        'Hola, ¿aún tienes disponible el alternador?',
-        true,
-      ),
-      _message(
-        'demo-message-2',
-        'demo-quote-1',
-        'Sí, está probado e incluye 30 días de garantía.',
-        false,
-      ),
-    ];
+  _DevelopmentMarketplace({bool seedDemoData = false}) {
+    if (seedDemoData) {
+      _requests.addAll([
+        _request(
+          'demo-request-1',
+          'Alternador',
+          'Nissan',
+          'Sentra',
+          2018,
+          'SOL-001/2026',
+          1,
+        ),
+        _request(
+          'demo-request-2',
+          'Compresor A/C',
+          'Chevrolet',
+          'Aveo',
+          2016,
+          'SOL-002/2026',
+          0,
+        ),
+        _request(
+          'demo-request-3',
+          'Transmisión automática',
+          'Honda',
+          'Civic',
+          2015,
+          'SOL-003/2026',
+          1,
+        ),
+        _request(
+          'demo-request-4',
+          'Motor de arranque',
+          'Toyota',
+          'Corolla',
+          2015,
+          'SOL-004/2026',
+          1,
+        ),
+      ]);
+      _quotes.addAll([
+        _quote('demo-quote-1', _requests[0], 1850, 'Enviada'),
+        _quote('demo-quote-2', _requests[2], 3800, 'Aceptada'),
+        _quote('demo-quote-3', _requests[3], 2400, 'Vista'),
+      ]);
+      _orders.add(_order('demo-order-1', 'demo-quote-2', status: 'Confirmada'));
+      _messages['demo-quote-1'] = [
+        _message(
+          'demo-message-1',
+          'demo-quote-1',
+          'Hola, ¿aún tienes disponible el alternador?',
+          true,
+        ),
+        _message(
+          'demo-message-2',
+          'demo-quote-1',
+          'Sí, está probado e incluye 30 días de garantía.',
+          false,
+        ),
+      ];
+    }
   }
 
   final List<Map<String, dynamic>> _requests = [];

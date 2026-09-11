@@ -159,7 +159,17 @@ abstract final class SessionResponseParser {
         expiresAt: expiryFromClaims(token),
         userId: _subjectFromClaims(token),
         role: _roleFromClaims(token),
+        yonkeGuidId: _yonkeIdFromClaims(token),
       );
+    }
+
+    if (response is String) {
+      try {
+        final decoded = json.decode(response);
+        if (decoded is Map) {
+          response = decoded;
+        }
+      } catch (_) {}
     }
 
     if (response is! Map) return const SessionPayload();
@@ -178,6 +188,7 @@ abstract final class SessionResponseParser {
         expiresAt: expiryFromClaims(token),
         userId: _subjectFromClaims(token),
         role: _roleFromClaims(token),
+        yonkeGuidId: _yonkeIdFromClaims(token),
         serverMessage: message,
         availableKeys: keys,
       );
@@ -205,7 +216,8 @@ abstract final class SessionResponseParser {
       refreshToken: _firstString(scopes, _refreshTokenKeys),
       expiresAt: _expiry(scopes, token),
       userId: _firstString(scopes, _userIdKeys) ?? _subjectFromClaims(token),
-      yonkeGuidId: _firstString(scopes, _yonkeIdKeys),
+      yonkeGuidId:
+          _firstString(scopes, _yonkeIdKeys) ?? _yonkeIdFromClaims(token),
       role: _firstString(scopes, _roleKeys) ?? _roleFromClaims(token),
       serverMessage: message,
       availableKeys: keys,
@@ -420,6 +432,27 @@ abstract final class SessionResponseParser {
       if (value is List && value.isNotEmpty) {
         final first = value.first;
         if (first is String && first.trim().isNotEmpty) return first.trim();
+      }
+    }
+    return null;
+  }
+
+  static String? _yonkeIdFromClaims(String token) {
+    final claims = decodeJwtClaims(token);
+    if (claims == null) return null;
+    const candidates = <String>[
+      'yonkeguidid',
+      'yunkeguidid',
+      'yonkeid',
+      'yunkeid',
+      'guidid',
+    ];
+    final indexed = _index(claims);
+    for (final key in candidates) {
+      final value = indexed[key];
+      if (value != null) {
+        final text = value.toString().trim();
+        if (text.isNotEmpty) return text;
       }
     }
     return null;

@@ -84,6 +84,7 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Cobertura guardada.')));
       }
+      await _load();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

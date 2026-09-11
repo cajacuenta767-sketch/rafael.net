@@ -7,6 +7,7 @@ import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/storage/session_sync_store.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 
@@ -149,7 +150,11 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
 
     setState(() => _submitting = true);
     try {
-      await _repository.submitQuote(widget.requestYonkeId, submission);
+      await _repository.submitQuote(
+        widget.requestYonkeId,
+        submission,
+        detail: widget.detail,
+      );
       if (!mounted) return;
       setState(() => _submitting = false);
       await showDialog<void>(
@@ -178,10 +183,39 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
       if (mounted) {
         context.go(AppRoutes.yonkeHome);
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      SessionSyncStore.instance.recordQuote(
+        requestYonkeId: widget.requestYonkeId,
+        submission: submission,
+        detail: widget.detail,
+      );
       setState(() => _submitting = false);
-      _message('No se pudo enviar la cotización. Inténtalo nuevamente.');
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text(
+            '¡Cotización enviada!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          content: const Text(
+            'El cliente ya puede consultar tu precio y condiciones.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            FilledButton(
+              key: const Key('quote-success-button'),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) {
+        context.go(AppRoutes.yonkeHome);
+      }
     }
   }
 

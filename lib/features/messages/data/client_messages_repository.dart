@@ -91,21 +91,9 @@ class ApiClientMessagesRepository
             historyAvailable: true,
           );
         } catch (_) {
-          if (await _isDevelopmentSession()) {
-            _developmentChatUnavailable = true;
-            final messages = _developmentConversation(quote.id);
-            final last = messages.last;
-            return ClientMessagePreview(
-              quote: quote,
-              lastMessage: last.text,
-              lastMessageAt: last.sentAt,
-              unreadCount: messages.where((message) => !message.read).length,
-              historyAvailable: true,
-            );
-          }
           return ClientMessagePreview(
             quote: quote,
-            lastMessage: 'Historial no disponible',
+            lastMessage: 'Sin mensajes todavía',
             lastMessageAt:
                 quote.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
             unreadCount: 0,

@@ -35,9 +35,9 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
   final _opening = <String>{};
 
   int _totalCount = 0;
-  int _newCount = 8;
-  int _viewedCount = 3;
-  int _quotedCount = 12;
+  int _newCount = 0;
+  int _viewedCount = 0;
+  int _quotedCount = 0;
 
   bool get _hasActiveQuery =>
       _searchController.text.trim().isNotEmpty || !_filters.isEmpty;
@@ -118,6 +118,10 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
       if (!mounted) return;
       setState(() {
         _requests = const [];
+        _totalCount = 0;
+        _newCount = 0;
+        _viewedCount = 0;
+        _quotedCount = 0;
         _loading = false;
         _loadingMore = false;
         _endpointPending = true;
@@ -126,6 +130,11 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _requests = const [];
+        _totalCount = 0;
+        _newCount = 0;
+        _viewedCount = 0;
+        _quotedCount = 0;
         _loading = false;
         _loadingMore = false;
         _error = 'No pudimos cargar las solicitudes en este momento.';
@@ -186,18 +195,22 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     var current = request;
     try {
       if (request.isNew && request.requestYonkeId.isNotEmpty) {
-        await _repository.markAsViewed(request.requestYonkeId);
-        current = request.copyWith(status: YonkeRequestStatus.viewed);
-        if (mounted) {
-          setState(() {
-            _requests = _requests
-                .map(
-                  (item) => item.requestYonkeId == request.requestYonkeId
-                      ? current
-                      : item,
-                )
-                .toList();
-          });
+        try {
+          await _repository.markAsViewed(request.requestYonkeId);
+          current = request.copyWith(status: YonkeRequestStatus.viewed);
+          if (mounted) {
+            setState(() {
+              _requests = _requests
+                  .map(
+                    (item) => item.requestYonkeId == request.requestYonkeId
+                        ? current
+                        : item,
+                  )
+                  .toList();
+            });
+          }
+        } catch (_) {
+          // Si el backend no soporta marcar como vista esta forma, se continúa al detalle.
         }
       }
       if (!mounted) return;
@@ -210,7 +223,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'No se pudo actualizar la solicitud. Inténtalo nuevamente.',
+            'No se pudo abrir la solicitud. Inténtalo nuevamente.',
           ),
         ),
       );

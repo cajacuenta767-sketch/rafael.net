@@ -275,7 +275,10 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         OutlinedButton.icon(
                           key: const Key('open-search-filters'),
@@ -287,8 +290,11 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
                                 : 'Filtros (${_filters.activeCount})',
                           ),
                         ),
-                        if (!_filters.isEmpty) ...[
-                          const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _search,
+                          child: const Text('Buscar'),
+                        ),
+                        if (!_filters.isEmpty)
                           TextButton(
                             onPressed: () async {
                               setState(
@@ -300,7 +306,6 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
                             },
                             child: const Text('Limpiar filtros'),
                           ),
-                        ],
                       ],
                     ),
                     if (!_filters.isEmpty) ...[

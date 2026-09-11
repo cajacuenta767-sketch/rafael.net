@@ -57,7 +57,10 @@ class YonkeRequestSummary {
     year?.toString(),
   ].whereType<String>().where((value) => value.isNotEmpty).join(' · ');
 
-  YonkeRequestSummary copyWith({YonkeRequestStatus? status}) =>
+  YonkeRequestSummary copyWith({
+    YonkeRequestStatus? status,
+    bool? hasQuote,
+  }) =>
       YonkeRequestSummary(
         requestId: requestId,
         requestYonkeId: requestYonkeId,
@@ -70,7 +73,7 @@ class YonkeRequestSummary {
         city: city,
         folio: folio,
         photoCount: photoCount,
-        hasQuote: hasQuote,
+        hasQuote: hasQuote ?? this.hasQuote,
         imageUrl: imageUrl,
       );
 }

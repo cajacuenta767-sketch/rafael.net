@@ -1190,8 +1190,9 @@ class _TrackingYonkeRequestDetailRepository
   @override
   Future<void> submitQuote(
     String requestYonkeId,
-    YonkeQuoteSubmission submission,
-  ) async {
+    YonkeQuoteSubmission submission, {
+    YonkeRequestDetail? detail,
+  }) async {
     submissions.add(submission);
   }
 }
@@ -1356,8 +1357,9 @@ class _SampleYonkeRequestDetailRepository
   @override
   Future<void> submitQuote(
     String requestYonkeId,
-    YonkeQuoteSubmission submission,
-  ) async {}
+    YonkeQuoteSubmission submission, {
+    YonkeRequestDetail? detail,
+  }) async {}
 }
 
 /// Cotizaciones de muestra con la forma que produce `yonkeQuoteFromJson`.

@@ -7,6 +7,8 @@ import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_file.dart';
+import 'package:image_picker/image_picker.dart';
 
 class YonkeRegisterPage extends ConsumerStatefulWidget {
   const YonkeRegisterPage({super.key});
@@ -39,6 +41,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
   bool _confirmPasswordVisible = false;
   bool _loading = false;
   String? _message;
+  Uint8List? _logoBytes;
+  String? _logoFileName;
+  bool _pickingLogo = false;
 
   List<_StateOption> _states = const [];
   List<_CityOption> _cities = const [];
@@ -121,6 +126,32 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     }
   }
 
+  Future<void> _pickLogo() async {
+    if (_loading || _pickingLogo) return;
+    setState(() => _pickingLogo = true);
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _logoBytes = bytes;
+          _logoFileName = picked.name;
+        });
+      }
+    } catch (_) {
+      // Ignorar cancelaciones o errores de permisos
+    } finally {
+      if (mounted) setState(() => _pickingLogo = false);
+    }
+  }
+
   Future<void> _submit() async {
     if (_loading || !(_formKey.currentState?.validate() ?? false)) return;
 
@@ -147,8 +178,30 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
       'ConfirmPassword': _confirmPasswordController.text,
     };
 
+    Uint8List logoBytesToSend;
+    String logoFileNameToSend;
+
+    if (_logoBytes != null && _logoBytes!.isNotEmpty) {
+      logoBytesToSend = _logoBytes!;
+      logoFileNameToSend = _logoFileName ?? 'logo.png';
+    } else {
+      final byteData =
+          await rootBundle.load('assets/images/refanet_yonke_icon.png');
+      logoBytesToSend = byteData.buffer.asUint8List();
+      logoFileNameToSend = 'refanet_yonke_logo.png';
+    }
+
+    final logoFile = ApiFile(
+      fieldName: 'LogoUrl',
+      fileName: logoFileNameToSend,
+      bytes: logoBytesToSend,
+    );
+
     try {
-      await ref.read(yonkesApiProvider).register(fields: fields);
+      await ref.read(yonkesApiProvider).register(
+            fields: fields,
+            files: [logoFile],
+          );
       if (!mounted) return;
       _showSuccessDialog();
     } on ApiException catch (error) {
@@ -291,6 +344,57 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                         title: '1. Datos del negocio',
                         icon: Icons.storefront_outlined,
                         children: [
+                          Center(
+                            child: Column(
+                              children: [
+                                InkWell(
+                                  key: const Key('yonke-register-logo-button'),
+                                  onTap: _loading ? null : _pickLogo,
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Stack(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 42,
+                                        backgroundColor:
+                                            const Color(0xFFEDF2F9),
+                                        backgroundImage: _logoBytes != null
+                                            ? MemoryImage(_logoBytes!)
+                                            : const AssetImage(
+                                                    'assets/images/refanet_yonke_icon.png',
+                                                  )
+                                                as ImageProvider,
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor:
+                                              YonkeColors.primaryNavy,
+                                          child: const Icon(
+                                            Icons.camera_alt,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                TextButton(
+                                  onPressed: _loading ? null : _pickLogo,
+                                  child: Text(
+                                    _logoBytes != null
+                                        ? 'Cambiar logo'
+                                        : 'Subir logo del yonke (opcional)',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           TextFormField(
                             key: const Key('yonke-register-name'),
                             controller: _nameController,

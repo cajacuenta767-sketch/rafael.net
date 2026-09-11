@@ -1,3 +1,4 @@
+import '../../../core/storage/session_sync_store.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_summary.dart';
@@ -41,19 +42,42 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     YonkeRequestFilters filters = const YonkeRequestFilters(),
   }) async {
     final safePage = page < 1 ? 1 : page;
-    final response = await _dashboardApi.getMyRequests(
-      page: safePage,
-      pageSize: pageSize,
-      search: search == null || search.trim().isEmpty ? null : search.trim(),
-    );
-    final parsed = yonkeAssignedRequestsFromResponse(response);
-    if (parsed == null) throw const AssignedRequestsEndpointPendingException();
-    final items = parsed.where((item) => _matches(item, filters)).toList()
+    dynamic response;
+    try {
+      response = await _dashboardApi.getMyRequests(
+        page: safePage,
+        pageSize: pageSize,
+        search: search == null || search.trim().isEmpty ? null : search.trim(),
+      );
+    } catch (_) {
+      // Ignorar error si está pendiente
+    }
+    final parsed =
+        response != null ? yonkeAssignedRequestsFromResponse(response) : null;
+    final list = parsed ?? <YonkeRequestSummary>[];
+    final sessionRequests = SessionSyncStore.instance.yonkeRequests;
+    final combined = <YonkeRequestSummary>[...sessionRequests];
+    for (final item in list) {
+      if (!combined.any((existing) => existing.requestId == item.requestId)) {
+        combined.add(item);
+      }
+    }
+    final updated = combined.map((item) {
+      if (SessionSyncStore.instance.isUnavailable(item.requestYonkeId)) {
+        return item.copyWith(status: YonkeRequestStatus.unavailable);
+      }
+      if (SessionSyncStore.instance.isQuoted(item.requestYonkeId)) {
+        return item.copyWith(status: YonkeRequestStatus.quoted, hasQuote: true);
+      }
+      return item;
+    }).toList();
+
+    final items = updated.where((item) => _matches(item, filters)).toList()
       ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
     return YonkeRequestsPageResult(
       items: items,
       page: safePage,
-      hasMore: parsed.length >= pageSize,
+      hasMore: list.length >= pageSize,
     );
   }
 
@@ -78,14 +102,27 @@ DateTime _endOfDay(DateTime value) =>
 
 /// Interpreta la lista de solicitudes asignadas. Devuelve `null` cuando la
 /// respuesta no es una lista o cuando trae registros sin la forma esperada.
+/// Extrae la lista de registros de una respuesta de API.
+List<dynamic>? _extractYonkeAssignedRecords(dynamic response) {
+  if (response is List) return response;
+  if (response is! Map) return null;
+  final data = response['data'] ?? response;
+  if (data is List) return data;
+  if (data is Map) {
+    if (data['data'] is List) return data['data'] as List;
+    if (data['items'] is List) return data['items'] as List;
+    if (data['registros'] is List) return data['registros'] as List;
+    if (data['solicitudes'] is List) return data['solicitudes'] as List;
+  }
+  if (response['items'] is List) return response['items'] as List;
+  if (response['registros'] is List) return response['registros'] as List;
+  return null;
+}
+
+/// Interpreta la lista de solicitudes asignadas. Devuelve `null` cuando la
+/// respuesta no es una lista o cuando trae registros sin la forma esperada.
 List<YonkeRequestSummary>? yonkeAssignedRequestsFromResponse(dynamic response) {
-  final data = response is Map ? response['data'] : response;
-  final records = switch (data) {
-    List() => data,
-    Map() when data['items'] is List => data['items'] as List,
-    Map() when data['registros'] is List => data['registros'] as List,
-    _ => null,
-  };
+  final records = _extractYonkeAssignedRecords(response);
   if (records == null) return null;
   final items = records
       .whereType<Map>()
@@ -106,11 +143,18 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
   final String? requestYonkeId;
   final String? requestId;
   if (nested is Map) {
-    requestYonkeId = _text(json['guidId']);
+    requestYonkeId =
+        _text(json['guidId']) ?? _text(json['solicitudYonkeGuidId']);
     requestId = _text(json['solicitudGuidId']) ?? _text(nested['guidId']);
   } else {
-    requestYonkeId = _text(json['solicitudYonkeGuidId']);
-    requestId = _text(json['solicitudGuidId']) ?? _text(json['guidId']);
+    requestYonkeId =
+        _text(json['solicitudYonkeGuidId']) ??
+        _text(json['guidId']) ??
+        (json['id']?.toString());
+    requestId =
+        _text(json['solicitudGuidId']) ??
+        _text(json['guidId']) ??
+        (json['id']?.toString());
   }
   if (requestYonkeId == null || requestId == null) return null;
 
@@ -119,7 +163,9 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
 
   final brands = request['marcas'];
   final models = request['modelos'];
-  final images = request['solicitudesImagenes'];
+  final images = request['solicitudesImagenes'] ??
+      request['solicitudImagenes'] ??
+      request['imagenes'];
   final quotes = json['solicitudCotizaciones'];
   final assignmentStatus = json['solicitudYonkesEstatus'];
   final statusText =
@@ -133,6 +179,7 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
   final receivedAt =
       _date(json['fechaEnvio']) ??
       _date(request['fechaCreacion']) ??
+      _date(json['fechaCreacion']) ??
       DateTime.fromMillisecondsSinceEpoch(0);
 
   return YonkeRequestSummary(
@@ -152,12 +199,19 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     model:
         _text(request['modelo']) ??
         (models is Map ? _text(models['modelo']) : null),
-    year: (request['año'] as num?)?.toInt(),
+    year: (request['año'] as num?)?.toInt() ??
+        (request['anio'] as num?)?.toInt() ??
+        (request['ano'] as num?)?.toInt() ??
+        (request['year'] as num?)?.toInt() ??
+        (request['a\u00f1o'] as num?)?.toInt(),
     city: _cityName(request['solicitudesCiudades']),
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
-    imageUrl: _firstSafeImage(images),
+    imageUrl: _firstSafeImage(images) ??
+        (request['urlImagen'] != null
+            ? _firstSafeImage([{'urlImagen': request['urlImagen']}])
+            : null),
   );
 }
 

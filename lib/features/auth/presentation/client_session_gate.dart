@@ -1,11 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/api_providers.dart';
-
-const _developmentClientToken = 'development-client-session';
 
 class ClientSessionGate extends ConsumerStatefulWidget {
   const ClientSessionGate({super.key, required this.builder});
@@ -29,12 +26,6 @@ class _ClientSessionGateState extends ConsumerState<ClientSessionGate> {
   Future<bool> _hasSession() async {
     final tokenStore = ref.read(tokenStoreProvider);
     final token = await tokenStore.readAccessToken();
-    // Evita que una sesión local guardada durante desarrollo sobreviva en una
-    // versión publicada de la aplicación.
-    if (!kDebugMode && token == _developmentClientToken) {
-      await tokenStore.clear();
-      return false;
-    }
     return token?.isNotEmpty == true;
   }
 
