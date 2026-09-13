@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
@@ -16,18 +14,14 @@ abstract interface class ClientMessagesRepository {
   Future<void> sendMessage({required String quoteId, required String message});
 }
 
-abstract interface class DevelopmentMessagesStatus {
-  bool get usingDevelopmentFallback;
-}
-
 /// Conversación por cotización sobre `SolicitudCotizacionMensajes`.
 ///
-/// Al abrir la conversación se marca como leída con
-/// `PUT /api/SolicitudCotizacionMensajes/{id}/leer`; si esa llamada falla no
-/// impide mostrar los mensajes.
-class ApiClientMessagesRepository
-    implements ClientMessagesRepository, DevelopmentMessagesStatus {
-  ApiClientMessagesRepository(
+/// La bandeja se arma con `DashboardSuscriptores/mis-cotizaciones` y el
+/// historial de cada cotización. Al abrir la conversación se marca como leída
+/// con `PUT /api/SolicitudCotizacionMensajes/{id}/leer`; si esa llamada falla
+/// no impide mostrar los mensajes.
+class ApiClientMessagesRepository implements ClientMessagesRepository {
+  const ApiClientMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
     this._tokenStore,
@@ -37,14 +31,9 @@ class ApiClientMessagesRepository
   final DashboardApi _dashboardApi;
   final TokenStore _tokenStore;
 
+  /// Conversaciones consultadas por carga de bandeja, de la más reciente a
+  /// la más antigua, para no disparar una llamada por cada cotización vieja.
   static const inboxLimit = 20;
-  static const _developmentToken = 'development-client-session';
-  final Map<String, List<ClientQuoteMessage>> _developmentMessages = {};
-  bool _developmentChatUnavailable = false;
-
-  @override
-  bool get usingDevelopmentFallback =>
-      kDebugMode && _developmentChatUnavailable;
 
   @override
   Future<List<ClientMessagePreview>> getInbox() async {
@@ -108,89 +97,35 @@ class ApiClientMessagesRepository
 
   @override
   Future<List<ClientQuoteMessage>> getConversation(String quoteId) async {
-    if (_developmentChatUnavailable && await _isDevelopmentSession()) {
-      return _developmentConversation(quoteId);
-    }
-    try {
-      final response = await _quotesApi.getConversation(quoteId);
-      final viewerUserId = await currentUserIdFrom(_tokenStore);
-      final messages = quoteMessagesFromResponse(response)
-          .map(
-            (record) => ClientQuoteMessage(
-              id: record.id,
-              text: record.text,
-              sentAt: record.sentAt,
-              fromClient: record.isFromClient(
-                viewerUserId: viewerUserId,
-                viewerIsClient: true,
-              ),
-              read: record.read,
+    final response = await _quotesApi.getConversation(quoteId);
+    final viewerUserId = await currentUserIdFrom(_tokenStore);
+    final messages = quoteMessagesFromResponse(response)
+        .map(
+          (record) => ClientQuoteMessage(
+            id: record.id,
+            text: record.text,
+            sentAt: record.sentAt,
+            fromClient: record.isFromClient(
+              viewerUserId: viewerUserId,
+              viewerIsClient: true,
             ),
-          )
-          .toList(growable: false);
-      try {
-        await _quotesApi.markMessagesRead(quoteId);
-      } catch (_) {
-        // La lectura ya se mostró; el marcado se reintenta en la próxima visita.
-      }
-      return messages;
+            read: record.read,
+          ),
+        )
+        .toList(growable: false);
+    try {
+      await _quotesApi.markMessagesRead(quoteId);
     } catch (_) {
-      if (!await _isDevelopmentSession()) rethrow;
-      _developmentChatUnavailable = true;
-      return _developmentConversation(quoteId);
+      // La lectura ya se mostró; el marcado se reintenta en la próxima visita.
     }
+    return messages;
   }
 
   @override
   Future<void> sendMessage({
     required String quoteId,
     required String message,
-  }) async {
-    if (_developmentChatUnavailable && await _isDevelopmentSession()) {
-      _developmentConversation(quoteId).add(
-        ClientQuoteMessage(
-          id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-          text: message,
-          sentAt: DateTime.now(),
-          fromClient: true,
-          read: false,
-        ),
-      );
-      return;
-    }
-    await _quotesApi.sendMessage(quoteId: quoteId, message: message);
-  }
-
-  Future<bool> _isDevelopmentSession() async =>
-      kDebugMode && await _tokenStore.readAccessToken() == _developmentToken;
-
-  List<ClientQuoteMessage> _developmentConversation(String quoteId) =>
-      _developmentMessages.putIfAbsent(quoteId, () {
-        final now = DateTime.now();
-        return [
-          ClientQuoteMessage(
-            id: 'demo-$quoteId-1',
-            text: 'Buen día, tenemos disponible la pieza que buscas.',
-            sentAt: now.subtract(const Duration(minutes: 5)),
-            fromClient: false,
-            read: true,
-          ),
-          ClientQuoteMessage(
-            id: 'demo-$quoteId-2',
-            text: '¿Me puedes compartir más información?',
-            sentAt: now.subtract(const Duration(minutes: 3)),
-            fromClient: true,
-            read: true,
-          ),
-          ClientQuoteMessage(
-            id: 'demo-$quoteId-3',
-            text: 'Claro, la pieza está disponible para cotizar.',
-            sentAt: now.subtract(const Duration(minutes: 1)),
-            fromClient: false,
-            read: false,
-          ),
-        ];
-      });
+  }) => _quotesApi.sendMessage(quoteId: quoteId, message: message);
 }
 
 int? _unreadCount(dynamic response) {

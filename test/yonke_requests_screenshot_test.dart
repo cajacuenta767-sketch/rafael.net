@@ -125,7 +125,9 @@ void main() {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
         final bytes = byteData.buffer.asUint8List();
-        File('build/yonke_requests_screenshot.png').writeAsBytesSync(bytes);
+        final output = File('build/yonke_requests_screenshot.png');
+        await output.parent.create(recursive: true);
+        await output.writeAsBytes(bytes);
       }
     });
   });

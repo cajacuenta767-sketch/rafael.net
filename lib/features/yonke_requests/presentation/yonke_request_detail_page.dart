@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 import '../domain/yonke_request_summary.dart';
@@ -108,8 +108,16 @@ class _YonkeRequestDetailPageState
         detail.requestYonkeId,
         brandId: detail.brandId,
       );
-    } catch (e) {
-      SessionSyncStore.instance.recordUnavailable(detail.requestYonkeId);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      final reason = error is ApiException
+          ? error.message
+          : 'No se pudo conectar con el servidor. Revisa tu conexión.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se registró la respuesta. $reason')),
+      );
+      return;
     }
     if (!mounted) return;
     setState(() {

@@ -1,9 +1,23 @@
 enum RequestSubmissionStage { create, requestId, images, dispatch }
 
 class RequestSubmissionResult {
-  const RequestSubmissionResult({required this.requestId});
+  const RequestSubmissionResult({
+    required this.requestId,
+    this.notifiedYonkes,
+    this.dispatchMessage,
+  });
 
   final String requestId;
+
+  /// Número de yonkes con cobertura a los que el servidor envió la solicitud,
+  /// cuando `POST /api/SolicitudYonkes/{id}/enviar` lo informa. `null` si la
+  /// respuesta no trae un conteo reconocible.
+  final int? notifiedYonkes;
+
+  /// Mensaje del servidor al enviar la solicitud a los yonkes, si lo hubo.
+  final String? dispatchMessage;
+
+  bool get reachedNoYonke => notifiedYonkes == 0;
 }
 
 class RequestSubmissionException implements Exception {
@@ -14,6 +28,9 @@ class RequestSubmissionException implements Exception {
   });
 
   final RequestSubmissionStage stage;
+
+  /// Identificador ya creado en el servidor cuando la falla ocurrió después
+  /// de registrar la solicitud. Permite evitar duplicados al reintentar.
   final String? requestId;
   final String? customMessage;
 
@@ -26,4 +43,7 @@ class RequestSubmissionException implements Exception {
         RequestSubmissionStage.images => 'La solicitud fue creada, pero no se pudieron adjuntar todas las fotografías. No se envió a los yonkes para evitar información incompleta.',
         RequestSubmissionStage.dispatch => 'La solicitud fue creada, pero no se pudo enviar a los yonkes de cobertura.',
       };
+
+  @override
+  String toString() => 'RequestSubmissionException(${stage.name}): $message';
 }

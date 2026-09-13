@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
 
@@ -384,21 +383,14 @@ class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
           }
         } catch (_) {}
       }
-      final sessionReqCount = SessionSyncStore.instance.clientRequests.length;
-      final sessionQuoteCount = SessionSyncStore.instance.clientQuotes.length;
       if (!mounted) return;
       setState(() {
-        _requestCount = count + sessionReqCount;
-        _quoteCount = _recordCount(responses[1]) + sessionQuoteCount;
+        _requestCount = count;
+        _quoteCount = _recordCount(responses[1]);
       });
     } catch (_) {
-      final sessionReqCount = SessionSyncStore.instance.clientRequests.length;
-      final sessionQuoteCount = SessionSyncStore.instance.clientQuotes.length;
-      if (!mounted) return;
-      setState(() {
-        _requestCount = sessionReqCount;
-        _quoteCount = sessionQuoteCount;
-      });
+      // Sin respuesta del servidor las tarjetas muestran «—» en lugar de
+      // inventar un conteo.
     }
   }
 
@@ -524,31 +516,17 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
           }
         } catch (_) {}
       }
-      final sessionRequests = SessionSyncStore.instance.clientRequests;
-      final existingIds = requests.map((r) => r.id).toSet();
-      final merged = [
-        ...sessionRequests.where((r) => !existingIds.contains(r.id)),
-        ...requests,
-      ].take(3).toList();
       if (!mounted) return;
       setState(() {
-        _requests = merged;
+        _requests = requests;
         _loading = false;
       });
     } catch (_) {
-      final sessionRequests = SessionSyncStore.instance.clientRequests;
       if (!mounted) return;
-      if (sessionRequests.isNotEmpty) {
-        setState(() {
-          _requests = sessionRequests.take(3).toList();
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _loading = false;
-          _failed = true;
-        });
-      }
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
     }
   }
 

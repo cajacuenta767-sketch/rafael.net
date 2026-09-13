@@ -26,17 +26,17 @@ import '../../features/messages/data/client_messages_repository.dart';
 import '../../features/yonke_requests/data/yonke_request_detail_repository.dart';
 import '../../features/yonke_requests/data/yonke_requests_repository.dart';
 import '../network/api_client.dart';
-import '../network/development_api_client.dart';
 import '../network/dio_api_client.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 
 final tokenStoreProvider = Provider<TokenStore>((ref) => SecureTokenStore());
 
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final tokens = ref.watch(tokenStoreProvider);
-  return DevelopmentApiClient(DioApiClient(tokens), tokens);
-});
+/// Cliente HTTP real contra la API publicada. No existe modo demo ni datos
+/// locales: cada pantalla consulta el servidor con el token de la sesión.
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => DioApiClient(ref.watch(tokenStoreProvider)),
+);
 
 final authApiProvider = Provider<AuthApi>(
   (ref) => AuthApi(ref.watch(apiClientProvider)),
