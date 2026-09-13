@@ -67,14 +67,14 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       final remoteQuotes = detail == null
           ? <ClientQuote>[]
           : clientQuotesFromDashboard(results[3])
-              .where((quote) {
-                if (quote.requestId.isNotEmpty) {
-                  return quote.requestId == widget.requestId;
-                }
-                return quote.requestFolio != null &&
-                    quote.requestFolio == detail.summary.folio;
-              })
-              .toList(growable: false);
+                .where((quote) {
+                  if (quote.requestId.isNotEmpty) {
+                    return quote.requestId == widget.requestId;
+                  }
+                  return quote.requestFolio != null &&
+                      quote.requestFolio == detail.summary.folio;
+                })
+                .toList(growable: false);
       final mergedQuotes = <ClientQuote>[...sessionQuotes];
       for (final q in remoteQuotes) {
         if (!mergedQuotes.any((existing) => existing.id == q.id)) {
@@ -100,7 +100,9 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
           _detail = ClientRequestDetail(
             summary: sessionReq,
             cities: const ['Nogales, Sonora'],
-            imageUrls: sessionReq.imageUrl != null ? [sessionReq.imageUrl!] : const [],
+            imageUrls: sessionReq.imageUrl != null
+                ? [sessionReq.imageUrl!]
+                : const [],
           );
           _quotes = sessionQuotes;
           _loading = false;
@@ -185,7 +187,9 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     setState(() => _cancelling = true);
     SessionSyncStore.instance.removeRequest(widget.requestId);
     try {
-      await ref.read(requestsApiProvider).cancel(
+      await ref
+          .read(requestsApiProvider)
+          .cancel(
             requestId: widget.requestId,
             notes: (noteText?.isEmpty ?? true) ? null : noteText,
           );

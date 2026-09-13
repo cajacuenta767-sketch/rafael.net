@@ -41,9 +41,11 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     final sessionItems = SessionSyncStore.instance.yonkeQuotes;
     final allItems = <YonkeQuote>[...sessionItems];
     for (final item in remoteItems) {
-      if (!allItems.any((existing) =>
-          existing.id == item.id ||
-          existing.requestYonkeId == item.requestYonkeId)) {
+      if (!allItems.any(
+        (existing) =>
+            existing.id == item.id ||
+            existing.requestYonkeId == item.requestYonkeId,
+      )) {
         allItems.add(item);
       }
     }

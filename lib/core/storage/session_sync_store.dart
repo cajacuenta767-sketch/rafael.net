@@ -10,10 +10,8 @@ import '../../features/yonke_requests/domain/yonke_request_summary.dart';
 
 String generateSessionUuid() {
   final random = Random();
-  String hex(int length) => List.generate(
-        length,
-        (_) => random.nextInt(16).toRadixString(16),
-      ).join();
+  String hex(int length) =>
+      List.generate(length, (_) => random.nextInt(16).toRadixString(16)).join();
   return '${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}';
 }
 
@@ -123,8 +121,11 @@ class SessionSyncStore {
 
   void recordDraftRequest(RequestDraft draft, {required String requestId}) {
     final now = DateTime.now();
-    final suffix = requestId.length > 4 ? requestId.substring(0, 4).toUpperCase() : 'TEST';
-    final folio = 'SOL-${now.year}${now.month.toString().padLeft(2, '0')}-$suffix';
+    final suffix = requestId.length > 4
+        ? requestId.substring(0, 4).toUpperCase()
+        : 'TEST';
+    final folio =
+        'SOL-${now.year}${now.month.toString().padLeft(2, '0')}-$suffix';
     final summary = ClientRequestSummary(
       id: requestId,
       part: draft.part,

@@ -54,9 +54,9 @@ class _YonkeRequestDetailPageState
     try {
       final effectiveRequestId =
           (widget.request?.requestId != null &&
-                  widget.request!.requestId.isNotEmpty)
-              ? widget.request!.requestId
-              : widget.requestYonkeId;
+              widget.request!.requestId.isNotEmpty)
+          ? widget.request!.requestId
+          : widget.requestYonkeId;
       final detail = await _repository.getDetail(
         requestId: effectiveRequestId,
         requestYonkeId: widget.requestYonkeId,

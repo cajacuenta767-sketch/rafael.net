@@ -282,18 +282,21 @@ void main() {
       expect(items.single.part, 'Faro');
     });
 
-    test('devuelve null cuando la forma no contiene identificadores válidos', () {
-      expect(
-        yonkeAssignedRequestsFromResponse({
-          'data': [
-            {'invalidKey': 'none'},
-          ],
-        }),
-        isNull,
-      );
-      expect(yonkeAssignedRequestsFromResponse({'data': null}), isNull);
-      expect(yonkeAssignedRequestsFromResponse({'data': []}), isEmpty);
-    });
+    test(
+      'devuelve null cuando la forma no contiene identificadores válidos',
+      () {
+        expect(
+          yonkeAssignedRequestsFromResponse({
+            'data': [
+              {'invalidKey': 'none'},
+            ],
+          }),
+          isNull,
+        );
+        expect(yonkeAssignedRequestsFromResponse({'data': null}), isNull);
+        expect(yonkeAssignedRequestsFromResponse({'data': []}), isEmpty);
+      },
+    );
   });
 
   group('SolicitudCotizacionMensajes', () {

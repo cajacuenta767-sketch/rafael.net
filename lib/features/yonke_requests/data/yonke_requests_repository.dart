@@ -52,8 +52,9 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     } catch (_) {
       // Ignorar error si está pendiente
     }
-    final parsed =
-        response != null ? yonkeAssignedRequestsFromResponse(response) : null;
+    final parsed = response != null
+        ? yonkeAssignedRequestsFromResponse(response)
+        : null;
     final list = parsed ?? <YonkeRequestSummary>[];
     final sessionRequests = SessionSyncStore.instance.yonkeRequests;
     final combined = <YonkeRequestSummary>[...sessionRequests];
@@ -163,7 +164,8 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
 
   final brands = request['marcas'];
   final models = request['modelos'];
-  final images = request['solicitudesImagenes'] ??
+  final images =
+      request['solicitudesImagenes'] ??
       request['solicitudImagenes'] ??
       request['imagenes'];
   final quotes = json['solicitudCotizaciones'];
@@ -199,7 +201,8 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     model:
         _text(request['modelo']) ??
         (models is Map ? _text(models['modelo']) : null),
-    year: (request['año'] as num?)?.toInt() ??
+    year:
+        (request['año'] as num?)?.toInt() ??
         (request['anio'] as num?)?.toInt() ??
         (request['ano'] as num?)?.toInt() ??
         (request['year'] as num?)?.toInt() ??
@@ -208,9 +211,12 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
-    imageUrl: _firstSafeImage(images) ??
+    imageUrl:
+        _firstSafeImage(images) ??
         (request['urlImagen'] != null
-            ? _firstSafeImage([{'urlImagen': request['urlImagen']}])
+            ? _firstSafeImage([
+                {'urlImagen': request['urlImagen']},
+              ])
             : null),
   );
 }

@@ -197,11 +197,13 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
 
   Future<void> _enterTestMode() async {
     if (!await _ensureLegalAccepted()) return;
-    await ref.read(tokenStoreProvider).writeTokens(
-      accessToken: 'development-client-session',
-      refreshToken: null,
-      expiresAt: DateTime.now().add(const Duration(days: 30)),
-    );
+    await ref
+        .read(tokenStoreProvider)
+        .writeTokens(
+          accessToken: 'development-client-session',
+          refreshToken: null,
+          expiresAt: DateTime.now().add(const Duration(days: 30)),
+        );
     if (mounted) context.go(AppRoutes.clientHome);
   }
 

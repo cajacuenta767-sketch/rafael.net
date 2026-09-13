@@ -134,9 +134,7 @@ void main() {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
         final bytes = byteData.buffer.asUint8List();
-        File(
-          r'C:\Users\PC\.gemini\antigravity\brain\8634c568-fc25-4f30-afbb-baf7c18b270e\yonke_quotes_screenshot.png',
-        ).writeAsBytesSync(bytes);
+        File('build/yonke_quotes_screenshot.png').writeAsBytesSync(bytes);
       }
     });
   });

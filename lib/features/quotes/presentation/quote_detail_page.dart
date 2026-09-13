@@ -124,9 +124,8 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     if (_quote?.requestId != null) {
       SessionSyncStore.instance.removeRequest(_quote!.requestId);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cotización eliminada.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Cotización eliminada.')));
     context.pop();
   }
 

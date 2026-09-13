@@ -8,6 +8,7 @@ import '../../../app/theme/yonke_theme.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 class YonkeRegisterPage extends ConsumerStatefulWidget {
@@ -185,8 +186,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
       logoBytesToSend = _logoBytes!;
       logoFileNameToSend = _logoFileName ?? 'logo.png';
     } else {
-      final byteData =
-          await rootBundle.load('assets/images/refanet_yonke_icon.png');
+      final byteData = await rootBundle.load(
+        'assets/images/refanet_yonke_icon.png',
+      );
       logoBytesToSend = byteData.buffer.asUint8List();
       logoFileNameToSend = 'refanet_yonke_logo.png';
     }
@@ -198,10 +200,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     );
 
     try {
-      await ref.read(yonkesApiProvider).register(
-            fields: fields,
-            files: [logoFile],
-          );
+      await ref
+          .read(yonkesApiProvider)
+          .register(fields: fields, files: [logoFile]);
       if (!mounted) return;
       _showSuccessDialog();
     } on ApiException catch (error) {
@@ -355,14 +356,14 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 42,
-                                        backgroundColor:
-                                            const Color(0xFFEDF2F9),
+                                        backgroundColor: const Color(
+                                          0xFFEDF2F9,
+                                        ),
                                         backgroundImage: _logoBytes != null
                                             ? MemoryImage(_logoBytes!)
                                             : const AssetImage(
-                                                    'assets/images/refanet_yonke_icon.png',
-                                                  )
-                                                as ImageProvider,
+                                                'assets/images/refanet_yonke_icon.png',
+                                              ) as ImageProvider,
                                       ),
                                       Positioned(
                                         bottom: 0,

@@ -222,9 +222,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'No se pudo abrir la solicitud. Inténtalo nuevamente.',
-          ),
+          content: Text('No se pudo abrir la solicitud. Inténtalo nuevamente.'),
         ),
       );
     } finally {

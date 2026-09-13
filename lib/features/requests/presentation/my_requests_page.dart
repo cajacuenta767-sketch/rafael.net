@@ -37,8 +37,9 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       var list = clientRequestSummariesFromResponse(response);
       if (list.isEmpty) {
         try {
-          final recentResponse =
-              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recentResponse = await ref
+              .read(dashboardApiProvider)
+              .getRecentRequest();
           final recent = clientRequestSummaryFromResponse(recentResponse);
           if (recent != null) {
             list = [recent];
@@ -67,7 +68,8 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       } else {
         setState(() {
           _loading = false;
-          _error = 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
+          _error =
+              'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
         });
       }
     }
@@ -102,10 +104,9 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
     SessionSyncStore.instance.removeRequest(request.id);
     try {
-      await ref.read(requestsApiProvider).cancel(
-        requestId: request.id,
-        notes: 'Cancelada por el cliente',
-      );
+      await ref
+          .read(requestsApiProvider)
+          .cancel(requestId: request.id, notes: 'Cancelada por el cliente');
     } catch (_) {
       // Si el servidor falla o ya fue retirada, el estado local ya fue actualizado.
     }

@@ -45,7 +45,9 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
         userId: currentUserId,
       );
     } catch (e) {
-      final msg = e is ApiException ? e.message.toLowerCase() : e.toString().toLowerCase();
+      final msg = e is ApiException
+          ? e.message.toLowerCase()
+          : e.toString().toLowerCase();
       if (msg.contains('límite') || msg.contains('limite')) {
         final newUserId = generateSessionUuid();
         _activeClientUserId = newUserId;
@@ -61,7 +63,10 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
           );
         } catch (_) {
           final localId = generateSessionUuid();
-          SessionSyncStore.instance.recordDraftRequest(draft, requestId: localId);
+          SessionSyncStore.instance.recordDraftRequest(
+            draft,
+            requestId: localId,
+          );
           return RequestSubmissionResult(requestId: localId);
         }
       } else {

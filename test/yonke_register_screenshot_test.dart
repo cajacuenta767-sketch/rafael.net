@@ -106,9 +106,8 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
-        File(
-          r'C:\Users\PC\.gemini\antigravity\brain\8634c568-fc25-4f30-afbb-baf7c18b270e\yonke_register_screenshot.png',
-        ).writeAsBytesSync(byteData.buffer.asUint8List());
+        File('build/yonke_register_screenshot.png')
+            .writeAsBytesSync(byteData.buffer.asUint8List());
       }
     });
 
@@ -184,9 +183,8 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
-        File(
-          r'C:\Users\PC\.gemini\antigravity\brain\8634c568-fc25-4f30-afbb-baf7c18b270e\yonke_login_screenshot.png',
-        ).writeAsBytesSync(byteData.buffer.asUint8List());
+        File('build/yonke_login_screenshot.png')
+            .writeAsBytesSync(byteData.buffer.asUint8List());
       }
     });
   });

@@ -81,12 +81,14 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
         _loading = false;
       });
     } catch (_) {
-      final sessionQuotes = SessionSyncStore.instance.clientQuotes.where(
-        (quote) =>
-            quote.requestId == widget.requestId ||
-            (widget.requestFolio != null &&
-                quote.requestFolio == widget.requestFolio),
-      ).toList();
+      final sessionQuotes = SessionSyncStore.instance.clientQuotes
+          .where(
+            (quote) =>
+                quote.requestId == widget.requestId ||
+                (widget.requestFolio != null &&
+                    quote.requestFolio == widget.requestFolio),
+          )
+          .toList();
       if (sessionQuotes.isNotEmpty) {
         if (!mounted) return;
         setState(() {
@@ -134,9 +136,8 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
       _quotes = _quotes.where((q) => q.id != quoteId).toList();
     });
     SessionSyncStore.instance.removeRequest(quoteId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cotización eliminada.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Cotización eliminada.')));
   }
 
   List<ClientQuote> get _sortedQuotes {

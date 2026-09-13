@@ -45,16 +45,16 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
       final sessionQuotes = SessionSyncStore.instance.clientQuotes;
       final allQuotes = <ClientQuote>[...sessionQuotes];
       for (final item in remoteQuotes) {
-        if (!allQuotes.any((existing) =>
-            existing.id == item.id || existing.requestId == item.requestId)) {
+        if (!allQuotes.any(
+          (existing) =>
+              existing.id == item.id || existing.requestId == item.requestId,
+        )) {
           allQuotes.add(item);
         }
       }
       allQuotes.sort(
         (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(
-              a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-            ),
+            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
       );
       if (!mounted) return;
       setState(() {
@@ -100,9 +100,8 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
       _quotes = _quotes.where((q) => q.id != quoteId).toList();
     });
     SessionSyncStore.instance.removeRequest(quoteId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cotización eliminada.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Cotización eliminada.')));
   }
 
   @override

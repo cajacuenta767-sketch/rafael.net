@@ -12,9 +12,9 @@ import 'api_file.dart';
 /// normales, por lo que ambas experiencias permanecen enlazadas.
 class DevelopmentApiClient implements ApiClient {
   DevelopmentApiClient(this._remote, this._tokens, {bool? seedDemoData})
-      : _marketplace = seedDemoData != null
-            ? _DevelopmentMarketplace(seedDemoData: seedDemoData)
-            : _sharedMarketplace;
+    : _marketplace = seedDemoData != null
+          ? _DevelopmentMarketplace(seedDemoData: seedDemoData)
+          : _sharedMarketplace;
 
   final ApiClient _remote;
   final TokenStore _tokens;

@@ -376,8 +376,9 @@ class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
       var count = _recordCount(responses[0]);
       if (count == 0) {
         try {
-          final recentResponse =
-              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recentResponse = await ref
+              .read(dashboardApiProvider)
+              .getRecentRequest();
           if (clientRequestSummaryFromResponse(recentResponse) != null) {
             count = 1;
           }
@@ -509,12 +510,14 @@ class _RecentRequestCardState extends ConsumerState<_RecentRequestCard> {
       final response = await ref
           .read(dashboardApiProvider)
           .getMyRequests(pageSize: 3);
-      var requests =
-          clientRequestSummariesFromResponse(response).take(3).toList();
+      var requests = clientRequestSummariesFromResponse(response)
+          .take(3)
+          .toList();
       if (requests.isEmpty) {
         try {
-          final recentResponse =
-              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recentResponse = await ref
+              .read(dashboardApiProvider)
+              .getRecentRequest();
           final recent = clientRequestSummaryFromResponse(recentResponse);
           if (recent != null) {
             requests = [recent];
