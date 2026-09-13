@@ -95,6 +95,7 @@ Respuestas reales obtenidas por el propietario desde Swagger:
 - `POST /api/YonkeAuth/login` correcto: `{ token, yonkeGuidId, nombre, correo }` en la raíz; el JWT trae `sub`, `YonkeGuidId`, rol "Asociado" y caducidad de 30 días. El yonke recién registrado entra sin autorización manual. `correo` llega vacío (pendiente del backend, no afecta).
 - `GET /api/YonkesCoberturas/guid/{id}`: `data: null` sin cobertura; con cobertura `data.yunkeHeader.yunkeCoberturas[]`. La app lo interpreta bien.
 - `PUT /api/YonkesCoberturas`: funciona; devuelve `{ yonkeGuidId, ciudadesIds }`.
+- **Bandeja del yonke** (`mis-solicitudes` con token de yonke): devuelve la solicitud plana (`Solicitud_Busqueda_DTO`: guidId, folio, marca, modelo, año, estatusSolicitud "Pendiente", totalCotizaciones, cerrada), no el registro `SolicitudYonkes`. La app la interpreta: usa `guidId` de la solicitud como identificador y "Pendiente" se muestra como "Nueva". Queda por confirmar si `PUT SolicitudYonkes/{id}/vista` y `POST CotizacionYonke?solicitudYonkeGuidId=` aceptan ese guid de solicitud. El simulador devuelve esta forma.
 - **Listas paginadas** (`mis-solicitudes`, `Yonkes/byPage`, `AllPaged`): `data: { data: [...], meta: { page, take, itemCount, pageCount } }`. Se añadió `lib/core/network/paged_response.dart` y se unificaron los parsers; la bandeja del yonke usa `meta.pageCount` para saber si hay más páginas. El simulador devuelve esta forma.
 
 ## 2. Errores encontrados, por gravedad

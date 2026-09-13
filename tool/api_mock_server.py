@@ -93,14 +93,19 @@ class H(BaseHTTPRequestHandler):
             claims = json.loads(base64.urlsafe_b64decode(tok.split(".")[1] + "==="))
             if claims["sub"] == CLIENT:
                 return self.send(200, paged(list(S["requests"].values())))
-            rows = [{"guidId": k, "solicitudGuidId": v, "yonkeGuidId": YONKE, "estatusId": 1, "solicitudes": S["requests"][v]} for k, v in S["assign"].items()]
+            # Forma real del servidor (13/09/2026): el yonke recibe la solicitud
+            # plana (Solicitud_Busqueda_DTO), sin registro SolicitudYonkes anidado.
+            rows = [dict(S["requests"][v], estatusSolicitudId=1, usuarioId="Test", motor="Estándar",
+                         transmicion="Estándar", numeroParte="S/N", descripcion="Prueba", folio=f"SOL-{S['requests'][v]['id']:05d}/2026",
+                         fechaCreacion="2026-09-13T21:05:24.727", fechaCierre="2026-09-28T00:00:00", cerrada=False)
+                    for k, v in S["assign"].items()]
             return self.send(200, paged(rows))
         if path == "/api/DashboardSuscriptores/mis-cotizaciones": return self.send(200, env(list(S["quotes"].values())))
         if path == "/api/DashboardSuscriptores/mi-solicitud-reciente":
             vals = list(S["requests"].values()); return self.send(200, env(vals[-1] if vals else None))
         if path == "/api/Solicitudes/AllPaged": return self.send(200, paged(list(S["requests"].values())))
         if m == "POST" and path == "/api/Solicitudes":
-            gid = g(); S["requests"][gid] = {"guidId": gid, "marca": "Nissan", "modelo": "Sentra", "estatusSolicitud": "Abierta", "piezaBuscada": b["piezaBuscada"], "totalCotizaciones": 0, "ciudades": b.get("ciudadesIds", [])}
+            gid = g(); S["requests"][gid] = {"id": len(S["requests"]) + 1, "guidId": gid, "marcaId": 3, "marca": "Nissan", "modeloId": 7, "modelo": "Sentra", "año": b.get("año", 2018), "estatusSolicitud": "Pendiente", "piezaBuscada": b["piezaBuscada"], "totalCotizaciones": 0, "ciudades": b.get("ciudadesIds", [])}
             return self.send(200, env({"guidId": gid}))
         x = r(r"/api/Solicitudes/([^/]+)")
         if x:
