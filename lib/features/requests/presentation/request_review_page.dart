@@ -294,6 +294,27 @@ class _SubmissionError extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(error.message, textAlign: TextAlign.center),
+              const SizedBox(height: 10),
+              Text(
+                'Paso que falló: ${error.stageLabel}.'
+                '${error.requestId != null ? ' Solicitud ${error.requestId}.' : ''}',
+                key: const Key('submission-error-detail'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF596276), fontSize: 12),
+              ),
+              if (error.technicalDetail != null) ...[
+                const SizedBox(height: 8),
+                SelectableText(
+                  'Respuesta del servidor: ${error.technicalDetail}',
+                  key: const Key('submission-error-technical'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF7A8290),
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
               if (error.message.toLowerCase().contains('límite') ||
                   error.message.toLowerCase().contains('limite')) ...[
                 const SizedBox(height: 16),

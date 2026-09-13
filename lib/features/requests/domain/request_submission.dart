@@ -25,6 +25,7 @@ class RequestSubmissionException implements Exception {
     required this.stage,
     this.requestId,
     this.customMessage,
+    this.technicalDetail,
   });
 
   final RequestSubmissionStage stage;
@@ -33,6 +34,17 @@ class RequestSubmissionException implements Exception {
   /// de registrar la solicitud. Permite evitar duplicados al reintentar.
   final String? requestId;
   final String? customMessage;
+
+  /// Código HTTP y cuerpo devueltos por el servidor, para diagnóstico.
+  final String? technicalDetail;
+
+  /// Descripción del paso que falló, independiente del mensaje del servidor.
+  String get stageLabel => switch (stage) {
+    RequestSubmissionStage.create => 'Crear la solicitud',
+    RequestSubmissionStage.requestId => 'Leer el identificador de la solicitud',
+    RequestSubmissionStage.images => 'Adjuntar las fotografías',
+    RequestSubmissionStage.dispatch => 'Enviar a los yonkes con cobertura',
+  };
 
   String get message =>
       customMessage ??

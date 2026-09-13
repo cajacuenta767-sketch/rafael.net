@@ -173,6 +173,58 @@ void main() {
     });
   });
 
+  group('requestIdFromCreateResponse', () {
+    const guid = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
+
+    test('usa el guid aunque venga un id numérico primero', () {
+      expect(
+        requestIdFromCreateResponse({
+          'data': {'id': 57, 'guidId': guid},
+        }),
+        guid,
+      );
+    });
+
+    test('nunca devuelve un id numérico', () {
+      expect(
+        requestIdFromCreateResponse({
+          'data': {'id': 57, 'folio': 'SOL-57'},
+        }),
+        isNull,
+      );
+    });
+
+    test('encuentra el guid en objetos anidados y en texto plano', () {
+      expect(
+        requestIdFromCreateResponse({
+          'data': {
+            'id': 57,
+            'solicitud': {'id': 57, 'guidId': guid},
+          },
+        }),
+        guid,
+      );
+      expect(requestIdFromCreateResponse({'data': guid}), guid);
+      expect(requestIdFromCreateResponse('  $guid '), guid);
+    });
+
+    test('la falta de guid se reporta con las claves recibidas', () async {
+      final api = RecordingApiClient({
+        'POST /api/Solicitudes': (_) =>
+            RecordingApiClient.ok({'id': 57, 'folio': 'SOL-57'}),
+      });
+      await expectLater(
+        ApiRequestSubmissionRepository(RequestsApi(api)).submit(_draft()),
+        throwsA(
+          isA<RequestSubmissionException>()
+              .having((e) => e.stage, 'stage', RequestSubmissionStage.requestId)
+              .having((e) => e.message, 'message', contains('id, folio')),
+        ),
+      );
+      expect(api.trace, ['POST /api/Solicitudes']);
+    });
+  });
+
   group('notifiedYonkesFromResponse', () {
     test('reconoce listas, números, contadores y texto', () {
       expect(notifiedYonkesFromResponse(RecordingApiClient.ok([1, 2, 3])), 3);

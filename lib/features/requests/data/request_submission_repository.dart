@@ -64,6 +64,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       throw RequestSubmissionException(
         stage: RequestSubmissionStage.create,
         customMessage: error.message,
+        technicalDetail: technicalDetailOf(error),
       );
     } catch (_) {
       throw const RequestSubmissionException(
@@ -75,12 +76,17 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       throw RequestSubmissionException(
         stage: RequestSubmissionStage.create,
         customMessage: createError,
+        technicalDetail: 'HTTP 200 · ${_compact(created)}',
       );
     }
     final requestId = requestIdFromCreateResponse(created);
     if (requestId == null) {
-      throw const RequestSubmissionException(
+      throw RequestSubmissionException(
         stage: RequestSubmissionStage.requestId,
+        customMessage:
+            'La API aceptó la solicitud, pero no devolvió su guidId. Por '
+            'seguridad no se adjuntaron fotos ni se envió a los yonkes. '
+            'Datos recibidos: ${describeCreateResponse(created)}.',
       );
     }
 
@@ -129,6 +135,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
           stage: RequestSubmissionStage.images,
           requestId: requestId,
           customMessage: error.message,
+          technicalDetail: technicalDetailOf(error),
         );
       } catch (_) {
         throw RequestSubmissionException(
@@ -147,6 +154,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
         stage: RequestSubmissionStage.dispatch,
         requestId: requestId,
         customMessage: error.message,
+        technicalDetail: technicalDetailOf(error),
       );
     } catch (_) {
       throw RequestSubmissionException(
@@ -160,6 +168,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
         stage: RequestSubmissionStage.dispatch,
         requestId: requestId,
         customMessage: dispatchError,
+        technicalDetail: 'HTTP 200 · ${_compact(dispatched)}',
       );
     }
 
@@ -197,15 +206,81 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
 /// También acepta el guid como texto plano en `data`.
 String? requestIdFromCreateResponse(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
-  if (data is String && data.trim().isNotEmpty) return data.trim();
+  if (data is String) return _asRequestId(data, strict: true);
   if (data is! Map) return null;
-  for (final key in const ['guidId', 'solicitudGuidId', 'requestId', 'id']) {
-    final value = data[key]?.toString().trim();
-    if (value != null && value.isNotEmpty) return value;
+  // 1. Un GUID en cualquiera de las claves conocidas, incluida `id`.
+  for (final key in _idKeys) {
+    final guid = _asRequestId(data[key], strict: true);
+    if (guid != null) return guid;
   }
-  final nested = data['solicitud'] ?? data['solicitudHeader'];
-  if (nested is Map) return requestIdFromCreateResponse(nested);
+  // 2. Un GUID en objetos anidados (`solicitud`, `solicitudHeader`, entidad).
+  final nested = _findGuid(data, depth: 3);
+  if (nested != null) return nested;
+  // 3. Claves explícitas de guid con un texto no numérico. Nunca `id`, que
+  //    suele ser el entero de base de datos y no sirve en las rutas.
+  for (final key in _idKeys.where((k) => k != 'id')) {
+    final loose = _asRequestId(data[key], strict: false);
+    if (loose != null) return loose;
+  }
   return null;
+}
+
+const _idKeys = ['guidId', 'solicitudGuidId', 'requestId', 'guid', 'id'];
+
+final _guidPattern = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
+/// Las rutas `SolicitudCiudades`, `SolicitudesImagenes` y `SolicitudYonkes`
+/// reciben el `guidId`; un `id` numérico produce "La solicitud no existe".
+/// En modo estricto solo se acepta la forma GUID; en modo laxo, cualquier
+/// texto que no sea un número.
+String? _asRequestId(dynamic value, {required bool strict}) {
+  if (value is! String) return null;
+  final text = value.trim();
+  if (text.isEmpty) return null;
+  if (_guidPattern.hasMatch(text)) return text;
+  if (strict) return null;
+  return int.tryParse(text) == null ? text : null;
+}
+
+String? _findGuid(Map<dynamic, dynamic> map, {required int depth}) {
+  if (depth < 0) return null;
+  for (final entry in map.entries) {
+    final key = entry.key.toString().toLowerCase();
+    if (key.contains('guid') || key == 'id') {
+      final guid = _asRequestId(entry.value, strict: true);
+      if (guid != null) return guid;
+    }
+  }
+  for (final value in map.values) {
+    if (value is Map) {
+      final guid = _findGuid(value, depth: depth - 1);
+      if (guid != null) return guid;
+    }
+  }
+  return null;
+}
+
+/// Código y cuerpo de una respuesta de error, recortados para mostrarlos.
+String technicalDetailOf(ApiException error) {
+  final code = error.statusCode == null
+      ? 'sin código'
+      : 'HTTP ${error.statusCode}';
+  return '$code · ${_compact(error.details)}';
+}
+
+String _compact(dynamic body) {
+  final text = body == null ? 'sin cuerpo' : body.toString().trim();
+  return text.length <= 300 ? text : '${text.substring(0, 300)}…';
+}
+
+/// Claves recibidas en la respuesta de creación, para diagnóstico.
+String describeCreateResponse(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  if (data == null) return 'sin datos';
+  if (data is Map) return data.keys.map((k) => k.toString()).join(', ');
+  return data.runtimeType.toString();
 }
 
 /// Mensaje de error cuando el sobre `ApiResponseGlobal` llega con
