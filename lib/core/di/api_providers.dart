@@ -7,6 +7,7 @@ import '../../features/catalogs/data/catalogs_api.dart';
 import '../../features/dashboard/data/dashboard_api.dart';
 import '../../features/orders/data/orders_api.dart';
 import '../../features/orders/data/client_orders_repository.dart';
+import '../../features/payments/data/client_payments_repository.dart';
 import '../../features/payments/data/payments_api.dart';
 import '../../features/quotes/data/quotes_api.dart';
 import '../../features/requests/data/requests_api.dart';
@@ -71,6 +72,9 @@ final clientOrdersRepositoryProvider = Provider<ClientOrdersRepository>(
 );
 final paymentsApiProvider = Provider<PaymentsApi>(
   (ref) => PaymentsApi(ref.watch(apiClientProvider)),
+);
+final clientPaymentsRepositoryProvider = Provider<ClientPaymentsRepository>(
+  (ref) => ApiClientPaymentsRepository(ref.watch(paymentsApiProvider)),
 );
 final yonkesApiProvider = Provider<YonkesApi>(
   (ref) => YonkesApi(ref.watch(apiClientProvider)),

@@ -71,6 +71,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tu orden está registrada'), findsOneWidget);
+    expect(find.byKey(const Key('client-pay-order')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('client-cancel-order')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client-cancel-order')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client-confirm-cancel-order')));

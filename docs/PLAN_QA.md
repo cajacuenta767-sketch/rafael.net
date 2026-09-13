@@ -10,8 +10,8 @@ que hace falta del propietario para ejecutarlo contra el servidor real.
 | Comprobación | Resultado |
 |---|---|
 | `flutter analyze` | Sin problemas |
-| `flutter test` | 290 pasan, 3 fallan (comparación visual por fuentes de Windows vs Linux) |
-| CI en GitHub | Rojo desde el 8 de septiembre por esas 3 pruebas; el PR #2 lo corrige |
+| `flutter test` | 321 pasan, 0 fallan (tras integrar el PR #2 en esta rama) |
+| CI en GitHub | Verde en esta rama; main sigue rojo hasta fusionarla |
 | Endpoints del contrato | 56, de los cuales la app usa 34 |
 | Pantallas registradas | 36 (23 cliente, 13 yonke) |
 | Prueba total del API en vivo | No ejecutada: el servidor no es alcanzable desde este entorno |
@@ -59,6 +59,15 @@ Hallazgos que salieron de esta ejecución:
 - El detalle de solicitud fija "Nogales, Sonora" como ciudad de respaldo (`request_detail_page.dart:102`) cuando el API no devuelve ciudades.
 
 Lo que esta prueba no cubre porque depende del servidor real: formato exacto de las respuestas de Azure, OTP por SMS, autorización de yonkes, Stripe y notificaciones.
+
+## 1c. Correcciones aplicadas en esta rama (13 de septiembre)
+
+- **PR #2 integrado**: se elimina el modo prueba en memoria (`DevelopmentApiClient`, `SessionSyncStore`, botón "Ingresar en modo prueba"), todas las pantallas consultan solo el API real, cotizar y cancelar muestran el error real del servidor, los assets demo se retiran y las comparaciones visuales toleran el rasterizado entre plataformas. Cierra E1, E2, E3, E4, E6 y E7.
+- **Pago con Stripe conectado (E5)**: nueva sección "Pago de la orden" en el seguimiento. "Pagar con Stripe" llama a `POST /api/Pagos/checkout/{orden}`, abre la URL devuelta en el navegador y "Ya pagué, verificar pago" consulta `GET /api/Pagos/resultado/{sessionId}`. El parser acepta varios nombres de campo porque Swagger no documenta el cuerpo, y muestra un error claro si el servidor no devuelve la URL. Archivos: `lib/features/payments/`, `client_order_pages.dart`.
+- Ciudad fija "Nogales, Sonora" y menú lateral con datos ficticios ya no existen.
+- Prueba de extremo a extremo actualizada con el flujo de pago; simulador devuelve el estado de cotización según el contrato.
+
+Pendiente del backend para que el pago funcione en producción: claves de Stripe en el servidor, cuerpo documentado de checkout (URL y sessionId) y de resultado, y la URL de retorno que Stripe abrirá al terminar.
 
 ## 2. Errores encontrados, por gravedad
 

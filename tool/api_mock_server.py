@@ -131,7 +131,11 @@ class H(BaseHTTPRequestHandler):
         if r(r"/api/YonkesCalificaciones/([^/]+)"): return self.send(200, env([]))
         if path == "/api/YonkesCalificaciones": return self.send(200, env(None))
         if m == "POST" and path == "/api/CotizacionYonke":
-            qid = g(); S["quotes"][qid] = {"guidId": qid, "precio": 1500.5, "disponible": True, "activo": True, "solicitudYonkeGuidId": q.get("solicitudYonkeGuidId"), "solicitudYonkes": {"solicitudGuidId": "x", "yonkeGuidId": YONKE, "yonkes": {"nombre": "Yonke prueba"}}}
+            qid = g(); ryid = q.get("solicitudYonkeGuidId"); sol = S["requests"].get(S["assign"].get(ryid, ""), {})
+            S["quotes"][qid] = {"guidId": qid, "precio": 1500.5, "disponible": True, "activo": True, "esNueva": False, "tieneGarantia": True, "diasGarantia": 30, "envioDisponible": False, "estatusId": 1, "fechaCreacion": "2026-09-08T00:00:00Z",
+                                "solicitudYonkeGuidId": ryid, "solicitudCotizacionEstatus": {"id": 1, "descripcion": "Enviada"},
+                                "solicitudYonkes": {"guidId": ryid, "solicitudGuidId": sol.get("guidId", "x"), "yonkeGuidId": YONKE, "yonkes": {"guidId": YONKE, "nombre": "Yonke prueba", "telefono": "5550000000"},
+                                                    "solicitudes": {"guidId": sol.get("guidId", "x"), "piezaBuscada": sol.get("piezaBuscada", "Pieza"), "año": 2018, "marcas": {"marca": "Nissan"}, "modelos": {"modelo": "Sentra"}}}}
             return self.send(200, env({"guidId": qid}))
         x = r(r"/api/CotizacionYonke/([^/]+)")
         if x:
@@ -158,7 +162,7 @@ class H(BaseHTTPRequestHandler):
         if x: return self.send(200, env(S["orders"].get(x[0])))
         x = r(r"/api/Pagos/checkout/([^/]+)")
         if x: return self.send(200, env({"url": "https://checkout.stripe.com/c/pay/cs_test_123", "sessionId": "cs_test_123"}))
-        if r(r"/api/Pagos/resultado/([^/]+)"): return self.send(200, env({"status": "open"}))
+        if r(r"/api/Pagos/resultado/([^/]+)"): return self.send(200, env({"sessionId": "cs_test_123", "paymentStatus": "paid", "pagado": True, "monto": 1500.5}))
         if path == "/pago/exitoso": return self.send(200, "<html>ok</html>", "text/html")
         self.send(404, env(None, False, "no encontrado"))
 

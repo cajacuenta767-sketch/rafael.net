@@ -51,8 +51,22 @@ void main() {
     server.kill();
   });
 
+  final launchedUrls = <String>[];
+
   setUp(() {
     secureStorage.clear();
+    launchedUrls.clear();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/url_launcher'),
+          (call) async {
+            final args = (call.arguments as Map?) ?? const {};
+            if (call.method == 'launch') {
+              launchedUrls.add(args['url'] as String);
+            }
+            return true;
+          },
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
@@ -237,6 +251,15 @@ void main() {
     );
     await t.tap(find.byKey(const Key('client-open-order-tracking')));
     await t.settle(find.byKey(const Key('client-cancel-order')), timeout: 15);
+
+    // Pago con Stripe: checkout abre el navegador y luego se verifica.
+    await t.tap(find.byKey(const Key('client-pay-order')));
+    await t.settle(find.byKey(const Key('client-verify-payment')), timeout: 15);
+    expect(launchedUrls, hasLength(1));
+    expect(launchedUrls.single, startsWith('https://checkout.stripe.com/'));
+    await t.tap(find.byKey(const Key('client-verify-payment')));
+    await t.settle(find.text('Pago confirmado'), timeout: 15);
+    expect(find.byKey(const Key('client-payment-error')), findsNothing);
     await t.tap(find.byKey(const Key('client-cancel-order')));
     await t.settle(find.byKey(const Key('client-confirm-cancel-order')));
     await t.tap(find.byKey(const Key('client-confirm-cancel-order')));
