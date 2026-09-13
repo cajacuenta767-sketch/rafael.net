@@ -864,14 +864,20 @@ def run_yonke_flow(r: Runner, ctx: Context, args: argparse.Namespace) -> None:
                               "no está autorizado, o el envío no generó SolicitudYonkes"))
         else:
             sample = rows[0]
-            missing = [k for k in ("guidId", "solicitudGuidId", "solicitudes") if find_key(sample, [k], depth=0) is None]
-            if missing:
+            # Forma real confirmada el 13/09/2026: la solicitud plana
+            # (Solicitud_Busqueda_DTO) con guidId, folio, marca, piezaBuscada.
+            # También se acepta la forma anidada SolicitudYonkes.
+            nested = find_key(sample, ["solicitudes"], depth=0) is not None
+            if find_key(sample, ["guidId"], depth=0) is None or (
+                not nested and find_key(sample, ["piezaBuscada"], depth=0) is None
+            ):
                 r.report.add(Step("Forma de la bandeja", "GET", "/api/DashboardSuscriptores/mis-solicitudes",
                                   inbox.status, "FALLA",
-                                  "cada fila debería ser SolicitudYonkes con " + ", ".join(missing) +
-                                  "; la app muestra 'Bandeja pendiente de conexión' sin ellos"))
+                                  "cada fila debe traer guidId y piezaBuscada (solicitud plana) o "
+                                  "guidId, solicitudGuidId y solicitudes (SolicitudYonkes); "
+                                  f"claves: {describe_shape(sample)}"))
             for row in rows:
-                sol = find_key(row, ["solicitudGuidId"], depth=1)
+                sol = find_key(row, ["solicitudGuidId"], depth=1) or find_key(row, ["guidId"], depth=0)
                 if ctx.request_id and isinstance(sol, str) and sol.lower() == ctx.request_id.lower():
                     ctx.request_yonke_id = _guid_of(row, ["guidId"])
                     break
