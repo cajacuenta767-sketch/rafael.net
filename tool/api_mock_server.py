@@ -27,6 +27,10 @@ STATE = {"requests": {}, "images": {}, "assign": {}, "quotes": {}, "orders": {},
 def env(data, ok=True, msg="ok"):
     return {"success": ok, "message": msg, "data": data, "statusCode": 200 if ok else 400, "errors": None}
 
+def paged(items, page=1, take=10):
+    """Forma real del servidor para listas paginadas: data.data + data.meta."""
+    return env({"data": items, "meta": {"page": page, "take": take, "itemCount": len(items), "pageCount": (len(items) + take - 1) // take}}, msg="Busqueda exitosa.")
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
@@ -82,19 +86,19 @@ class H(BaseHTTPRequestHandler):
 
         if not tok: return self.send(401)
 
-        if path == "/api/Yonkes/byPage": return self.send(200, env({"items": [{"guidId": YONKE, "nombre": "Yonke prueba"}], "total": 1}))
+        if path == "/api/Yonkes/byPage": return self.send(200, paged([{"guidId": YONKE, "nombre": "Yonke prueba"}]))
         if path == "/api/ClienteAuth/registrar-dispositivo" or path == "/api/YonkesDispositivos": return self.send(200, env(None))
         if path == "/api/DashboardSuscriptores/resumen": return self.send(200, env({"solicitudes": len(S["requests"]), "cotizaciones": len(S["quotes"])}))
         if path == "/api/DashboardSuscriptores/mis-solicitudes":
             claims = json.loads(base64.urlsafe_b64decode(tok.split(".")[1] + "==="))
             if claims["sub"] == CLIENT:
-                return self.send(200, env({"items": list(S["requests"].values()), "page": 1}))
+                return self.send(200, paged(list(S["requests"].values())))
             rows = [{"guidId": k, "solicitudGuidId": v, "yonkeGuidId": YONKE, "estatusId": 1, "solicitudes": S["requests"][v]} for k, v in S["assign"].items()]
-            return self.send(200, env({"items": rows}))
+            return self.send(200, paged(rows))
         if path == "/api/DashboardSuscriptores/mis-cotizaciones": return self.send(200, env(list(S["quotes"].values())))
         if path == "/api/DashboardSuscriptores/mi-solicitud-reciente":
             vals = list(S["requests"].values()); return self.send(200, env(vals[-1] if vals else None))
-        if path == "/api/Solicitudes/AllPaged": return self.send(200, env({"items": list(S["requests"].values())}))
+        if path == "/api/Solicitudes/AllPaged": return self.send(200, paged(list(S["requests"].values())))
         if m == "POST" and path == "/api/Solicitudes":
             gid = g(); S["requests"][gid] = {"guidId": gid, "marca": "Nissan", "modelo": "Sentra", "estatusSolicitud": "Abierta", "piezaBuscada": b["piezaBuscada"], "totalCotizaciones": 0, "ciudades": b.get("ciudadesIds", [])}
             return self.send(200, env({"guidId": gid}))

@@ -1,6 +1,7 @@
 import '../../dashboard/data/dashboard_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_summary.dart';
+import '../../../core/network/paged_response.dart';
 
 abstract interface class YonkeRequestsRepository {
   Future<YonkeRequestsPageResult> getAssignedRequests({
@@ -55,10 +56,12 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
 
     final items = parsed.where((item) => _matches(item, filters)).toList()
       ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+    // El servidor informa `meta.pageCount`; si no viene, se estima por tamaño.
+    final meta = pageMetaFromResponse(response);
     return YonkeRequestsPageResult(
       items: items,
       page: safePage,
-      hasMore: parsed.length >= pageSize,
+      hasMore: meta?.hasMore ?? parsed.length >= pageSize,
     );
   }
 

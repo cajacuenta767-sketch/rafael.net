@@ -1,3 +1,5 @@
+import '../../../core/network/paged_response.dart';
+
 /// Mensaje de la conversación de una cotización, según el esquema
 /// `SolicitudCotizacionMensajes` del OpenAPI: `guidId`,
 /// `solicitudCotizacionGuidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`,
@@ -50,13 +52,7 @@ const clientSenderType = 1;
 /// Interpreta la respuesta de `GET /api/SolicitudCotizacionMensajes/{id}`.
 /// Devuelve los mensajes ordenados del más antiguo al más reciente.
 List<QuoteMessageRecord> quoteMessagesFromResponse(dynamic response) {
-  final data = response is Map ? response['data'] ?? response : response;
-  final records = switch (data) {
-    List() => data,
-    Map() when data['items'] is List => data['items'] as List,
-    Map() when data['registros'] is List => data['registros'] as List,
-    _ => const <dynamic>[],
-  };
+  final records = pagedRecords(response);
   final messages = records
       .whereType<Map>()
       .map(quoteMessageFromJson)

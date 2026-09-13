@@ -1,3 +1,5 @@
+import '../../../core/network/paged_response.dart';
+
 class ClientQuote {
   const ClientQuote({
     required this.id,
@@ -61,13 +63,7 @@ class ClientQuote {
 }
 
 List<ClientQuote> clientQuotesFromDashboard(dynamic response) {
-  final data = response is Map ? response['data'] : response;
-  final records = switch (data) {
-    List() => data,
-    Map() when data['items'] is List => data['items'] as List,
-    Map() when data['registros'] is List => data['registros'] as List,
-    _ => const <dynamic>[],
-  };
+  final records = pagedRecords(response);
   return records
       .whereType<Map>()
       .map(clientQuoteFromJson)

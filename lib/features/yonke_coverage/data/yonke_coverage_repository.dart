@@ -1,6 +1,7 @@
 import '../../catalogs/data/catalogs_api.dart';
 import '../../yonkes/data/yonkes_api.dart';
 import '../domain/yonke_coverage.dart';
+import '../../../core/network/paged_response.dart';
 
 abstract interface class YonkeCoverageRepository {
   Future<YonkeCoverageSnapshot> load({required String? yonkeId});
@@ -107,12 +108,4 @@ List<dynamic> _coverageRecords(dynamic response) {
   return _records(response);
 }
 
-List<dynamic> _records(dynamic response) {
-  final data = response is Map ? response['data'] ?? response : response;
-  if (data is List) return data;
-  if (data is Map) {
-    final items = data['items'] ?? data['registros'];
-    if (items is List) return items;
-  }
-  return const [];
-}
+List<dynamic> _records(dynamic response) => pagedRecords(response);
