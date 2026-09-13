@@ -374,7 +374,25 @@ class _ClientYonkeProfilePageState
                   ),
                 const SizedBox(height: 8),
                 Center(child: _RatingLine(yonke: yonke)),
-                const SizedBox(height: 22),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  key: const Key('request-quote-from-yonke'),
+                  onPressed: () => context.push(AppRoutes.clientNewRequest),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Pedir cotización'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _green,
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'La solicitud llega a ${yonke.name} y a los demás yonkes '
+                  'con cobertura en tu ciudad.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
                 _ProfileSection(
                   title: 'Información',
                   children: [

@@ -34,9 +34,21 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
 
   Future<void> _submit() async {
     if (_sending) return;
-    setState(() => _sending = true);
+    final previous = _submissionError;
+    setState(() {
+      _sending = true;
+      _submissionError = null;
+    });
     try {
-      final result = await _repository.submit(widget.draft);
+      // Si la solicitud ya existe en el servidor, se reanuda desde el paso
+      // que falló para no crear un duplicado.
+      final result = previous?.requestId != null
+          ? await _repository.resume(
+              widget.draft,
+              previous!.requestId!,
+              failedStage: previous.stage,
+            )
+          : await _repository.submit(widget.draft);
       if (mounted) setState(() => _result = result);
     } on RequestSubmissionException catch (error) {
       if (mounted) setState(() => _submissionError = error);
@@ -58,7 +70,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
   Widget build(BuildContext context) {
     if (_result != null) return _SubmissionSuccess(result: _result!);
     if (_submissionError != null) {
-      return _SubmissionError(error: _submissionError!);
+      return _SubmissionError(error: _submissionError!, onRetry: _submit);
     }
     return Scaffold(
       backgroundColor: Colors.white,
@@ -132,7 +144,12 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
       const SizedBox(height: 16),
       _ReviewCard(
         title: 'Ciudad de envío',
-        children: [_ReviewRow('Ciudad', widget.draft.cityName ?? '—')],
+        children: [
+          _ReviewRow(
+            widget.draft.extraCityIds.isEmpty ? 'Ciudad' : 'Ciudades',
+            widget.draft.citiesLabel.isEmpty ? '—' : widget.draft.citiesLabel,
+          ),
+        ],
       ),
       const SizedBox(height: 16),
       _ReviewCard(
@@ -245,8 +262,9 @@ class _SubmissionSuccess extends StatelessWidget {
 }
 
 class _SubmissionError extends StatelessWidget {
-  const _SubmissionError({required this.error});
+  const _SubmissionError({required this.error, required this.onRetry});
   final RequestSubmissionException error;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -323,13 +341,21 @@ class _SubmissionError extends StatelessWidget {
                 if (error.requestId != null) ...[
                   const SizedBox(height: 12),
                   const Text(
-                    'No reintentes desde esta pantalla para evitar crear una solicitud duplicada.',
+                    'La solicitud ya quedó registrada. Al reintentar solo se '
+                    'repite el paso que falló, sin crear un duplicado.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Color(0xFF596276), fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 20),
-                FilledButton(
+                FilledButton.icon(
+                  key: const Key('retry-client-request'),
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
                   onPressed: () => context.go(AppRoutes.clientHome),
                   child: const Text('Ir al inicio'),
                 ),

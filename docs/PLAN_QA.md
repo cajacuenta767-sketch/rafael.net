@@ -10,7 +10,7 @@ que hace falta del propietario para ejecutarlo contra el servidor real.
 | Comprobación | Resultado |
 |---|---|
 | `flutter analyze` | Sin problemas |
-| `flutter test` | 321 pasan, 0 fallan (tras integrar el PR #2 en esta rama) |
+| `flutter test` | 323 pasan, 0 fallan |
 | CI en GitHub | Verde en esta rama; main sigue rojo hasta fusionarla |
 | Endpoints del contrato | 56, de los cuales la app usa 34 |
 | Pantallas registradas | 36 (23 cliente, 13 yonke) |
@@ -67,7 +67,7 @@ La prueba de extremo a extremo guarda una captura de cada pantalla en
 reales). Para regenerarlas: `flutter test test/e2e_mock_server_test.dart`.
 El informe con las imágenes y el veredicto por pantalla está publicado en
 https://claude.ai/code/artifact/9a725459-6e31-4a90-973a-f42f94f7a1ab
-(27 pantallas sin observaciones, 11 con observación de producto o contrato).
+(32 pantallas sin observaciones, 6 con observación de producto o contrato).
 
 ## 1c. Correcciones aplicadas en esta rama (13 de septiembre)
 
@@ -75,6 +75,11 @@ https://claude.ai/code/artifact/9a725459-6e31-4a90-973a-f42f94f7a1ab
 - **Pago con Stripe conectado (E5)**: nueva sección "Pago de la orden" en el seguimiento. "Pagar con Stripe" llama a `POST /api/Pagos/checkout/{orden}`, abre la URL devuelta en el navegador y "Ya pagué, verificar pago" consulta `GET /api/Pagos/resultado/{sessionId}`. El parser acepta varios nombres de campo porque Swagger no documenta el cuerpo, y muestra un error claro si el servidor no devuelve la URL. Archivos: `lib/features/payments/`, `client_order_pages.dart`.
 - Ciudad fija "Nogales, Sonora" y menú lateral con datos ficticios ya no existen.
 - Prueba de extremo a extremo actualizada con el flujo de pago; simulador devuelve el estado de cotización según el contrato.
+- **Varias ciudades por solicitud (E10)**: la pantalla de ciudad admite selección múltiple; la primera es la principal y todas viajan en `ciudadesIds` y se aseguran en `SolicitudCiudades`.
+- **Reintento sin duplicar (E11)**: si el envío falla después de crear la solicitud, "Reintentar" reanuda desde fotos o envío a yonkes con el `requestId` existente (`RequestSubmissionRepository.resume`).
+- **Folio en el seguimiento**: se muestra el folio de la solicitud cuando el API lo devuelve; si no, un identificador abreviado en lugar del GUID completo.
+- **Bloqueo de cancelación tras el pago**: con el pago confirmado desaparece "Cancelar orden" y se indica acordar el reembolso con el yonke.
+- **"Pedir cotización" desde el perfil público del yonke**: abre la nueva solicitud.
 
 Pendiente del backend para que el pago funcione en producción: claves de Stripe en el servidor, cuerpo documentado de checkout (URL y sessionId) y de resultado, y la URL de retorno que Stripe abrirá al terminar.
 

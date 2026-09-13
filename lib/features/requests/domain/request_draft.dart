@@ -10,8 +10,23 @@ class RequestDraft {
   String? modelName;
   int? year;
   String? description;
+
+  /// Ciudad principal (la primera elegida). Se conserva por compatibilidad.
   int? cityId;
   String? cityName;
+
+  /// Ciudades adicionales con cobertura; el API acepta varias por solicitud.
+  final extraCityIds = <int>[];
+  final extraCityNames = <String>[];
+
+  /// Todas las ciudades, principal primero y sin repetidos.
+  List<int> get allCityIds => [
+    ?cityId,
+    ...extraCityIds.where((id) => id != cityId),
+  ];
+
+  String get citiesLabel => [?cityName, ...extraCityNames].join(', ');
+
   final photos = <RequestPhoto>[];
 }
 

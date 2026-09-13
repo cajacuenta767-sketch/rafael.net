@@ -298,6 +298,65 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('reintenta desde el paso fallido sin duplicar la solicitud', (
+      tester,
+    ) async {
+      final draft = RequestDraft()
+        ..part = 'Radiador'
+        ..brandId = 1
+        ..modelId = 2
+        ..year = 2020
+        ..cityId = 1;
+      final repository = _ResumableSubmissionRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: RequestReviewPage(draft: draft, repository: repository),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('submit-client-request')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('retry-client-request')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('retry-client-request')));
+      await tester.pumpAndSettle();
+
+      expect(repository.submits, 1);
+      expect(repository.resumes, 1);
+      expect(repository.resumedStage, RequestSubmissionStage.dispatch);
+      expect(find.byKey(const Key('retry-client-request')), findsNothing);
+      expect(find.textContaining('2 yonke'), findsOneWidget);
+    });
+
+    testWidgets('envía todas las ciudades elegidas en la creación', (
+      tester,
+    ) async {
+      final draft = RequestDraft()
+        ..part = 'Radiador'
+        ..brandId = 1
+        ..modelId = 2
+        ..year = 2020
+        ..cityId = 1
+        ..cityName = 'Nogales, Sonora'
+        ..extraCityIds.add(7)
+        ..extraCityNames.add('Hermosillo, Sonora');
+      expect(draft.allCityIds, [1, 7]);
+      expect(draft.citiesLabel, 'Nogales, Sonora, Hermosillo, Sonora');
+
+      final repository = _RecordingSubmissionRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: RequestReviewPage(draft: draft, repository: repository),
+          ),
+        ),
+      );
+      expect(find.text('Ciudades'), findsOneWidget);
+      expect(find.text('Nogales, Sonora, Hermosillo, Sonora'), findsOneWidget);
+    });
   });
 }
 
@@ -332,6 +391,13 @@ class _RecordingSubmissionRepository implements RequestSubmissionRepository {
     submitted.add(draft);
     return const RequestSubmissionResult(requestId: 'request-created');
   }
+
+  @override
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  }) async => RequestSubmissionResult(requestId: requestId);
 }
 
 class _FixedSubmissionRepository implements RequestSubmissionRepository {
@@ -341,6 +407,13 @@ class _FixedSubmissionRepository implements RequestSubmissionRepository {
 
   @override
   Future<RequestSubmissionResult> submit(RequestDraft draft) async => result;
+
+  @override
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  }) async => result;
 }
 
 class _FailingSubmissionRepository implements RequestSubmissionRepository {
@@ -351,4 +424,43 @@ class _FailingSubmissionRepository implements RequestSubmissionRepository {
   @override
   Future<RequestSubmissionResult> submit(RequestDraft draft) =>
       Future.error(RequestSubmissionException(stage: stage));
+
+  @override
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  }) => Future.error(
+    RequestSubmissionException(stage: stage, requestId: requestId),
+  );
+}
+
+/// Falla una vez en el envío a yonkes y acepta el reintento sin volver a
+/// crear la solicitud.
+class _ResumableSubmissionRepository implements RequestSubmissionRepository {
+  int submits = 0;
+  int resumes = 0;
+  RequestSubmissionStage? resumedStage;
+
+  @override
+  Future<RequestSubmissionResult> submit(RequestDraft draft) {
+    submits++;
+    return Future.error(
+      const RequestSubmissionException(
+        stage: RequestSubmissionStage.dispatch,
+        requestId: 'request-created',
+      ),
+    );
+  }
+
+  @override
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  }) async {
+    resumes++;
+    resumedStage = failedStage;
+    return RequestSubmissionResult(requestId: requestId, notifiedYonkes: 2);
+  }
 }

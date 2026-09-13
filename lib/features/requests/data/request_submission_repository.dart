@@ -7,6 +7,14 @@ import 'requests_api.dart';
 
 abstract interface class RequestSubmissionRepository {
   Future<RequestSubmissionResult> submit(RequestDraft draft);
+
+  /// Reanuda un envío cuya solicitud ya fue creada ([requestId]) pero falló
+  /// al subir fotos o al enviarla a los yonkes. No vuelve a crear la solicitud.
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  });
 }
 
 /// Envío real de una solicitud, en el orden que exige la API:
@@ -50,7 +58,7 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
         year: year,
         part: draft.part,
         description: draft.description,
-        cityIds: [cityId],
+        cityIds: draft.allCityIds,
       );
     } on ApiException catch (error) {
       throw RequestSubmissionException(
@@ -76,11 +84,33 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       );
     }
 
-    // 2. Asegurar la ciudad de cobertura.
-    await _ensureCity(requestId, cityId);
+    // 2. Asegurar las ciudades de cobertura.
+    for (final id in draft.allCityIds) {
+      await _ensureCity(requestId, id);
+    }
+    return _finish(draft, requestId, uploadImages: true);
+  }
 
+  @override
+  Future<RequestSubmissionResult> resume(
+    RequestDraft draft,
+    String requestId, {
+    required RequestSubmissionStage failedStage,
+  }) => _finish(
+    draft,
+    requestId,
+    uploadImages: failedStage == RequestSubmissionStage.images,
+  );
+
+  /// Pasos 3 y 4: fotografías y envío a yonkes. [uploadImages] es falso al
+  /// reanudar un envío cuyas fotos ya quedaron registradas.
+  Future<RequestSubmissionResult> _finish(
+    RequestDraft draft,
+    String requestId, {
+    required bool uploadImages,
+  }) async {
     // 3. Fotografías.
-    if (draft.photos.isNotEmpty) {
+    if (uploadImages && draft.photos.isNotEmpty) {
       try {
         await _requestsApi.addImages(
           requestId,

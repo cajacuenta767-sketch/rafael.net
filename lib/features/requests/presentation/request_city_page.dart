@@ -20,6 +20,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
   List<_CityOption> _cities = const [];
   int? _selectedStateId;
   int? _selectedCityId;
+  final _extraCityIds = <int>{};
   bool _loadingStates = true;
   bool _loadingCities = false;
   String? _error;
@@ -28,6 +29,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
   void initState() {
     super.initState();
     _selectedCityId = widget.draft.cityId;
+    _extraCityIds.addAll(widget.draft.extraCityIds);
     _loadStates();
   }
 
@@ -100,14 +102,36 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
     _loadCities(stateId);
   }
 
+  /// La primera ciudad elegida es la principal; las demás se agregan como
+  /// ciudades adicionales de cobertura.
+  void _toggleCity(int cityId) {
+    setState(() {
+      if (_selectedCityId == null) {
+        _selectedCityId = cityId;
+      } else if (_selectedCityId == cityId) {
+        _selectedCityId = _extraCityIds.isEmpty ? null : _extraCityIds.first;
+        _extraCityIds.remove(_selectedCityId);
+      } else if (!_extraCityIds.remove(cityId)) {
+        _extraCityIds.add(cityId);
+      }
+    });
+  }
+
   void _continue() {
     final city = _cities
         .where((city) => city.id == _selectedCityId)
         .firstOrNull;
     if (city == null) return;
+    final extras = _cities
+        .where((c) => _extraCityIds.contains(c.id) && c.id != city.id)
+        .toList();
     widget.draft
       ..cityId = city.id
-      ..cityName = city.fullName;
+      ..cityName = city.fullName
+      ..extraCityIds.clear()
+      ..extraCityIds.addAll(extras.map((c) => c.id))
+      ..extraCityNames.clear()
+      ..extraCityNames.addAll(extras.map((c) => c.fullName));
     context.push(AppRoutes.clientRequestReview, extra: widget.draft);
   }
 
@@ -219,13 +243,14 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final city = _cities[index];
-        final isSelected = city.id == _selectedCityId;
+        final isSelected =
+            city.id == _selectedCityId || _extraCityIds.contains(city.id);
         return Semantics(
           button: true,
           selected: isSelected,
           label: '${city.fullName}${isSelected ? ', seleccionada' : ''}',
           child: InkWell(
-            onTap: () => setState(() => _selectedCityId = city.id),
+            onTap: () => _toggleCity(city.id),
             borderRadius: BorderRadius.circular(12),
             child: Ink(
               height: 64,

@@ -632,8 +632,16 @@ class _TrackingContent extends StatelessWidget {
             value: order.status ?? 'Pendiente de confirmar',
           ),
           _SummaryRow(label: 'Yonke', value: quote.yonkeName),
-          _SummaryRow(label: 'Cotización', value: quote.id),
-          if (order.id != null) _SummaryRow(label: 'Orden', value: order.id!),
+          _SummaryRow(
+            label: quote.requestFolio?.isNotEmpty == true
+                ? 'Folio'
+                : 'Cotización',
+            value: quote.requestFolio?.isNotEmpty == true
+                ? quote.requestFolio!
+                : _shortId(quote.id),
+          ),
+          if (order.id != null)
+            _SummaryRow(label: 'Orden', value: _shortId(order.id!)),
           if (order.createdAt != null)
             _SummaryRow(label: 'Creada', value: _formatDate(order.createdAt!)),
         ],
@@ -647,7 +655,15 @@ class _TrackingContent extends StatelessWidget {
         _PaymentSection(state: payment, price: quote.price),
       ],
       const SizedBox(height: 22),
-      if (order.canCancel)
+      if (payment.result?.paid == true)
+        const Text(
+          key: Key('client-order-paid-lock'),
+          'La orden ya está pagada. Para cancelarla, acuerda el reembolso '
+          'con el yonke desde Mensajes.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF596276)),
+        )
+      else if (order.canCancel)
         OutlinedButton.icon(
           key: const Key('client-cancel-order'),
           onPressed: cancelling ? null : onCancel,
@@ -723,6 +739,11 @@ class _TrackingError extends StatelessWidget {
 
 String _formatDate(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+/// Los GUID completos no le dicen nada al usuario; se muestran los últimos
+/// caracteres para poder citarlos en soporte sin llenar la pantalla.
+String _shortId(String id) =>
+    id.length <= 12 ? id : '…${id.substring(id.length - 12)}';
 
 class _PaymentState {
   const _PaymentState({

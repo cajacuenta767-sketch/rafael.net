@@ -184,9 +184,15 @@ void main() {
     await t.tap(find.text('Jalisco').last);
     await t.settle(find.textContaining('Guadalajara'));
     await t.tap(find.textContaining('Guadalajara'));
+    await t.tap(find.textContaining('Zapopan'));
     await t.shot('09_ciudad');
     await t.tap(find.text('Continuar'));
     await t.settle(find.byKey(const Key('submit-client-request')));
+    expect(find.text('Ciudades'), findsOneWidget);
+    expect(
+      find.textContaining('Guadalajara, Jalisco, Zapopan'),
+      findsOneWidget,
+    );
     await t.shot('10_revision');
     await t.tap(find.byKey(const Key('submit-client-request')));
     await t.settle(find.text('Ver mis solicitudes'), timeout: 15);
@@ -296,11 +302,10 @@ void main() {
     await t.settle(find.text('Pago confirmado'), timeout: 15);
     await t.shot('26_pago_confirmado');
     expect(find.byKey(const Key('client-payment-error')), findsNothing);
-    await t.tap(find.byKey(const Key('client-cancel-order')));
-    await t.settle(find.byKey(const Key('client-confirm-cancel-order')));
-    await t.tap(find.byKey(const Key('client-confirm-cancel-order')));
-    await t.wait(1);
-    await t.shot('27_orden_cancelada');
+    // Con el pago confirmado la app bloquea la cancelación directa.
+    await t.settle(find.byKey(const Key('client-order-paid-lock')));
+    expect(find.byKey(const Key('client-cancel-order')), findsNothing);
+    await t.shot('27_orden_pagada_sin_cancelar');
   });
 
   testWidgets('pantallas secundarias de yonke y cliente contra el simulador', (
@@ -436,6 +441,9 @@ void main() {
     await t.tap(keyPrefix('open-yonke-'));
     await t.settle(find.textContaining('Yonke prueba'), timeout: 15);
     await t.shot('34_perfil_publico_yonke');
+    await t.tap(find.byKey(const Key('request-quote-from-yonke')));
+    await t.settle(find.byKey(const Key('request-part-field')));
+    await t.back();
 
     // Notificaciones derivadas de cotizaciones y mensajes.
     await t.go(AppRoutes.clientNotifications);
