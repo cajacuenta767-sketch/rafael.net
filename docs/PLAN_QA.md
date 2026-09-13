@@ -83,6 +83,16 @@ https://claude.ai/code/artifact/9a725459-6e31-4a90-973a-f42f94f7a1ab
 
 Pendiente del backend para que el pago funcione en producción: claves de Stripe en el servidor, cuerpo documentado de checkout (URL y sessionId) y de resultado, y la URL de retorno que Stripe abrirá al terminar.
 
+## 1d. Verificado contra el servidor real (Swagger, 13 de septiembre)
+
+Respuestas reales obtenidas por el propietario desde Swagger:
+
+- `GET /api/Utilerias/entidades`: solo existe **Sonora (id 1)**. Ciudades: 1 Nogales, 2 Hermosillo, 3 Agua Prieta, 4 San Luis Río Colorado. La app funciona; si se opera en otros estados hay que cargarlos en el servidor.
+- `POST /api/Yonkes`: funciona; responde `data: "El yonke se creó correctamente."` (texto, sin guid). El servidor exige **LogoUrl** (máximo 2 MB, jpg/jpeg/png/pdf) aunque el contrato lo marca opcional. La app ya envía un logo por defecto y ahora valida tamaño y tipo al elegirlo.
+- Formato de errores: validación como `errors: {campo: [..]}` (ProblemDetails) y errores de negocio como `error: [{status,title,detail}]`. La app interpreta ambos.
+- `POST /api/ClienteAuth/solicitar-otp` con número no mexicano o con espacios: **500** "Ocurrió un error al procesar la solicitud" en vez de 400 con el motivo. Pendiente del backend.
+- `POST /api/YonkeAuth/login` con credenciales inexistentes: 400 "Correo o contraseña incorrectos". Correcto.
+
 ## 2. Errores encontrados, por gravedad
 
 ### Críticos (afectan a usuarios reales)

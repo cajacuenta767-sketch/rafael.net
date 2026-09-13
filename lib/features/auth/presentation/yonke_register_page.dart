@@ -42,6 +42,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
   bool _confirmPasswordVisible = false;
   bool _loading = false;
   String? _message;
+  static const _maxLogoBytes = 2 * 1024 * 1024;
   Uint8List? _logoBytes;
   String? _logoFileName;
   bool _pickingLogo = false;
@@ -127,6 +128,11 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     }
   }
 
+  void _showMessage(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Future<void> _pickLogo() async {
     if (_loading || _pickingLogo) return;
     setState(() => _pickingLogo = true);
@@ -139,7 +145,18 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
         imageQuality: 85,
       );
       if (picked != null) {
+        // Reglas del servidor (POST /api/Yonkes): máximo 2 MB y solo
+        // JPG, JPEG o PNG. Se validan aquí para no recibir un 400 al final.
+        final extension = picked.name.split('.').last.toLowerCase();
+        if (!const {'jpg', 'jpeg', 'png'}.contains(extension)) {
+          _showMessage('El logo debe ser una imagen JPG o PNG.');
+          return;
+        }
         final bytes = await picked.readAsBytes();
+        if (bytes.length > _maxLogoBytes) {
+          _showMessage('El logo debe pesar menos de 2 MB.');
+          return;
+        }
         if (!mounted) return;
         setState(() {
           _logoBytes = bytes;
