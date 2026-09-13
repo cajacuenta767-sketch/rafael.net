@@ -60,6 +60,15 @@ Hallazgos que salieron de esta ejecución:
 
 Lo que esta prueba no cubre porque depende del servidor real: formato exacto de las respuestas de Azure, OTP por SMS, autorización de yonkes, Stripe y notificaciones.
 
+## 1b-bis. QA visual
+
+La prueba de extremo a extremo guarda una captura de cada pantalla en
+`build/qa/NN_nombre.png` (38 capturas, fuentes Roboto y Material Icons
+reales). Para regenerarlas: `flutter test test/e2e_mock_server_test.dart`.
+El informe con las imágenes y el veredicto por pantalla está publicado en
+https://claude.ai/code/artifact/9a725459-6e31-4a90-973a-f42f94f7a1ab
+(27 pantallas sin observaciones, 11 con observación de producto o contrato).
+
 ## 1c. Correcciones aplicadas en esta rama (13 de septiembre)
 
 - **PR #2 integrado**: se elimina el modo prueba en memoria (`DevelopmentApiClient`, `SessionSyncStore`, botón "Ingresar en modo prueba"), todas las pantallas consultan solo el API real, cotizar y cancelar muestran el error real del servidor, los assets demo se retiran y las comparaciones visuales toleran el rasterizado entre plataformas. Cierra E1, E2, E3, E4, E6 y E7.
