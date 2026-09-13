@@ -186,9 +186,18 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      final reason = error is ApiException
+      var reason = error is ApiException
           ? error.message
           : 'No se pudo conectar con el servidor. Revisa tu conexión.';
+      // Confirmado contra el servidor real (13/09/2026): la bandeja no expone
+      // el guid de la asignación SolicitudYonkes y cotizar con el guid de la
+      // solicitud produce este rechazo. Requiere corrección en el backend.
+      if (reason.toLowerCase().contains('enviada al yonke no existe')) {
+        reason +=
+            ' El servidor no está devolviendo el identificador de la '
+            'asignación de esta solicitud a tu yonke; es una corrección '
+            'pendiente del sistema, no de tus datos.';
+      }
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
