@@ -242,6 +242,161 @@ void main() {
     await t.tap(find.byKey(const Key('client-confirm-cancel-order')));
     await t.wait(1);
   });
+
+  testWidgets('pantallas secundarias de yonke y cliente contra el simulador', (
+    tester,
+  ) async {
+    final tokens = _MemoryTokenStore();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        headers: const {'Accept': 'application/json'},
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+    tester.view.physicalSize = const Size(1080, 2280);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokens),
+          apiClientProvider.overrideWithValue(DioApiClient(tokens, dio: dio)),
+        ],
+        child: const YonkeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final t = _Driver(tester);
+    Finder keyPrefix(String prefix) => find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith(prefix),
+    );
+
+    // ---------------- Yonke ----------------
+    await t.go(AppRoutes.yonkeLogin);
+    await t.settle(find.byKey(const Key('yonke-login-button')));
+    await tester.enterText(
+      find.byKey(const Key('yonke-email-field')),
+      'yonke@prueba.local',
+    );
+    await tester.enterText(
+      find.byKey(const Key('yonke-password-field')),
+      'Secreta123',
+    );
+    await t.tap(find.byKey(const Key('yonke-login-button')));
+    await t.settle(find.textContaining('Solicitudes'), timeout: 15);
+
+    // Cobertura: marcar Zapopan y guardar.
+    await t.go(AppRoutes.yonkeCoverage);
+    await t.settle(
+      find.byKey(const Key('yonke-coverage-city-11')),
+      timeout: 15,
+    );
+    await t.tap(find.byKey(const Key('yonke-coverage-city-11')));
+    await t.tap(find.byKey(const Key('yonke-save-coverage')));
+    await t.settle(find.text('Cobertura guardada.'), timeout: 15);
+    await t.wait(4); // deja que el aviso desaparezca y no tape botones
+
+    // Perfil del yonke con datos del API.
+    await t.go(AppRoutes.yonkeProfile);
+    await t.settle(find.textContaining('Yonke prueba'), timeout: 15);
+    expect(find.byKey(const Key('yonke-sign-out')), findsOneWidget);
+
+    // Mensajes: abrir la conversación existente y responder.
+    await t.go(AppRoutes.yonkeMessages);
+    await t.settle(keyPrefix('yonke-conversation-'), timeout: 15);
+    await t.tap(keyPrefix('yonke-conversation-'));
+    await t.settle(find.byKey(const Key('yonke-message-input')), timeout: 15);
+    await tester.enterText(
+      find.byKey(const Key('yonke-message-input')),
+      'Respuesta del yonke e2e',
+    );
+    // El botón queda bajo el borde inferior en esta altura; se envía con la
+    // acción del teclado, que llama al mismo `onSend`.
+    await t.net(() => tester.testTextInput.receiveAction(TextInputAction.done));
+    await t.settle(
+      find.descendant(
+        of: find.byType(ListView),
+        matching: find.text('Respuesta del yonke e2e'),
+      ),
+      timeout: 15,
+    );
+
+    // Cotizaciones: detalle y edición del precio.
+    await t.go(AppRoutes.yonkeQuotes);
+    await t.settle(find.textContaining('1500'), timeout: 15);
+    await t.tap(find.textContaining('1500').first);
+    await t.settle(find.byKey(const Key('edit-yonke-quote')), timeout: 15);
+    await t.tap(find.byKey(const Key('edit-yonke-quote')));
+    await t.settle(find.byKey(const Key('edit-quote-price')));
+    await tester.enterText(find.byKey(const Key('edit-quote-price')), '1400');
+    await t.tap(find.byKey(const Key('save-edited-quote')));
+    await t.settle(
+      find.text('Cotización actualizada correctamente.'),
+      timeout: 15,
+    );
+    await t.wait(4);
+
+    // Cerrar sesión del yonke.
+    await t.go(AppRoutes.yonkeProfile);
+    await t.tap(find.byKey(const Key('yonke-sign-out')));
+    await t.tap(find.byKey(const Key('confirm-yonke-sign-out')));
+    await t.settle(find.byKey(const Key('yonke-login-button')), timeout: 15);
+    expect(await tokens.readAccessToken(), isNull);
+
+    // ---------------- Cliente ----------------
+    await t.go(AppRoutes.clientLogin);
+    await t.settle(find.byKey(const Key('legal_consent_dialog')));
+    await t.tap(find.byKey(const Key('accept_all_legal')));
+    await t.tap(find.byKey(const Key('confirm_legal_acceptance')));
+    await tester.enterText(
+      find.byKey(const Key('client_phone_field')),
+      '5512345678',
+    );
+    await t.tap(find.text('Enviar código'));
+    await t.settle(find.text('Iniciar sesión'));
+    await t.net(
+      () =>
+          tester.enterText(find.byKey(const Key('client_otp_field')), '123456'),
+    );
+    await t.settle(find.text('Nueva solicitud'), timeout: 15);
+
+    // Explorar yonkes y abrir el perfil público.
+    await t.go(AppRoutes.clientYonkes);
+    await t.settle(keyPrefix('open-yonke-'), timeout: 15);
+    await t.tap(keyPrefix('open-yonke-'));
+    await t.settle(find.textContaining('Yonke prueba'), timeout: 15);
+
+    // Notificaciones derivadas de cotizaciones y mensajes.
+    await t.go(AppRoutes.clientNotifications);
+    await t.settle(keyPrefix('client-notification-'), timeout: 15);
+
+    // Bandeja de mensajes y conversación con la respuesta del yonke.
+    await t.go(AppRoutes.clientMessages);
+    await t.settle(keyPrefix('client-conversation-'), timeout: 15);
+    await t.tap(keyPrefix('client-conversation-'));
+    await t.settle(find.text('Respuesta del yonke e2e'), timeout: 15);
+
+    // Cancelar la solicitud desde la lista.
+    await t.go(AppRoutes.clientRequests);
+    await t.settle(keyPrefix('cancel-request-card-'), timeout: 15);
+    await t.tap(keyPrefix('cancel-request-card-'));
+    await t.tap(find.byKey(const Key('confirm-delete-request-button')));
+    await t.settle(
+      find.text('Solicitud cancelada correctamente.'),
+      timeout: 15,
+    );
+
+    // Perfil y cierre de sesión del cliente.
+    await t.go(AppRoutes.clientProfile);
+    await t.tap(find.byKey(const Key('client-sign-out')));
+    await t.tap(find.byKey(const Key('confirm-client-sign-out')));
+    await t.settle(find.byKey(const Key('client_phone_field')), timeout: 15);
+    expect(await tokens.readAccessToken(), isNull);
+  });
 }
 
 /// La fuente de pruebas de Flutter dibuja cada glifo como un cuadrado, lo que

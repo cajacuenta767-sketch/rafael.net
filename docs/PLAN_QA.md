@@ -34,7 +34,24 @@ Recorrido verificado:
 | Aceptar cotización, crear orden, calificar 5 estrellas | Cliente | POST Orden, POST YonkesCalificaciones | OK |
 | Seguimiento y cancelar orden | Cliente | Orden/cotizacion/{id}, Orden/{id}, cancelar | OK, estado "Cancelada" |
 
+Segunda prueba en el mismo archivo, pantallas secundarias (también pasa):
+
+| Paso | Rol | Endpoints ejercidos | Resultado |
+|---|---|---|---|
+| Cobertura: marcar ciudad y guardar | Yonke | entidades, ciudades, YonkesCoberturas/guid, PUT YonkesCoberturas | OK, "Cobertura guardada" |
+| Perfil con datos del API | Yonke | Yonkes/{guid} | OK |
+| Bandeja de mensajes, abrir conversación, responder | Yonke | mis-cotizaciones, mensajes, POST mensaje | OK |
+| Lista de cotizaciones, detalle, editar precio | Yonke | mis-cotizaciones, CotizacionYonke/{id}, PUT | OK, "Cotización actualizada" |
+| Cerrar sesión | Yonke | local | OK, token borrado |
+| Explorar yonkes y perfil público | Cliente | Yonkes/byPage, Yonkes/{id}, calificaciones, coberturas | OK |
+| Notificaciones y bandeja de mensajes con la respuesta del yonke | Cliente | mis-cotizaciones, mensajes, no-leidos | OK |
+| Cancelar solicitud desde la lista | Cliente | DELETE Solicitudes/{id} | OK, "Solicitud cancelada" |
+| Perfil y cerrar sesión | Cliente | local | OK, vuelve al login |
+
 Hallazgos que salieron de esta ejecución:
+
+- **Botón "Enviar mensaje" del yonke no recibe el toque** en una pantalla de 432×912 dp: el centro del botón cae sobre el borde del compositor y la prueba tuvo que enviar con la acción del teclado. Verificar en dispositivo real (`yonke_messages_page.dart:529`).
+- La conversación del yonke muestra "Pieza sin nombre" cuando la cotización no trae la solicitud anidada.
 
 - **E4 confirmado en vivo.** La lista de cotizaciones del cliente mostró dos entradas para una sola cotización: la real del servidor ("Yonke prueba, $1500.50") y una duplicada "Yonke Test, Enviada" generada por `SessionSyncStore`.
 - **E14 visible.** La pantalla de seguimiento muestra "La orden fue aceptada, pero la API aún no documenta todos sus datos" porque el contrato de orden sigue indefinido.
@@ -96,7 +113,7 @@ y un yonke de prueba autorizado con cobertura en la ciudad usada.
 - **QA-00.1** `flutter analyze` sin errores.
 - **QA-00.2** `flutter test` completo en verde (requiere fusionar PR #2).
 - **QA-00.3** `python tool/api_full_test.py` contra el simulador local: 67 pasos OK.
-- **QA-00.5** `flutter test test/e2e_mock_server_test.dart`: ciclo completo cliente ↔ yonke por HTTP real contra el simulador. Pasa.
+- **QA-00.5** `flutter test test/e2e_mock_server_test.dart`: ciclo completo cliente ↔ yonke y pantallas secundarias por HTTP real contra el simulador. Pasan las dos pruebas.
 - **QA-00.4** Compilación release Android (`flutter build apk --release`) y confirmar que el botón de modo prueba no aparece.
 
 ### Fase 1. Contrato del API en vivo
