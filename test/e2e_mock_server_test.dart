@@ -540,7 +540,7 @@ class _Driver {
   _Driver(this.tester);
   final WidgetTester tester;
 
-  /// Guarda una captura de la pantalla actual en build/qa/<nombre>.png.
+  /// Guarda una captura de la pantalla actual en `build/qa/{nombre}.png`.
   Future<void> shot(String name) async {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.runAsync(() async {
