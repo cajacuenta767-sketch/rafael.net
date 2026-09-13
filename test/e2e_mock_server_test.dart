@@ -1,0 +1,414 @@
+// Prueba de extremo a extremo de la app completa contra un servidor HTTP real.
+//
+// Arranca `tool/api_mock_server.py` (que implementa las 56 rutas del contrato
+// con estado en memoria) y levanta la app de producción: router, providers,
+// repositorios, parsers y el cliente Dio real. Nada se sustituye salvo el
+// almacenamiento seguro (no hay plugin nativo en pruebas) y la URL base.
+//
+// Recorre el ciclo de negocio pulsando los botones reales:
+//   cliente: OTP → home → nueva solicitud → ciudad → revisión → enviar → lista
+//   yonke:   login → bandeja → detalle → cotizar
+//   cliente: OTP → cotizaciones → detalle → mensajes → orden → seguimiento →
+//            cancelar orden → calificar
+//
+// El OTP aceptado por el simulador es 123456.
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:app_yonke/app/app.dart';
+import 'package:app_yonke/app/router/app_router.dart';
+import 'package:app_yonke/core/di/api_providers.dart';
+import 'package:app_yonke/core/network/dio_api_client.dart';
+import 'package:app_yonke/core/storage/token_store.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+const _port = 8791;
+const _baseUrl = 'http://127.0.0.1:$_port';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // flutter_test bloquea la red por defecto; aquí se necesita HTTP real.
+  HttpOverrides.global = null;
+
+  late Process server;
+  final secureStorage = <String, String>{};
+
+  setUpAll(() async {
+    server = await Process.start('python3', [
+      'tool/api_mock_server.py',
+      '$_port',
+    ], workingDirectory: Directory.current.path);
+    server.stderr.transform(utf8.decoder).listen(stderr.write);
+    await _loadRealFonts();
+    await _waitForServer();
+  });
+
+  tearDownAll(() {
+    server.kill();
+  });
+
+  setUp(() {
+    secureStorage.clear();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          (call) async {
+            final args = (call.arguments as Map?) ?? const {};
+            final key = args['key'] as String?;
+            switch (call.method) {
+              case 'read':
+                return secureStorage[key];
+              case 'write':
+                secureStorage[key!] = args['value'] as String;
+                return null;
+              case 'delete':
+                secureStorage.remove(key);
+                return null;
+              case 'deleteAll':
+                secureStorage.clear();
+                return null;
+              case 'readAll':
+                return Map<String, String>.from(secureStorage);
+              case 'containsKey':
+                return secureStorage.containsKey(key);
+            }
+            return null;
+          },
+        );
+  });
+
+  testWidgets('ciclo completo cliente ↔ yonke contra el servidor simulado', (
+    tester,
+  ) async {
+    final tokens = _MemoryTokenStore();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        headers: const {'Accept': 'application/json'},
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+    tester.view.physicalSize = const Size(1080, 2280);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokens),
+          apiClientProvider.overrideWithValue(DioApiClient(tokens, dio: dio)),
+        ],
+        child: const YonkeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final t = _Driver(tester);
+
+    // ---------------- Cliente: OTP ----------------
+    await t.tap(find.text('Soy cliente'));
+    await t.settle(find.byKey(const Key('legal_consent_dialog')));
+    await t.tap(find.byKey(const Key('accept_all_legal')));
+    await t.tap(find.byKey(const Key('confirm_legal_acceptance')));
+    await t.settle(find.byKey(const Key('client_phone_field')));
+    await tester.enterText(
+      find.byKey(const Key('client_phone_field')),
+      '5512345678',
+    );
+    await t.tap(find.text('Enviar código'));
+    await t.settle(find.text('Iniciar sesión'));
+    await t.net(
+      () =>
+          tester.enterText(find.byKey(const Key('client_otp_field')), '123456'),
+    );
+    await t.settle(find.text('Nueva solicitud'), timeout: 15);
+    expect(await tokens.readAccessToken(), isNotNull);
+
+    // ---------------- Cliente: nueva solicitud ----------------
+    await t.tap(find.text('Nueva solicitud').first);
+    await t.settle(find.byKey(const Key('request-part-field')));
+    await tester.enterText(
+      find.byKey(const Key('request-part-field')),
+      'Alternador prueba e2e',
+    );
+    await t.tap(find.byKey(const Key('request-continue-button')));
+    await t.settle(find.byKey(const Key('request-brand-select')));
+    await t.tap(find.byKey(const Key('request-brand-select')));
+    await t.tap(find.text('Nissan').last);
+    await t.tap(find.byKey(const ValueKey('request-model-select-3')));
+    await t.tap(find.text('Sentra').last);
+    await t.tap(find.byKey(const Key('request-year-select')));
+    await t.tap(find.text('2018').last);
+    await t.tap(find.byKey(const Key('request-continue-button')));
+    await t.settle(find.byKey(const ValueKey('details-step')));
+    await t.tap(find.byKey(const Key('request-continue-button')));
+    await t.settle(find.byKey(const ValueKey('photos-step')));
+    await t.tap(find.byKey(const Key('request-continue-button')));
+    await t.settle(find.byKey(const Key('request-state-selector')));
+    await t.tap(find.byKey(const Key('request-state-selector')));
+    await t.tap(find.text('Jalisco').last);
+    await t.settle(find.textContaining('Guadalajara'));
+    await t.tap(find.textContaining('Guadalajara'));
+    await t.tap(find.text('Continuar'));
+    await t.settle(find.byKey(const Key('submit-client-request')));
+    await t.tap(find.byKey(const Key('submit-client-request')));
+    await t.settle(find.text('Ver mis solicitudes'), timeout: 15);
+    await t.tap(find.text('Ver mis solicitudes').first);
+    await t.settle(find.textContaining('Alternador prueba e2e'), timeout: 15);
+
+    // ---------------- Yonke: login, bandeja, cotizar ----------------
+    await t.go(AppRoutes.yonkeLogin);
+    await t.settle(find.byKey(const Key('yonke-login-button')));
+    await tester.enterText(
+      find.byKey(const Key('yonke-email-field')),
+      'yonke@prueba.local',
+    );
+    await tester.enterText(
+      find.byKey(const Key('yonke-password-field')),
+      'Secreta123',
+    );
+    await t.tap(find.byKey(const Key('yonke-login-button')));
+    await t.settle(find.textContaining('Solicitudes'), timeout: 15);
+    expect(await tokens.readYonkeGuidId(), isNotNull);
+
+    await t.go(AppRoutes.yonkeRequests);
+    await t.settle(find.textContaining('Alternador prueba e2e'), timeout: 15);
+    await t.tap(find.textContaining('Alternador prueba e2e').first);
+    await t.settle(find.byKey(const Key('yonke-quote-button')), timeout: 15);
+    await t.tap(find.byKey(const Key('yonke-quote-button')));
+    await t.settle(find.byKey(const Key('quote-price-field')));
+    await tester.enterText(find.byKey(const Key('quote-price-field')), '1500');
+    await t.tap(find.byKey(const Key('submit-quote-button')));
+    await t.settle(find.byKey(const Key('quote-success-button')), timeout: 15);
+    await t.tap(find.byKey(const Key('quote-success-button')));
+    await t.settle(find.textContaining('Solicitudes'), timeout: 15);
+
+    // ---------------- Cliente: cotización, chat, orden ----------------
+    await t.go(AppRoutes.clientLogin);
+    await t.settle(find.byKey(const Key('client_phone_field')));
+    await tester.enterText(
+      find.byKey(const Key('client_phone_field')),
+      '5512345678',
+    );
+    await t.tap(find.text('Enviar código'));
+    await t.settle(find.text('Iniciar sesión'));
+    await t.net(
+      () =>
+          tester.enterText(find.byKey(const Key('client_otp_field')), '123456'),
+    );
+    await t.settle(find.text('Nueva solicitud'), timeout: 15);
+
+    await t.go(AppRoutes.clientQuotes);
+    await t.settle(find.textContaining(r'$1500.50'), timeout: 15);
+    await t.tap(find.textContaining(r'$1500.50').first);
+    await t.settle(find.byKey(const Key('client-create-order')), timeout: 15);
+
+    await t.tap(find.byKey(const Key('client-open-conversation')));
+    await t.settle(find.byKey(const Key('client-send-message')), timeout: 15);
+    await tester.enterText(find.byType(TextField).last, 'Hola desde e2e');
+    await t.tap(find.byKey(const Key('client-send-message')));
+    await t.settle(find.text('Hola desde e2e'), timeout: 15);
+    await t.back();
+    await t.settle(find.byKey(const Key('client-create-order')));
+
+    await t.tap(find.byKey(const Key('client-create-order')));
+    await t.settle(find.byKey(const Key('client-confirm-order')));
+    await t.tap(find.byKey(const Key('client-confirm-order')));
+    await t.settle(find.byKey(const Key('client-rate-yonke')), timeout: 15);
+
+    // ---------------- Cliente: calificar ----------------
+    await t.tap(find.byKey(const Key('client-rate-yonke')));
+    await t.settle(find.byKey(const Key('client-rating-5')));
+    await t.tap(find.byKey(const Key('client-rating-5')));
+    await t.tap(find.byKey(const Key('client-submit-rating')));
+    await t.settle(find.text('Ir al inicio'), timeout: 15);
+
+    // ---------------- Cliente: seguimiento y cancelación ----------------
+    await t.go(AppRoutes.clientQuotes);
+    await t.settle(find.textContaining(r'$1500.50'), timeout: 15);
+    await t.tap(find.textContaining(r'$1500.50').first);
+    await t.settle(
+      find.byKey(const Key('client-open-order-tracking')),
+      timeout: 15,
+    );
+    await t.tap(find.byKey(const Key('client-open-order-tracking')));
+    await t.settle(find.byKey(const Key('client-cancel-order')), timeout: 15);
+    await t.tap(find.byKey(const Key('client-cancel-order')));
+    await t.settle(find.byKey(const Key('client-confirm-cancel-order')));
+    await t.tap(find.byKey(const Key('client-confirm-cancel-order')));
+    await t.wait(1);
+  });
+}
+
+/// La fuente de pruebas de Flutter dibuja cada glifo como un cuadrado, lo que
+/// provoca desbordes que no existen en el dispositivo. Se carga Roboto desde
+/// la caché del SDK para medir el texto como en producción.
+Future<void> _loadRealFonts() async {
+  Directory? fontsDir;
+  var dir = File(Platform.resolvedExecutable).parent;
+  for (var i = 0; i < 8 && fontsDir == null; i++) {
+    final candidate = Directory('${dir.path}/artifacts/material_fonts');
+    if (candidate.existsSync()) fontsDir = candidate;
+    dir = dir.parent;
+  }
+  final root = Platform.environment['FLUTTER_ROOT'];
+  if (fontsDir == null && root != null) {
+    final candidate = Directory('$root/bin/cache/artifacts/material_fonts');
+    if (candidate.existsSync()) fontsDir = candidate;
+  }
+  if (fontsDir == null) {
+    // ignore: avoid_print
+    print(
+      '[e2e] no se encontraron las fuentes Roboto del SDK; se usa la fuente de pruebas',
+    );
+    return;
+  }
+  final loader = FontLoader('Roboto');
+  for (final name in [
+    'Roboto-Regular.ttf',
+    'Roboto-Medium.ttf',
+    'Roboto-Bold.ttf',
+    'Roboto-Black.ttf',
+  ]) {
+    final file = File('${fontsDir.path}/$name');
+    if (file.existsSync()) {
+      loader.addFont(file.readAsBytes().then((b) => ByteData.view(b.buffer)));
+    }
+  }
+  await loader.load();
+}
+
+Future<void> _waitForServer() async {
+  final client = HttpClient();
+  for (var i = 0; i < 50; i++) {
+    try {
+      final req = await client.getUrl(
+        Uri.parse('$_baseUrl/api/Utilerias/marcas'),
+      );
+      final res = await req.close();
+      await res.drain<void>();
+      if (res.statusCode == 200) {
+        client.close();
+        return;
+      }
+    } catch (_) {}
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+  throw StateError('El simulador no arrancó en $_baseUrl');
+}
+
+/// Ejecuta acciones que disparan red dentro de `runAsync` y espera con
+/// tiempo real hasta que el widget esperado aparezca.
+class _Driver {
+  _Driver(this.tester);
+  final WidgetTester tester;
+
+  Future<void> net(Future<void> Function() action) async {
+    await tester.runAsync(() async {
+      await action();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    });
+    await tester.pump();
+  }
+
+  Future<void> tap(Finder finder) async {
+    await settle(finder);
+    try {
+      await tester.ensureVisible(finder.first);
+      await tester.pump(const Duration(milliseconds: 200));
+    } catch (_) {}
+    await net(() => tester.tap(finder.first));
+  }
+
+  Future<void> go(String route) async {
+    await net(() async => appRouter.go(route));
+  }
+
+  Future<void> back() async {
+    await net(() async => appRouter.pop());
+  }
+
+  Future<void> wait(int seconds) async {
+    await tester.runAsync(
+      () => Future<void>.delayed(Duration(seconds: seconds)),
+    );
+    await tester.pump();
+  }
+
+  /// Espera hasta [timeout] segundos a que [finder] encuentre algo.
+  Future<void> settle(Finder finder, {int timeout = 8}) async {
+    final started = DateTime.now();
+    final deadline = started.add(Duration(seconds: timeout));
+    var drags = 0;
+    while (DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (finder.evaluate().isNotEmpty) {
+        await tester.pump(const Duration(milliseconds: 300));
+        return;
+      }
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 150)),
+      );
+      // Las listas perezosas no construyen lo que está fuera de pantalla:
+      // tras un par de segundos sin hallazgo, desplaza hacia abajo.
+      if (DateTime.now().difference(started).inSeconds >= 2 && drags < 8) {
+        final scrollables = find.byType(Scrollable);
+        if (scrollables.evaluate().isNotEmpty) {
+          await tester.drag(scrollables.last, const Offset(0, -350));
+          await tester.pump(const Duration(milliseconds: 200));
+          drags++;
+        }
+      }
+    }
+    final visible = find
+        .byType(RichText)
+        .evaluate()
+        .map((e) => (e.widget as RichText).text.toPlainText())
+        .where((s) => s.trim().isNotEmpty)
+        .take(40)
+        .join(' | ');
+    final route = appRouter.routerDelegate.currentConfiguration.uri;
+    fail('No apareció $finder en ${timeout}s. Ruta: $route. Textos: $visible');
+  }
+}
+
+class _MemoryTokenStore implements TokenStore {
+  String? _access;
+  String? _refresh;
+  DateTime? _expires;
+  String? _yonke;
+
+  @override
+  Future<String?> readAccessToken() async => _access;
+  @override
+  Future<String?> readRefreshToken() async => _refresh;
+  @override
+  Future<DateTime?> readExpiresAt() async => _expires;
+  @override
+  Future<String?> readYonkeGuidId() async => _yonke;
+
+  @override
+  Future<void> writeTokens({
+    required String accessToken,
+    String? refreshToken,
+    DateTime? expiresAt,
+    String? yonkeGuidId,
+  }) async {
+    _access = accessToken;
+    _refresh = refreshToken;
+    _expires = expiresAt;
+    _yonke = yonkeGuidId;
+  }
+
+  @override
+  Future<void> clear() async {
+    _access = null;
+    _refresh = null;
+    _expires = null;
+    _yonke = null;
+  }
+}

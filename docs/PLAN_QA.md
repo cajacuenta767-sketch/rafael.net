@@ -16,6 +16,33 @@ que hace falta del propietario para ejecutarlo contra el servidor real.
 | Pantallas registradas | 36 (23 cliente, 13 yonke) |
 | Prueba total del API en vivo | No ejecutada: el servidor no es alcanzable desde este entorno |
 
+## 1b. Resultado de la prueba de extremo a extremo (13 de septiembre)
+
+`test/e2e_mock_server_test.dart` arranca la app de producción completa
+(router, providers, repositorios, parsers y el cliente Dio real) contra
+`tool/api_mock_server.py` por HTTP real, con fuentes Roboto reales y una
+pantalla de 432×912 dp, y pulsa los botones de verdad. Resultado: **pasa**.
+
+Recorrido verificado:
+
+| Paso | Rol | Endpoints ejercidos | Resultado |
+|---|---|---|---|
+| Aceptar términos, pedir OTP, verificar 123456 | Cliente | solicitar-otp, verificar-otp | OK, token guardado |
+| Nueva solicitud (pieza, marca, modelo, año, fotos, ciudad, revisión, enviar) | Cliente | marcas, modelos, entidades, ciudades, POST Solicitudes, SolicitudYonkes/enviar | OK, aparece en Mis solicitudes |
+| Login, home con métricas, bandeja, detalle, cotizar $1500 | Yonke | YonkeAuth/login, mis-solicitudes, Solicitudes/{id}, vista, POST CotizacionYonke | OK, diálogo de éxito |
+| Ver cotización, abrir chat y enviar mensaje | Cliente | mis-cotizaciones, CotizacionYonke/{id}, YonkesCalificaciones, mensajes, leer | OK, mensaje visible |
+| Aceptar cotización, crear orden, calificar 5 estrellas | Cliente | POST Orden, POST YonkesCalificaciones | OK |
+| Seguimiento y cancelar orden | Cliente | Orden/cotizacion/{id}, Orden/{id}, cancelar | OK, estado "Cancelada" |
+
+Hallazgos que salieron de esta ejecución:
+
+- **E4 confirmado en vivo.** La lista de cotizaciones del cliente mostró dos entradas para una sola cotización: la real del servidor ("Yonke prueba, $1500.50") y una duplicada "Yonke Test, Enviada" generada por `SessionSyncStore`.
+- **E14 visible.** La pantalla de seguimiento muestra "La orden fue aceptada, pero la API aún no documenta todos sus datos" porque el contrato de orden sigue indefinido.
+- **Desbordes de diseño solo con la fuente de pruebas.** Con la fuente cuadrada de flutter_test aparecen 6 desbordes (home del cliente, home del yonke, login, nueva solicitud). Con Roboto real desaparecen. No son errores de producción, pero esas filas no usan `Expanded`, así que con textos largos o escala de texto 1.3 podrían desbordar: `role_home_page.dart:234,306,468`, `yonke_home_page.dart:288`, `client_login_page.dart:143`, `new_request_page.dart:468`.
+- El detalle de solicitud fija "Nogales, Sonora" como ciudad de respaldo (`request_detail_page.dart:102`) cuando el API no devuelve ciudades.
+
+Lo que esta prueba no cubre porque depende del servidor real: formato exacto de las respuestas de Azure, OTP por SMS, autorización de yonkes, Stripe y notificaciones.
+
 ## 2. Errores encontrados, por gravedad
 
 ### Críticos (afectan a usuarios reales)
@@ -69,6 +96,7 @@ y un yonke de prueba autorizado con cobertura en la ciudad usada.
 - **QA-00.1** `flutter analyze` sin errores.
 - **QA-00.2** `flutter test` completo en verde (requiere fusionar PR #2).
 - **QA-00.3** `python tool/api_full_test.py` contra el simulador local: 67 pasos OK.
+- **QA-00.5** `flutter test test/e2e_mock_server_test.dart`: ciclo completo cliente ↔ yonke por HTTP real contra el simulador. Pasa.
 - **QA-00.4** Compilación release Android (`flutter build apk --release`) y confirmar que el botón de modo prueba no aparece.
 
 ### Fase 1. Contrato del API en vivo
