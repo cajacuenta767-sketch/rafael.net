@@ -61,7 +61,7 @@ class RequestsApi {
           : 'S/N',
       'descripcion': (description != null && description.trim().isNotEmpty)
           ? description.trim()
-          : '',
+          : 'Sin descripción',
       'ciudadesIds': cityIds,
     },
   );
