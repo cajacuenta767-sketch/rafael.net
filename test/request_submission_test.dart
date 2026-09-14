@@ -104,6 +104,67 @@ void main() {
       expect(result.reachedNoYonke, isTrue);
     });
 
+    test('da por enviada la solicitud cuando enviar responde 500 pero la '
+        'solicitud ya existe (despacho automático al crear)', () async {
+      final api = RecordingApiClient({
+        'POST /api/Solicitudes': (_) =>
+            RecordingApiClient.ok('e3316a72-82e7-41c5-ac2c-fc12ced3965e'),
+        'GET /api/SolicitudCiudades/e3316a72-82e7-41c5-ac2c-fc12ced3965e/ciudades':
+            (_) => RecordingApiClient.ok([
+              {'ciudadId': 1},
+            ]),
+        'POST /api/SolicitudYonkes/e3316a72-82e7-41c5-ac2c-fc12ced3965e/enviar':
+            (_) => const ApiException(
+              message: 'Error interno del servidor',
+              statusCode: 500,
+            ),
+        'GET /api/Solicitudes/e3316a72-82e7-41c5-ac2c-fc12ced3965e': (_) =>
+            RecordingApiClient.ok({
+              'guidId': 'e3316a72-82e7-41c5-ac2c-fc12ced3965e',
+              'piezaBuscada': 'Prueba',
+            }),
+      });
+      final repository = ApiRequestSubmissionRepository(RequestsApi(api));
+
+      final result = await repository.submit(_draft());
+
+      expect(result.requestId, 'e3316a72-82e7-41c5-ac2c-fc12ced3965e');
+      expect(result.notifiedYonkes, isNull);
+      expect(result.dispatchMessage, autoDispatchNotice);
+    });
+
+    test(
+      'sigue fallando cuando enviar responde 500 y la solicitud no existe',
+      () async {
+        final api = RecordingApiClient({
+          'POST /api/Solicitudes': (_) =>
+              RecordingApiClient.ok({'guidId': 'r'}),
+          'GET /api/SolicitudCiudades/r/ciudades': (_) =>
+              RecordingApiClient.ok([
+                {'ciudadId': 1},
+              ]),
+          'POST /api/SolicitudYonkes/r/enviar': (_) =>
+              const ApiException(message: 'Error interno', statusCode: 500),
+          'GET /api/Solicitudes/r': (_) => const ApiException(
+            message: 'No se encontró la solicitud',
+            statusCode: 404,
+          ),
+        });
+        final repository = ApiRequestSubmissionRepository(RequestsApi(api));
+
+        await expectLater(
+          repository.submit(_draft()),
+          throwsA(
+            isA<RequestSubmissionException>().having(
+              (e) => e.stage,
+              'stage',
+              RequestSubmissionStage.dispatch,
+            ),
+          ),
+        );
+      },
+    );
+
     test('no reporta éxito cuando enviar a yonkes falla', () async {
       final api = RecordingApiClient({
         'POST /api/Solicitudes': (_) => RecordingApiClient.ok({'guidId': 'r'}),

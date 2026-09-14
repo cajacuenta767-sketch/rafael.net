@@ -191,6 +191,10 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
+    engine: _text(request['motor']),
+    transmission: _text(request['transmicion']),
+    partNumber: _text(request['numeroParte']),
+    description: _text(request['descripcion']),
     imageUrl:
         _firstSafeImage(images) ??
         (request['urlImagen'] != null

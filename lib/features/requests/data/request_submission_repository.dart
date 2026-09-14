@@ -5,6 +5,11 @@ import '../domain/request_draft.dart';
 import '../domain/request_submission.dart';
 import 'requests_api.dart';
 
+/// Aviso cuando el servidor ya despachó la solicitud al crearla y el paso
+/// `enviar` falló por su cuenta.
+const autoDispatchNotice =
+    'Tu solicitud quedó registrada y enviada a los yonkes con cobertura.';
+
 abstract interface class RequestSubmissionRepository {
   Future<RequestSubmissionResult> submit(RequestDraft draft);
 
@@ -150,6 +155,16 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
     try {
       dispatched = await _requestsApi.sendToCoveredYonkes(requestId);
     } on ApiException catch (error) {
+      // El servidor real despacha la solicitud a los yonkes con cobertura en
+      // el momento de crearla y `enviar` responde 500 sin cuerpo (comprobado
+      // en Swagger, 13/09/2026). Si la solicitud existe, el envío ya ocurrió y
+      // no se debe mostrar un error al cliente.
+      if (_isServerFailure(error) && await _requestExists(requestId)) {
+        return RequestSubmissionResult(
+          requestId: requestId,
+          dispatchMessage: autoDispatchNotice,
+        );
+      }
       throw RequestSubmissionException(
         stage: RequestSubmissionStage.dispatch,
         requestId: requestId,
@@ -177,6 +192,18 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       notifiedYonkes: notifiedYonkesFromResponse(dispatched),
       dispatchMessage: envelopeMessage(dispatched),
     );
+  }
+
+  bool _isServerFailure(ApiException error) =>
+      error.statusCode != null && error.statusCode! >= 500;
+
+  Future<bool> _requestExists(String requestId) async {
+    try {
+      final response = await _requestsApi.getById(requestId);
+      return envelopeErrorMessage(response) == null;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// `ciudadesIds` viaja en la creación, pero la asignación a yonkes depende

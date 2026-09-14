@@ -128,6 +128,53 @@ void main() {
       );
     });
 
+    test('construye el detalle con la fila de la bandeja cuando el servidor '
+        'responde 404 al consultar la solicitud con token de yonke', () async {
+      final api = RecordingApiClient({
+        'GET /api/Solicitudes/d846c250': (_) => const ApiException(
+          message: 'No se encontró la solicitud',
+          statusCode: 404,
+        ),
+        'GET /api/SolicitudesImagenes/d846c250/imagenes': (_) =>
+            const ApiException(message: 'sin fotos', statusCode: 404),
+      });
+      final repository = ApiYonkeRequestDetailRepository(
+        RequestsApi(api),
+        QuotesApi(api),
+      );
+      final summary = yonkeRequestSummaryFromJson({
+        'id': 7,
+        'guidId': 'd846c250',
+        'estatusSolicitud': 'Pendiente',
+        'marca': 'Nissan',
+        'modelo': 'Altima',
+        'año': 2019,
+        'motor': 'Estándar',
+        'transmicion': 'Estándar',
+        'piezaBuscada': 'Prueba Swagger 2',
+        'numeroParte': 'S/N',
+        'descripcion': 'Prueba desde Swagger',
+        'folio': 'SOL-00007/2026',
+        'fechaCreacion': '2026-09-13T22:49:41.447',
+        'cerrada': false,
+      })!;
+
+      final detail = await repository.getDetail(
+        requestId: summary.requestId,
+        requestYonkeId: summary.requestYonkeId,
+        summary: summary,
+      );
+
+      expect(detail.part, 'Prueba Swagger 2');
+      expect(detail.folio, 'SOL-00007/2026');
+      expect(detail.brand, 'Nissan');
+      expect(detail.year, 2019);
+      expect(detail.description, 'Prueba desde Swagger');
+      expect(detail.partNumber, 'S/N');
+      expect(detail.requestYonkeId, 'd846c250');
+      expect(detail.closed, isFalse);
+    });
+
     test('marca la solicitud como vista en el servidor', () async {
       final api = RecordingApiClient({
         'PUT /api/SolicitudYonkes/asig-1/vista': (_) =>

@@ -105,6 +105,9 @@ Respuestas reales obtenidas por el propietario desde Swagger:
   - `mis-solicitudes` devuelve en la fila un `guidId` (`d846c250-…`) **distinto** del guid de la solicitud (`e3316a72-…`). No es el guid de la solicitud.
   - `POST /api/CotizacionYonke?solicitudYonkeGuidId=d846c250-…` (el guid de la fila): **400 "La solicitud enviada al yonke no existe"**. Con el guid de la solicitud: mismo 400. `GET CotizacionYonke/vista/{guid}`: 500.
   - Conclusión: ninguno de los dos guids que el yonke puede obtener es aceptado por `CotizacionYonke`. El bloqueo es del backend y queda comprobado con una solicitud nueva y cobertura previa. Salvedad: la solicitud se creó con token de yonke (`usuarioId: "Test"`); el backend debe repetir la prueba con un cliente real y `enviar` para confirmar que no es un efecto del rol.
+- **Correcciones derivadas de la prueba decisiva (14 de septiembre).**
+  - Envío de solicitud: si `POST /api/SolicitudYonkes/{guid}/enviar` responde 5xx y `GET /api/Solicitudes/{guid}` confirma que la solicitud existe, la app la da por enviada (el despacho ocurre al crear) y muestra "Tu solicitud quedó registrada y enviada a los yonkes con cobertura". Un 4xx sigue siendo error.
+  - Detalle del yonke: si `GET /api/Solicitudes/{guid}` responde 404 con token de yonke, el detalle se construye con la fila de `mis-solicitudes` (marca, modelo, año, motor, transmisión, número de parte, descripción, folio). La cotización sigue bloqueada por el backend.
 - **Listas paginadas** (`mis-solicitudes`, `Yonkes/byPage`, `AllPaged`): `data: { data: [...], meta: { page, take, itemCount, pageCount } }`. Se añadió `lib/core/network/paged_response.dart` y se unificaron los parsers; la bandeja del yonke usa `meta.pageCount` para saber si hay más páginas. El simulador devuelve esta forma.
 
 ## 2. Errores encontrados, por gravedad

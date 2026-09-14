@@ -1,6 +1,8 @@
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../quotes/data/quotes_api.dart';
+import '../../requests/data/request_submission_repository.dart'
+    show envelopeErrorMessage;
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_detail.dart';
 import '../domain/yonke_request_summary.dart';
@@ -38,8 +40,23 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     required String requestYonkeId,
     YonkeRequestSummary? summary,
   }) async {
-    if (requestId.isEmpty) throw const YonkeRequestDetailNotFoundException();
-    final request = await _requestsApi.getById(requestId);
+    if (requestId.isEmpty && summary == null) {
+      throw const YonkeRequestDetailNotFoundException();
+    }
+    dynamic request;
+    try {
+      request = await _requestsApi.getById(requestId);
+      if (envelopeErrorMessage(request) != null) request = null;
+    } catch (_) {
+      // El servidor real responde 404 a `GET /api/Solicitudes/{guid}` con
+      // token de yonke (busca por usuario cliente). La bandeja ya trae todos
+      // los datos de la solicitud, así que se construye el detalle con ella.
+      request = null;
+    }
+    if (request == null) {
+      if (summary == null) throw const YonkeRequestDetailNotFoundException();
+      request = _requestFromSummary(summary);
+    }
     dynamic images;
     try {
       images = await _requestsApi.getImages(requestId);
@@ -128,6 +145,21 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     }
   }
 }
+
+Map<String, dynamic> _requestFromSummary(YonkeRequestSummary summary) => {
+  'guidId': summary.requestId,
+  'piezaBuscada': summary.part,
+  'marca': summary.brand,
+  'modelo': summary.model,
+  'año': summary.year,
+  'motor': summary.engine,
+  'transmicion': summary.transmission,
+  'numeroParte': summary.partNumber,
+  'descripcion': summary.description,
+  'folio': summary.folio,
+  'fechaCreacion': summary.receivedAt.toIso8601String(),
+  'cerrada': summary.status == YonkeRequestStatus.closed,
+};
 
 class YonkeRequestDetailNotFoundException implements Exception {
   const YonkeRequestDetailNotFoundException();
