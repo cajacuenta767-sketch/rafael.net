@@ -7,7 +7,7 @@ import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 
@@ -183,39 +183,44 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
       if (mounted) {
         context.go(AppRoutes.yonkeHome);
       }
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-      SessionSyncStore.instance.recordQuote(
-        requestYonkeId: widget.requestYonkeId,
-        submission: submission,
-        detail: widget.detail,
-      );
       setState(() => _submitting = false);
+      var reason = error is ApiException
+          ? error.message
+          : 'No se pudo conectar con el servidor. Revisa tu conexión.';
+      // Confirmado contra el servidor real (13/09/2026): la bandeja no expone
+      // el guid de la asignación SolicitudYonkes y cotizar con el guid de la
+      // solicitud produce este rechazo. Requiere corrección en el backend.
+      if (reason.toLowerCase().contains('enviada al yonke no existe')) {
+        reason +=
+            ' El servidor no está devolviendo el identificador de la '
+            'asignación de esta solicitud a tu yonke; es una corrección '
+            'pendiente del sistema, no de tus datos.';
+      }
       await showDialog<void>(
         context: context,
-        barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text(
-            '¡Cotización enviada!',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w800),
+          icon: const Icon(
+            Icons.error_outline,
+            size: 48,
+            color: Color(0xFFB3261E),
           ),
-          content: const Text(
-            'El cliente ya puede consultar tu precio y condiciones.',
+          title: const Text('No se envió la cotización'),
+          content: Text(
+            'El servidor no registró la cotización. $reason\n\n'
+            'Tus datos siguen en el formulario para que lo intentes de nuevo.',
             textAlign: TextAlign.center,
           ),
           actions: [
             FilledButton(
-              key: const Key('quote-success-button'),
+              key: const Key('quote-error-button'),
               onPressed: () => Navigator.pop(context),
               child: const Text('Entendido'),
             ),
           ],
         ),
       );
-      if (mounted) {
-        context.go(AppRoutes.yonkeHome);
-      }
     }
   }
 

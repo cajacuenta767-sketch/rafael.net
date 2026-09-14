@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
+import '../../auth/domain/current_user.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../domain/client_request.dart';
 
@@ -37,39 +38,28 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       var list = clientRequestSummariesFromResponse(response);
       if (list.isEmpty) {
         try {
-          final recentResponse =
-              await ref.read(dashboardApiProvider).getRecentRequest();
+          final recentResponse = await ref
+              .read(dashboardApiProvider)
+              .getRecentRequest();
           final recent = clientRequestSummaryFromResponse(recentResponse);
           if (recent != null) {
             list = [recent];
           }
         } catch (_) {}
       }
-      final sessionRequests = SessionSyncStore.instance.clientRequests;
-      final existingIds = list.map((r) => r.id).toSet();
-      final merged = [
-        ...sessionRequests.where((r) => !existingIds.contains(r.id)),
-        ...list,
-      ];
       if (!mounted) return;
       setState(() {
-        _requests = merged;
+        _requests = list;
         _loading = false;
       });
-    } catch (_) {
-      final sessionRequests = SessionSyncStore.instance.clientRequests;
+    } catch (error) {
       if (!mounted) return;
-      if (sessionRequests.isNotEmpty) {
-        setState(() {
-          _requests = sessionRequests;
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _loading = false;
-          _error = 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
-        });
-      }
+      setState(() {
+        _loading = false;
+        _error = error is ApiException
+            ? error.message
+            : 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
+      });
     }
   }
 
@@ -100,18 +90,30 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
     if (confirmed != true || !mounted) return;
 
-    SessionSyncStore.instance.removeRequest(request.id);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(requestsApiProvider).cancel(
-        requestId: request.id,
-        notes: 'Cancelada por el cliente',
+      await ref
+          .read(requestsApiProvider)
+          .cancel(
+            requestId: request.id,
+            userId: await currentUserIdFrom(ref.read(tokenStoreProvider)),
+            notes: 'Cancelada por el cliente',
+          );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? 'No se pudo cancelar: ${error.message}'
+                : 'No se pudo cancelar la solicitud. Revisa tu conexión.',
+          ),
+        ),
       );
-    } catch (_) {
-      // Si el servidor falla o ya fue retirada, el estado local ya fue actualizado.
+      return;
     }
 
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(content: Text('Solicitud cancelada correctamente.')),
     );

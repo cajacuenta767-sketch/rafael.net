@@ -238,8 +238,7 @@ class DioApiClient implements ApiClient {
       } else if (code == 404) {
         serverMessage = 'El recurso solicitado no fue encontrado.';
       } else if (code != null && code >= 500) {
-        serverMessage =
-            'El servidor no está disponible en este momento. Inténtalo más tarde.';
+        serverMessage = 'El servidor no está disponible en este momento. Inténtalo más tarde.';
       } else {
         serverMessage =
             'No fue posible conectar con el servidor. Revisa tu conexión.';

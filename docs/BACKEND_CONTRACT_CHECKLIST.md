@@ -42,6 +42,14 @@ backend confirma otra semántica, el ajuste es puntual en el parser indicado.
   identificador del usuario en el token (`sub`/`nameid`) para perfil,
   cobertura, notificaciones y remitente de mensajes.
 - `Yonkes/ActualizarLogo` se envía como multipart con `GuidId` + `LogoUrl`.
+- `POST /api/Solicitudes` se envía sin `usuarioId`; el cliente sale del token.
+  El límite de solicitudes por día lo aplica el servidor y la app solo muestra
+  su mensaje.
+- `POST /api/SolicitudYonkes/{id}/enviar`: la app acepta como respuesta una
+  lista de asignaciones, un número o un objeto con `total`/`yonkesNotificados`
+  para decirle al cliente a cuántos yonkes llegó. Confirmar la forma real.
+- `DELETE /api/Solicitudes/{id}` se envía con `guidId`, `userId` (claim del
+  token, si existe) y `notas`; `estatusId` se omite por falta de catálogo.
 
 ## Consistencia del dominio
 

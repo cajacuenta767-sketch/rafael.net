@@ -2,8 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-/// Muestra por igual imágenes HTTPS de producción y recursos locales del
-/// mercado de demostración (`asset://assets/...`).
+/// Muestra imágenes HTTPS de la API, imágenes en base64 y recursos locales
+/// empaquetados (`asset://assets/...`), con un `fallback` si no se pueden
+/// cargar.
 class RefanetImage extends StatelessWidget {
   const RefanetImage({
     super.key,

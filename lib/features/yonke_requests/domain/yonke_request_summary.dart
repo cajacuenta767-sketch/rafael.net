@@ -33,6 +33,10 @@ class YonkeRequestSummary {
     this.photoCount = 0,
     this.hasQuote = false,
     this.imageUrl,
+    this.engine,
+    this.transmission,
+    this.partNumber,
+    this.description,
   });
 
   final String requestId;
@@ -48,6 +52,10 @@ class YonkeRequestSummary {
   final int photoCount;
   final bool hasQuote;
   final String? imageUrl;
+  final String? engine;
+  final String? transmission;
+  final String? partNumber;
+  final String? description;
 
   bool get isNew => status == YonkeRequestStatus.newRequest;
 
@@ -57,10 +65,7 @@ class YonkeRequestSummary {
     year?.toString(),
   ].whereType<String>().where((value) => value.isNotEmpty).join(' · ');
 
-  YonkeRequestSummary copyWith({
-    YonkeRequestStatus? status,
-    bool? hasQuote,
-  }) =>
+  YonkeRequestSummary copyWith({YonkeRequestStatus? status, bool? hasQuote}) =>
       YonkeRequestSummary(
         requestId: requestId,
         requestYonkeId: requestYonkeId,
@@ -75,6 +80,10 @@ class YonkeRequestSummary {
         photoCount: photoCount,
         hasQuote: hasQuote ?? this.hasQuote,
         imageUrl: imageUrl,
+        engine: engine,
+        transmission: transmission,
+        partNumber: partNumber,
+        description: description,
       );
 }
 

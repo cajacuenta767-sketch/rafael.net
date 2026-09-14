@@ -8,6 +8,7 @@ import '../../../app/theme/yonke_theme.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 class YonkeRegisterPage extends ConsumerStatefulWidget {
@@ -41,6 +42,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
   bool _confirmPasswordVisible = false;
   bool _loading = false;
   String? _message;
+  static const _maxLogoBytes = 2 * 1024 * 1024;
   Uint8List? _logoBytes;
   String? _logoFileName;
   bool _pickingLogo = false;
@@ -126,6 +128,11 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     }
   }
 
+  void _showMessage(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Future<void> _pickLogo() async {
     if (_loading || _pickingLogo) return;
     setState(() => _pickingLogo = true);
@@ -138,7 +145,18 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
         imageQuality: 85,
       );
       if (picked != null) {
+        // Reglas del servidor (POST /api/Yonkes): máximo 2 MB y solo
+        // JPG, JPEG o PNG. Se validan aquí para no recibir un 400 al final.
+        final extension = picked.name.split('.').last.toLowerCase();
+        if (!const {'jpg', 'jpeg', 'png'}.contains(extension)) {
+          _showMessage('El logo debe ser una imagen JPG o PNG.');
+          return;
+        }
         final bytes = await picked.readAsBytes();
+        if (bytes.length > _maxLogoBytes) {
+          _showMessage('El logo debe pesar menos de 2 MB.');
+          return;
+        }
         if (!mounted) return;
         setState(() {
           _logoBytes = bytes;
@@ -185,8 +203,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
       logoBytesToSend = _logoBytes!;
       logoFileNameToSend = _logoFileName ?? 'logo.png';
     } else {
-      final byteData =
-          await rootBundle.load('assets/images/refanet_yonke_icon.png');
+      final byteData = await rootBundle.load(
+        'assets/images/refanet_yonke_icon.png',
+      );
       logoBytesToSend = byteData.buffer.asUint8List();
       logoFileNameToSend = 'refanet_yonke_logo.png';
     }
@@ -198,10 +217,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     );
 
     try {
-      await ref.read(yonkesApiProvider).register(
-            fields: fields,
-            files: [logoFile],
-          );
+      await ref
+          .read(yonkesApiProvider)
+          .register(fields: fields, files: [logoFile]);
       if (!mounted) return;
       _showSuccessDialog();
     } on ApiException catch (error) {
@@ -355,14 +373,14 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 42,
-                                        backgroundColor:
-                                            const Color(0xFFEDF2F9),
+                                        backgroundColor: const Color(
+                                          0xFFEDF2F9,
+                                        ),
                                         backgroundImage: _logoBytes != null
                                             ? MemoryImage(_logoBytes!)
                                             : const AssetImage(
-                                                    'assets/images/refanet_yonke_icon.png',
-                                                  )
-                                                as ImageProvider,
+                                                'assets/images/refanet_yonke_icon.png',
+                                              ) as ImageProvider,
                                       ),
                                       Positioned(
                                         bottom: 0,

@@ -34,9 +34,21 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
 
   Future<void> _submit() async {
     if (_sending) return;
-    setState(() => _sending = true);
+    final previous = _submissionError;
+    setState(() {
+      _sending = true;
+      _submissionError = null;
+    });
     try {
-      final result = await _repository.submit(widget.draft);
+      // Si la solicitud ya existe en el servidor, se reanuda desde el paso
+      // que falló para no crear un duplicado.
+      final result = previous?.requestId != null
+          ? await _repository.resume(
+              widget.draft,
+              previous!.requestId!,
+              failedStage: previous.stage,
+            )
+          : await _repository.submit(widget.draft);
       if (mounted) setState(() => _result = result);
     } on RequestSubmissionException catch (error) {
       if (mounted) setState(() => _submissionError = error);
@@ -58,7 +70,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
   Widget build(BuildContext context) {
     if (_result != null) return _SubmissionSuccess(result: _result!);
     if (_submissionError != null) {
-      return _SubmissionError(error: _submissionError!);
+      return _SubmissionError(error: _submissionError!, onRetry: _submit);
     }
     return Scaffold(
       backgroundColor: Colors.white,
@@ -132,7 +144,12 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
       const SizedBox(height: 16),
       _ReviewCard(
         title: 'Ciudad de envío',
-        children: [_ReviewRow('Ciudad', widget.draft.cityName ?? '—')],
+        children: [
+          _ReviewRow(
+            widget.draft.extraCityIds.isEmpty ? 'Ciudad' : 'Ciudades',
+            widget.draft.citiesLabel.isEmpty ? '—' : widget.draft.citiesLabel,
+          ),
+        ],
       ),
       const SizedBox(height: 16),
       _ReviewCard(
@@ -171,6 +188,22 @@ class _SubmissionSuccess extends StatelessWidget {
   const _SubmissionSuccess({required this.result});
   final RequestSubmissionResult result;
 
+  String get _title =>
+      result.reachedNoYonke ? 'Solicitud registrada' : 'Solicitud enviada';
+
+  String get _message {
+    final count = result.notifiedYonkes;
+    if (count == null) {
+      return 'Los yonkes con cobertura en tu ciudad podrán revisar tu solicitud y enviarte cotizaciones.';
+    }
+    if (count == 0) {
+      return 'Todavía no hay yonkes con cobertura en tu ciudad. La solicitud quedó guardada en el servidor y podrás consultarla en Mis solicitudes.';
+    }
+    return count == 1
+        ? 'Se envió a 1 yonke con cobertura en tu ciudad. Recibirás su cotización en la app.'
+        : 'Se envió a $count yonkes con cobertura en tu ciudad. Recibirás sus cotizaciones en la app.';
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.white,
@@ -183,23 +216,27 @@ class _SubmissionSuccess extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.send_rounded,
+                Icon(
+                  result.reachedNoYonke
+                      ? Icons.store_mall_directory_outlined
+                      : Icons.send_rounded,
                   size: 76,
-                  color: Color(0xFF14951F),
+                  color: const Color(0xFF14951F),
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Solicitud enviada',
+                  _title,
+                  key: const Key('request-submission-title'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Los yonkes con cobertura en tu ciudad podrán revisar tu solicitud y enviarte cotizaciones.',
+                Text(
+                  _message,
+                  key: const Key('request-submission-message'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF596276)),
+                  style: const TextStyle(color: Color(0xFF596276)),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
@@ -225,8 +262,9 @@ class _SubmissionSuccess extends StatelessWidget {
 }
 
 class _SubmissionError extends StatelessWidget {
-  const _SubmissionError({required this.error});
+  const _SubmissionError({required this.error, required this.onRetry});
   final RequestSubmissionException error;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -256,6 +294,27 @@ class _SubmissionError extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(error.message, textAlign: TextAlign.center),
+              const SizedBox(height: 10),
+              Text(
+                'Paso que falló: ${error.stageLabel}.'
+                '${error.requestId != null ? ' Solicitud ${error.requestId}.' : ''}',
+                key: const Key('submission-error-detail'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF596276), fontSize: 12),
+              ),
+              if (error.technicalDetail != null) ...[
+                const SizedBox(height: 8),
+                SelectableText(
+                  'Respuesta del servidor: ${error.technicalDetail}',
+                  key: const Key('submission-error-technical'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF7A8290),
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
               if (error.message.toLowerCase().contains('límite') ||
                   error.message.toLowerCase().contains('limite')) ...[
                 const SizedBox(height: 16),
@@ -303,13 +362,21 @@ class _SubmissionError extends StatelessWidget {
                 if (error.requestId != null) ...[
                   const SizedBox(height: 12),
                   const Text(
-                    'No reintentes desde esta pantalla para evitar crear una solicitud duplicada.',
+                    'La solicitud ya quedó registrada. Al reintentar solo se '
+                    'repite el paso que falló, sin crear un duplicado.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Color(0xFF596276), fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 20),
-                FilledButton(
+                FilledButton.icon(
+                  key: const Key('retry-client-request'),
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
                   onPressed: () => context.go(AppRoutes.clientHome),
                   child: const Text('Ir al inicio'),
                 ),

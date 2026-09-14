@@ -5,14 +5,32 @@ yonke de la API Refanet.
 
 ## Estado
 
-Todas las pantallas consumen la API publicada; no hay modo demo ni datos de
-ejemplo. El contrato revisado está en `docs/openapi_v1.json` y los endpoints
-que usa cada pantalla, con las claves que la app lee, en
-`docs/API_INTEGRATION.md`. Para comprobar el servidor desde tu máquina:
+Todas las pantallas consumen la API publicada; no hay modo demo, botón de
+"modo prueba" ni datos de ejemplo. Una solicitud creada por un cliente llega a
+los yonkes únicamente a través del servidor: el yonke debe tener cobertura en
+la ciudad de la solicitud y la app llama a `SolicitudYonkes/{id}/enviar` al
+terminar de crearla (ver `docs/API_INTEGRATION.md`, sección "Cómo llega una
+solicitud del cliente al yonke"). El contrato revisado está en
+`docs/openapi_v1.json` y los endpoints que usa cada pantalla, con las claves
+que la app lee, en `docs/API_INTEGRATION.md`. Para comprobar el servidor desde
+tu máquina:
 
 ```shell
 dart run tool/api_probe.dart --token=<jwt>
 ```
+
+Para la prueba total del ciclo (OTP, solicitud, ciudades, imágenes, envío a
+yonkes, alta y login de yonke, cotización, mensajes, orden, checkout de Stripe,
+calificación y limpieza) hay un script que sólo necesita Python 3.8+:
+
+```shell
+python tool/api_full_test.py --phone=+5215512345678 --create-yonke
+python tool/api_full_test.py --help
+```
+
+Imprime cada paso con su estatus HTTP y un diagnóstico, nunca muestra tokens,
+y deja el detalle en `api_full_test_report.json`. Para probarlo sin conexión,
+`tool/api_mock_server.py` simula las 56 rutas del contrato.
 
 ## Ejecutar
 
@@ -36,7 +54,7 @@ GitHub como colaborador:
 3. Selecciona **Add people** e invita la cuenta del contratista.
 4. El contratista debe aceptar la invitación recibida por GitHub.
 
-Repositorio: <https://github.com/ngamez84/refanet_appmobil>
+Repositorio: <https://github.com/cajacuenta767-sketch/rafael.net>
 
 ### 2. Instalar las herramientas necesarias
 
@@ -68,12 +86,12 @@ desarrollador** para que Flutter pueda crear enlaces requeridos por plugins.
 Abre PowerShell en la carpeta donde guardarás el proyecto y ejecuta:
 
 ```powershell
-git clone https://github.com/ngamez84/refanet_appmobil.git
-cd refanet_appmobil
+git clone https://github.com/cajacuenta767-sketch/rafael.net.git
+cd rafael.net
 flutter pub get
 ```
 
-También puedes abrir la carpeta `refanet_appmobil` directamente con Android
+También puedes abrir la carpeta `rafael.net` directamente con Android
 Studio y esperar a que termine la sincronización.
 
 ### 4. Preparar un celular Android
@@ -117,7 +135,19 @@ Desde Android Studio:
 La primera compilación puede tardar porque Gradle descarga herramientas de
 Android y dependencias. Las ejecuciones posteriores serán más rápidas.
 
-### 6. Probar el acceso por SMS
+### 6. Probar el flujo completo cliente → yonke
+
+1. Entra como **yonke**, abre **Cobertura** y guarda al menos una ciudad.
+2. Entra como **cliente** (SMS o Google), crea una solicitud eligiendo esa
+   misma ciudad y confirma el envío. La pantalla final indica si la solicitud
+   llegó a los yonkes o si el servidor la rechazó.
+3. Vuelve a entrar como yonke: la solicitud aparece en **Solicitudes**; al
+   cotizar, el cliente la ve en **Cotizaciones recibidas**.
+
+Si alguna llamada falla, la app muestra el mensaje exacto del servidor y no
+guarda nada localmente.
+
+### 7. Probar el acceso por SMS
 
 El flujo OTP de cliente está conectado a la API publicada de refaNet:
 
@@ -130,7 +160,7 @@ La entrega de SMS está confirmada para números mexicanos. Para una prueba real
 utiliza únicamente un número autorizado por el cliente o por el equipo de
 desarrollo. No pruebes números ajenos encontrados en Internet.
 
-### 7. Estado de Google y Apple
+### 8. Estado de Google y Apple
 
 Los botones de Google y Apple están incluidos en la interfaz.
 
@@ -143,7 +173,7 @@ Los botones de Google y Apple están incluidos en la interfaz.
 No agregues contraseñas, Client Secrets, API keys privadas ni archivos de
 credenciales al repositorio.
 
-### 8. Problemas frecuentes
+### 9. Problemas frecuentes
 
 Si Flutter indica que falta `.dart_tool/package_config.json`:
 
@@ -163,7 +193,7 @@ Si necesitas más detalle sobre la configuración local, ejecuta:
 flutter doctor -v
 ```
 
-### 9. Actualizar el proyecto
+### 10. Actualizar el proyecto
 
 Antes de continuar un trabajo ya iniciado, descarga los últimos cambios:
 

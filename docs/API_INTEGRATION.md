@@ -148,6 +148,9 @@ endpoint respondió con error o sin alguna clave necesaria.
 | `GET /api/SolicitudCotizacionMensajes/{guid}` y `PUT .../leer` | Conversaciones (cliente y yonke) | `SolicitudCotizacionMensajes`: `guidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`, `leido`, `fechaCreacion` |
 | `GET /api/Yonkes/{guid}` | Perfil del yonke | `nombre`, `responsable`, `telefono`, `correo`, `direccion`, `cp`, `ciudades.ciudad` |
 | `GET /api/YonkesCoberturas/guid/{guid}` y `PUT /api/YonkesCoberturas` | Cobertura del yonke | `ciudadId`, `activo` |
+| `POST /api/Solicitudes` | Envío de solicitud | `data.guidId` (o `data` como guid en texto); `success: false` se muestra con `message` |
+| `POST /api/SolicitudYonkes/{guid}/enviar` | Envío de solicitud | opcional: lista de `SolicitudYonkes`, número o `total`/`yonkesNotificados` para informar a cuántos yonkes llegó |
+| `POST /api/CotizacionYonke?solicitudYonkeGuidId=` | Cotizar (yonke) | `success`/`message`; con `success: false` se muestra el mensaje y el formulario se conserva |
 
 Las mismas formas están fijadas en `test/api_flows_test.dart` y
 `test/contract_parsers_test.dart`, que ejercitan pantallas y parsers con un
@@ -157,9 +160,43 @@ solicitud con lo capturado.
 
 ## Sin modo de prueba
 
-La aplicación ya no tiene modo demo ni datos locales de ejemplo: cada pantalla
-consulta la API con el token guardado al iniciar sesión. El yonke usa además el
-`yonkeGuidId` que entrega el login para perfil, cobertura y notificaciones.
+La aplicación no tiene modo demo, botón de "modo prueba" ni datos locales de
+ejemplo: cada pantalla consulta la API con el token guardado al iniciar sesión
+y, si el servidor falla, muestra el error con la opción de reintentar en lugar
+de inventar registros. El yonke usa además el `yonkeGuidId` que entrega el
+login para perfil, cobertura y notificaciones. Una sesión vencida (fecha de
+expiración informada por el servidor o claim `exp` del JWT) se borra y la app
+vuelve al inicio de sesión.
+
+## Cómo llega una solicitud del cliente al yonke
+
+El recorrido completo pasa por el servidor; nada se sincroniza en memoria.
+
+1. El yonke define sus **ciudades de cobertura** en la app
+   (`PUT /api/YonkesCoberturas`). Sin cobertura no recibe solicitudes.
+2. El cliente crea la solicitud (`POST /api/Solicitudes`) con la ciudad en
+   `ciudadesIds`. El servidor identifica al cliente por el token; la app no
+   envía ningún `usuarioId`.
+3. La app comprueba `GET /api/SolicitudCiudades/{id}/ciudades` y, si la ciudad
+   no quedó asociada, la agrega con `POST /api/SolicitudCiudades/{id}/ciudades`.
+4. Sube las fotografías con `POST /api/SolicitudesImagenes/{id}` (campo
+   `imagenes`, hasta tres archivos).
+5. Llama a `POST /api/SolicitudYonkes/{id}/enviar`. Este paso crea los registros
+   `SolicitudYonkes` para cada yonke con cobertura en esa ciudad. Si falla, la
+   pantalla lo dice (la solicitud existe pero nadie la recibió); si responde con
+   un conteo, se muestra a cuántos yonkes llegó, y si llegó a cero se avisa que
+   todavía no hay yonkes con cobertura.
+6. El yonke ve la solicitud en `GET /api/DashboardSuscriptores/mis-solicitudes`
+   (con su token), la marca como vista con `PUT /api/SolicitudYonkes/{id}/vista`
+   y cotiza con `POST /api/CotizacionYonke?solicitudYonkeGuidId=` (multipart).
+7. El cliente recibe la cotización en
+   `GET /api/DashboardSuscriptores/mis-cotizaciones` y puede conversar
+   (`SolicitudCotizacionMensajes`), crear la orden (`POST /api/Orden`) y
+   calificar (`POST /api/YonkesCalificaciones`).
+
+Si el servidor rechaza cualquier paso (por ejemplo, el límite de tres
+solicitudes por día por cliente), la app muestra el mensaje del servidor y no
+reintenta con otro usuario ni guarda la solicitud localmente.
 
 Quedan explícitamente marcadas como pendientes, con su mensaje en pantalla:
 

@@ -1,7 +1,7 @@
-import '../../../core/storage/session_sync_store.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_summary.dart';
+import '../../../core/network/paged_response.dart';
 
 abstract interface class YonkeRequestsRepository {
   Future<YonkeRequestsPageResult> getAssignedRequests({
@@ -20,14 +20,18 @@ class AssignedRequestsEndpointPendingException implements Exception {
   const AssignedRequestsEndpointPendingException();
 }
 
-/// Bandeja del yonke sobre `GET /api/DashboardSuscriptores/mis-solicitudes`.
+/// Bandeja del yonke sobre `GET /api/DashboardSuscriptores/mis-solicitudes`
+/// con el token del yonke.
 ///
-/// El OpenAPI no declara el cuerpo de esa respuesta. Se aceptan registros
-/// `SolicitudYonkes` (con `solicitudes` anidada) o una proyección plana con
-/// `solicitudYonkeGuidId`; cualquier otra forma se reporta como contrato
-/// pendiente en lugar de mostrar datos incompletos. Los filtros de estado,
-/// ciudad y fecha se aplican en la app porque el endpoint solo recibe
-/// `Page`, `Search` y `CantidadRegistrosPorPagina`.
+/// El servidor asigna una solicitud al yonke cuando el cliente la envía
+/// (`SolicitudYonkes/{id}/enviar`) y el yonke tiene cobertura en alguna de
+/// sus ciudades. Se aceptan registros `SolicitudYonkes` (con `solicitudes`
+/// anidada) o una proyección plana con `solicitudYonkeGuidId`; cualquier otra
+/// forma se reporta como contrato pendiente en lugar de mostrar datos
+/// incompletos. Los filtros de estado, ciudad y fecha se aplican en la app
+/// porque el endpoint solo recibe `Page`, `Search` y
+/// `CantidadRegistrosPorPagina`. Los errores HTTP se propagan para que la
+/// pantalla los muestre y ofrezca reintentar.
 class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
   const ApiYonkeRequestsRepository(this._dashboardApi, this._requestsApi);
 
@@ -42,42 +46,22 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     YonkeRequestFilters filters = const YonkeRequestFilters(),
   }) async {
     final safePage = page < 1 ? 1 : page;
-    dynamic response;
-    try {
-      response = await _dashboardApi.getMyRequests(
-        page: safePage,
-        pageSize: pageSize,
-        search: search == null || search.trim().isEmpty ? null : search.trim(),
-      );
-    } catch (_) {
-      // Ignorar error si está pendiente
-    }
-    final parsed =
-        response != null ? yonkeAssignedRequestsFromResponse(response) : null;
-    final list = parsed ?? <YonkeRequestSummary>[];
-    final sessionRequests = SessionSyncStore.instance.yonkeRequests;
-    final combined = <YonkeRequestSummary>[...sessionRequests];
-    for (final item in list) {
-      if (!combined.any((existing) => existing.requestId == item.requestId)) {
-        combined.add(item);
-      }
-    }
-    final updated = combined.map((item) {
-      if (SessionSyncStore.instance.isUnavailable(item.requestYonkeId)) {
-        return item.copyWith(status: YonkeRequestStatus.unavailable);
-      }
-      if (SessionSyncStore.instance.isQuoted(item.requestYonkeId)) {
-        return item.copyWith(status: YonkeRequestStatus.quoted, hasQuote: true);
-      }
-      return item;
-    }).toList();
+    final response = await _dashboardApi.getMyRequests(
+      page: safePage,
+      pageSize: pageSize,
+      search: search == null || search.trim().isEmpty ? null : search.trim(),
+    );
+    final parsed = yonkeAssignedRequestsFromResponse(response);
+    if (parsed == null) throw const AssignedRequestsEndpointPendingException();
 
-    final items = updated.where((item) => _matches(item, filters)).toList()
+    final items = parsed.where((item) => _matches(item, filters)).toList()
       ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+    // El servidor informa `meta.pageCount`; si no viene, se estima por tamaño.
+    final meta = pageMetaFromResponse(response);
     return YonkeRequestsPageResult(
       items: items,
       page: safePage,
-      hasMore: list.length >= pageSize,
+      hasMore: meta?.hasMore ?? parsed.length >= pageSize,
     );
   }
 
@@ -100,8 +84,6 @@ DateTime _startOfDay(DateTime value) =>
 DateTime _endOfDay(DateTime value) =>
     DateTime(value.year, value.month, value.day, 23, 59, 59, 999);
 
-/// Interpreta la lista de solicitudes asignadas. Devuelve `null` cuando la
-/// respuesta no es una lista o cuando trae registros sin la forma esperada.
 /// Extrae la lista de registros de una respuesta de API.
 List<dynamic>? _extractYonkeAssignedRecords(dynamic response) {
   if (response is List) return response;
@@ -163,7 +145,8 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
 
   final brands = request['marcas'];
   final models = request['modelos'];
-  final images = request['solicitudesImagenes'] ??
+  final images =
+      request['solicitudesImagenes'] ??
       request['solicitudImagenes'] ??
       request['imagenes'];
   final quotes = json['solicitudCotizaciones'];
@@ -199,18 +182,25 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     model:
         _text(request['modelo']) ??
         (models is Map ? _text(models['modelo']) : null),
-    year: (request['año'] as num?)?.toInt() ??
+    year:
+        (request['año'] as num?)?.toInt() ??
         (request['anio'] as num?)?.toInt() ??
         (request['ano'] as num?)?.toInt() ??
-        (request['year'] as num?)?.toInt() ??
-        (request['a\u00f1o'] as num?)?.toInt(),
+        (request['year'] as num?)?.toInt(),
     city: _cityName(request['solicitudesCiudades']),
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
-    imageUrl: _firstSafeImage(images) ??
+    engine: _text(request['motor']),
+    transmission: _text(request['transmicion']),
+    partNumber: _text(request['numeroParte']),
+    description: _text(request['descripcion']),
+    imageUrl:
+        _firstSafeImage(images) ??
         (request['urlImagen'] != null
-            ? _firstSafeImage([{'urlImagen': request['urlImagen']}])
+            ? _firstSafeImage([
+                {'urlImagen': request['urlImagen']},
+              ])
             : null),
   );
 }
@@ -220,7 +210,6 @@ String? _firstSafeImage(dynamic images) {
   for (final image in images.whereType<Map>()) {
     final value = _text(image['urlImagen']);
     if (value == null) continue;
-    if (value.startsWith('asset://assets/')) return value;
     if (value.startsWith('data:image/') && value.contains(';base64,')) {
       return value;
     }

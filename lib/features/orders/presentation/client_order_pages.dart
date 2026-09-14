@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
+import '../../payments/data/client_payments_repository.dart';
+import '../../payments/domain/payment_checkout.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
@@ -368,10 +372,16 @@ class ClientOrderTrackingPage extends ConsumerStatefulWidget {
     super.key,
     required this.args,
     this.repository,
+    this.paymentsRepository,
+    this.openUrl,
   });
 
   final ClientOrderTrackingArgs args;
   final ClientOrdersRepository? repository;
+  final ClientPaymentsRepository? paymentsRepository;
+
+  /// Abre la URL de Stripe en el navegador. Inyectable para pruebas.
+  final Future<bool> Function(Uri url)? openUrl;
 
   @override
   ConsumerState<ClientOrderTrackingPage> createState() =>
@@ -381,17 +391,85 @@ class ClientOrderTrackingPage extends ConsumerStatefulWidget {
 class _ClientOrderTrackingPageState
     extends ConsumerState<ClientOrderTrackingPage> {
   late final ClientOrdersRepository _repository;
+  late final ClientPaymentsRepository _payments;
   ClientOrder? _order;
   Object? _error;
   bool _loading = true;
   bool _cancelling = false;
+  bool _paying = false;
+  bool _checkingPayment = false;
+  PaymentCheckout? _checkout;
+  PaymentResult? _paymentResult;
+  String? _paymentError;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository ?? ref.read(clientOrdersRepositoryProvider);
+    _payments =
+        widget.paymentsRepository ?? ref.read(clientPaymentsRepositoryProvider);
     _load();
   }
+
+  /// Crea la sesión de Stripe Checkout y abre el navegador. El resultado se
+  /// consulta después con [_verifyPayment], porque la app no recibe el
+  /// retorno de Stripe (`/pago/exitoso` es una página del servidor).
+  Future<void> _pay() async {
+    final order = _order;
+    final orderId = order?.id;
+    if (order == null || orderId == null || _paying) return;
+    setState(() {
+      _paying = true;
+      _paymentError = null;
+    });
+    try {
+      final checkout = await _payments.createCheckout(orderId);
+      if (!mounted) return;
+      setState(() => _checkout = checkout);
+      final opened = await (widget.openUrl ?? _launchExternal)(checkout.url);
+      if (!opened && mounted) {
+        setState(
+          () => _paymentError =
+              'No se pudo abrir el navegador. Copia el enlace de pago: '
+              '${checkout.url}',
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _paymentError = error is ApiException
+            ? error.message
+            : 'No se pudo iniciar el pago. Revisa tu conexión.',
+      );
+    } finally {
+      if (mounted) setState(() => _paying = false);
+    }
+  }
+
+  Future<void> _verifyPayment() async {
+    final sessionId = _checkout?.sessionId;
+    if (sessionId == null || _checkingPayment) return;
+    setState(() {
+      _checkingPayment = true;
+      _paymentError = null;
+    });
+    try {
+      final result = await _payments.getResult(sessionId);
+      if (mounted) setState(() => _paymentResult = result);
+    } catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _paymentError = error is ApiException
+            ? error.message
+            : 'No se pudo consultar el pago. Inténtalo de nuevo.',
+      );
+    } finally {
+      if (mounted) setState(() => _checkingPayment = false);
+    }
+  }
+
+  static Future<bool> _launchExternal(Uri url) =>
+      launchUrl(url, mode: LaunchMode.externalApplication);
 
   Future<void> _load() async {
     setState(() {
@@ -489,6 +567,15 @@ class _ClientOrderTrackingPageState
                   order: _order!,
                   cancelling: _cancelling,
                   onCancel: _cancel,
+                  payment: _PaymentState(
+                    paying: _paying,
+                    checking: _checkingPayment,
+                    checkout: _checkout,
+                    result: _paymentResult,
+                    error: _paymentError,
+                    onPay: _pay,
+                    onVerify: _verifyPayment,
+                  ),
                 ),
         ),
       ),
@@ -502,12 +589,14 @@ class _TrackingContent extends StatelessWidget {
     required this.order,
     required this.cancelling,
     required this.onCancel,
+    required this.payment,
   });
 
   final ClientQuote quote;
   final ClientOrder order;
   final bool cancelling;
   final VoidCallback onCancel;
+  final _PaymentState payment;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -543,8 +632,16 @@ class _TrackingContent extends StatelessWidget {
             value: order.status ?? 'Pendiente de confirmar',
           ),
           _SummaryRow(label: 'Yonke', value: quote.yonkeName),
-          _SummaryRow(label: 'Cotización', value: quote.id),
-          if (order.id != null) _SummaryRow(label: 'Orden', value: order.id!),
+          _SummaryRow(
+            label: quote.requestFolio?.isNotEmpty == true
+                ? 'Folio'
+                : 'Cotización',
+            value: quote.requestFolio?.isNotEmpty == true
+                ? quote.requestFolio!
+                : _shortId(quote.id),
+          ),
+          if (order.id != null)
+            _SummaryRow(label: 'Orden', value: _shortId(order.id!)),
           if (order.createdAt != null)
             _SummaryRow(label: 'Creada', value: _formatDate(order.createdAt!)),
         ],
@@ -553,8 +650,20 @@ class _TrackingContent extends StatelessWidget {
         const SizedBox(height: 16),
         const _OrderStatusInfoCard(contractPending: true),
       ],
+      if (order.id != null && !order.isCancelled) ...[
+        const SizedBox(height: 22),
+        _PaymentSection(state: payment, price: quote.price),
+      ],
       const SizedBox(height: 22),
-      if (order.canCancel)
+      if (payment.result?.paid == true)
+        const Text(
+          key: Key('client-order-paid-lock'),
+          'La orden ya está pagada. Para cancelarla, acuerda el reembolso '
+          'con el yonke desde Mensajes.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF596276)),
+        )
+      else if (order.canCancel)
         OutlinedButton.icon(
           key: const Key('client-cancel-order'),
           onPressed: cancelling ? null : onCancel,
@@ -630,3 +739,130 @@ class _TrackingError extends StatelessWidget {
 
 String _formatDate(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+/// Los GUID completos no le dicen nada al usuario; se muestran los últimos
+/// caracteres para poder citarlos en soporte sin llenar la pantalla.
+String _shortId(String id) =>
+    id.length <= 12 ? id : '…${id.substring(id.length - 12)}';
+
+class _PaymentState {
+  const _PaymentState({
+    required this.paying,
+    required this.checking,
+    required this.checkout,
+    required this.result,
+    required this.error,
+    required this.onPay,
+    required this.onVerify,
+  });
+
+  final bool paying;
+  final bool checking;
+  final PaymentCheckout? checkout;
+  final PaymentResult? result;
+  final String? error;
+  final VoidCallback onPay;
+  final VoidCallback onVerify;
+}
+
+/// Pago con Stripe Checkout: `POST /api/Pagos/checkout/{orden}` abre el
+/// navegador y `GET /api/Pagos/resultado/{sessionId}` confirma el cobro.
+class _PaymentSection extends StatelessWidget {
+  const _PaymentSection({required this.state, required this.price});
+
+  final _PaymentState state;
+  final double price;
+
+  @override
+  Widget build(BuildContext context) {
+    final result = state.result;
+    final paid = result?.paid == true;
+    return _SummaryCard(
+      children: [
+        Row(
+          children: [
+            Icon(
+              paid ? Icons.verified_outlined : Icons.payment_outlined,
+              color: paid ? const Color(0xFF147A1D) : const Color(0xFF00695C),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                paid ? 'Pago confirmado' : 'Pago de la orden',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Text(
+              formatQuotePrice(price),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (result != null) ...[
+          _SummaryRow(label: 'Estado del pago', value: result.label),
+          if (result.message != null)
+            _SummaryRow(label: 'Detalle', value: result.message!),
+        ],
+        if (state.error != null) ...[
+          const SizedBox(height: 6),
+          SelectableText(
+            state.error!,
+            key: const Key('client-payment-error'),
+            style: const TextStyle(color: Color(0xFFB3261E), fontSize: 13),
+          ),
+        ],
+        const SizedBox(height: 10),
+        if (!paid)
+          FilledButton.icon(
+            key: const Key('client-pay-order'),
+            onPressed: state.paying ? null : state.onPay,
+            icon: state.paying
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.lock_outline),
+            label: Text(
+              state.checkout == null
+                  ? 'Pagar con Stripe'
+                  : 'Volver a abrir el pago',
+            ),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              backgroundColor: const Color(0xFF635BFF),
+            ),
+          ),
+        if (state.checkout?.sessionId != null && !paid) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const Key('client-verify-payment'),
+            onPressed: state.checking ? null : state.onVerify,
+            icon: state.checking
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            label: const Text('Ya pagué, verificar pago'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+        ],
+        if (state.checkout != null && state.checkout!.sessionId == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'El servidor no devolvió el identificador de la sesión; el '
+              'resultado del pago se verá cuando el yonke lo confirme.',
+              style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+}

@@ -166,6 +166,35 @@ List<String> requestCityNamesFromResponse(dynamic response) =>
         .whereType<String>()
         .toList(growable: false);
 
+/// Identificadores de ciudad asociados a la solicitud, según
+/// `GET /api/SolicitudCiudades/{id}/ciudades`. Devuelve `null` cuando la
+/// respuesta no tiene una forma reconocible (no se asume lista vacía).
+List<int>? requestCityIdsFromResponse(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : response;
+  final recognizable =
+      data is List ||
+      (data is Map &&
+          (data['data'] is List ||
+              data['items'] is List ||
+              data['registros'] is List ||
+              (data['solicitudHeader'] is Map &&
+                  (data['solicitudHeader'] as Map)['ciudadesSaveBySolicitud']
+                      is List)));
+  if (!recognizable) return null;
+  return _requestCityRecords(response)
+      .whereType<Map>()
+      .map((record) {
+        final nested = record['ciudades'];
+        final direct =
+            record['ciudadId'] ?? (nested is Map ? nested['id'] : null);
+        final value = direct ?? (nested == null ? record['id'] : null);
+        if (value is int) return value;
+        return int.tryParse(value?.toString() ?? '');
+      })
+      .whereType<int>()
+      .toList(growable: false);
+}
+
 List<dynamic> _requestCityRecords(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
   if (data is Map) {
