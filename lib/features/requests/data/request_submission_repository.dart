@@ -156,10 +156,13 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
       dispatched = await _requestsApi.sendToCoveredYonkes(requestId);
     } on ApiException catch (error) {
       // El servidor real despacha la solicitud a los yonkes con cobertura en
-      // el momento de crearla y `enviar` responde 500 sin cuerpo (comprobado
-      // en Swagger, 13/09/2026). Si la solicitud existe, el envío ya ocurrió y
-      // no se debe mostrar un error al cliente.
-      if (_isServerFailure(error) && await _requestExists(requestId)) {
+      // el momento de crearla y `enviar` responde 500 sin cuerpo, también con
+      // un cliente real y su propia solicitud (comprobado en Swagger,
+      // 14/09/2026). La solicitud ya quedó creada en este mismo flujo (el guid
+      // viene de `POST /api/Solicitudes`), así que un 5xx aquí no debe
+      // mostrarse como error al cliente. No se consulta
+      // `GET /api/Solicitudes/{guid}` porque responde 404 incluso al dueño.
+      if (_isServerFailure(error)) {
         return RequestSubmissionResult(
           requestId: requestId,
           dispatchMessage: autoDispatchNotice,
@@ -196,15 +199,6 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
 
   bool _isServerFailure(ApiException error) =>
       error.statusCode != null && error.statusCode! >= 500;
-
-  Future<bool> _requestExists(String requestId) async {
-    try {
-      final response = await _requestsApi.getById(requestId);
-      return envelopeErrorMessage(response) == null;
-    } catch (_) {
-      return false;
-    }
-  }
 
   /// `ciudadesIds` viaja en la creación, pero la asignación a yonkes depende
   /// de `SolicitudesCiudades`. Si el servidor no registró la ciudad, se agrega
