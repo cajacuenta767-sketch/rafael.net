@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 abstract final class AppConfig {
   static const googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: 'voghc370q9c4u041pric7f2lqvb606kg.apps.googleusercontent.com',
+    defaultValue: '15292015491-e9dsnm734tl797eat20a9i08khrhgk4q.apps.googleusercontent.com',
   );
 
   static const apiBaseUrl = String.fromEnvironment(
