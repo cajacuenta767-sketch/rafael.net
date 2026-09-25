@@ -2,9 +2,12 @@ import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quote_yonke_resolver.dart';
+import '../../profile/data/client_profile_repository.dart';
 import '../../quotes/data/quotes_api.dart';
+import '../../quotes/domain/client_contact.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../quotes/domain/quote_message.dart';
+import '../../yonke_messages/domain/quote_client.dart';
 import '../domain/client_message.dart';
 
 abstract interface class ClientMessagesRepository {
@@ -20,18 +23,27 @@ abstract interface class ClientMessagesRepository {
 /// Al abrir la conversación se marca como leída con
 /// `PUT /api/SolicitudCotizacionMensajes/{id}/leer`; si esa llamada falla no
 /// impide mostrar los mensajes.
+///
+/// Al escribir, agrega el contacto del perfil (nombre, teléfono y foto de
+/// Google) si el yonke todavía no lo tiene en esa conversación, para que lo
+/// vea sin que el cliente haga nada más (ver `client_contact.dart`).
 class ApiClientMessagesRepository implements ClientMessagesRepository {
   ApiClientMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
     this._tokenStore, [
     this._yonkeResolver,
+    this._profileRepository,
   ]);
 
   final QuotesApi _quotesApi;
   final DashboardApi _dashboardApi;
   final TokenStore _tokenStore;
   final QuoteYonkeResolver? _yonkeResolver;
+  final ClientProfileRepository? _profileRepository;
+
+  /// Último contacto compartido en cada conversación durante la sesión.
+  static final _sharedContacts = <String, QuoteClient>{};
 
   static const inboxLimit = 20;
 
@@ -103,7 +115,9 @@ class ApiClientMessagesRepository implements ClientMessagesRepository {
   Future<List<ClientQuoteMessage>> getConversation(String quoteId) async {
     final response = await _quotesApi.getConversation(quoteId);
     final viewerUserId = await currentUserIdFrom(_tokenStore);
-    final messages = quoteMessagesFromResponse(response)
+    final records = quoteMessagesFromResponse(response);
+    _rememberContact(quoteId, records);
+    final messages = records
         .map(
           (record) => ClientQuoteMessage(
             id: record.id,
@@ -130,7 +144,55 @@ class ApiClientMessagesRepository implements ClientMessagesRepository {
     required String quoteId,
     required String message,
   }) async {
-    await _quotesApi.sendMessage(quoteId: quoteId, message: message);
+    final contact = await _profileContact();
+    final share =
+        contact != null &&
+        !sameClientContact(await _sharedContact(quoteId), contact);
+    await _quotesApi.sendMessage(
+      quoteId: quoteId,
+      message: share ? signWithClientContact(message, contact) : message,
+    );
+    if (share) _sharedContacts[quoteId] = contact;
+  }
+
+  Future<QuoteClient?> _profileContact() async {
+    final repository = _profileRepository;
+    if (repository == null) return null;
+    try {
+      final profile = (await repository.load()).profile;
+      return clientContactFromProfile(
+        name: profile.name,
+        phone: profile.phone,
+        photoUrl: profile.photoUrl,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<QuoteClient?> _sharedContact(String quoteId) async {
+    final known = _sharedContacts[quoteId];
+    if (known != null) return known;
+    try {
+      _rememberContact(
+        quoteId,
+        quoteMessagesFromResponse(await _quotesApi.getConversation(quoteId)),
+      );
+    } catch (_) {
+      // Sin historial se vuelve a compartir: repetirlo no hace daño.
+    }
+    return _sharedContacts[quoteId];
+  }
+
+  static void _rememberContact(
+    String quoteId,
+    List<QuoteMessageRecord> records,
+  ) {
+    final contact = records
+        .where((record) => record.contact != null)
+        .lastOrNull
+        ?.contact;
+    if (contact != null) _sharedContacts[quoteId] = contact;
   }
 }
 

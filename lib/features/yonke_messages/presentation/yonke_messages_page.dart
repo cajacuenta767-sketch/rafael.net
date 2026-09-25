@@ -399,7 +399,10 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     try {
       final messages = await _repository.getConversation(widget.args.quote.id);
       if (!mounted || messages.length == _messages.length) return;
-      setState(() => _messages = messages);
+      setState(() {
+        _messages = messages;
+        _client = _contactIn(messages) ?? _client;
+      });
     } catch (_) {
       // La actualización automática no reemplaza el historial visible.
     }
@@ -415,6 +418,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       if (!mounted) return;
       setState(() {
         _messages = messages;
+        _client = _contactIn(messages) ?? _client;
         _loading = false;
       });
     } catch (error) {
@@ -427,10 +431,18 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     }
   }
 
+  /// El contacto más reciente que el cliente envió en el chat.
+  static QuoteClient? _contactIn(List<YonkeQuoteMessage> messages) => messages
+      .reversed
+      .map((message) => message.contact)
+      .firstWhere((contact) => contact != null, orElse: () => null);
+
   Future<void> _loadClient() async {
     try {
       final client = await _repository.getClient(widget.args.quote.id);
-      if (mounted && client != null) setState(() => _client = client);
+      if (mounted && client != null && _client == null) {
+        setState(() => _client = client);
+      }
     } catch (_) {
       // Sin datos del cliente se muestra "Cliente".
     }

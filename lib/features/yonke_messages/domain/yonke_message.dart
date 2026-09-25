@@ -26,6 +26,7 @@ class YonkeQuoteMessage {
     required this.sentAt,
     required this.fromClient,
     this.read = true,
+    this.contact,
   });
 
   final String id;
@@ -33,4 +34,7 @@ class YonkeQuoteMessage {
   final DateTime sentAt;
   final bool fromClient;
   final bool read;
+
+  /// Contacto que la app del cliente agregó a este mensaje.
+  final QuoteClient? contact;
 }

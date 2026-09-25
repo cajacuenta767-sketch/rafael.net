@@ -6,6 +6,8 @@ import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/messages/presentation/client_conversation_page.dart';
 import 'package:app_yonke/features/messages/data/client_messages_repository.dart';
 import 'package:app_yonke/features/messages/domain/client_message.dart';
+import 'package:app_yonke/features/profile/data/client_profile_repository.dart';
+import 'package:app_yonke/features/profile/domain/client_profile.dart';
 import 'package:app_yonke/features/quotes/domain/client_quote.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -111,6 +113,9 @@ void main() {
         overrides: [
           apiClientProvider.overrideWithValue(api),
           tokenStoreProvider.overrideWithValue(_MemoryTokenStore(_jwt)),
+          clientProfileRepositoryProvider.overrideWithValue(
+            _EmptyProfileRepository(),
+          ),
         ],
         child: const MaterialApp(
           home: ClientConversationPage(
@@ -406,4 +411,15 @@ class _MemoryTokenStore implements TokenStore {
     DateTime? expiresAt,
     String? yonkeGuidId,
   }) async => this.accessToken = accessToken;
+}
+
+/// Perfil sin teléfono: el mensaje sale sin línea de contacto.
+class _EmptyProfileRepository implements ClientProfileRepository {
+  @override
+  Future<ClientProfileSnapshot> load() async => const ClientProfileSnapshot(
+    availability: ClientProfileAvailability.unavailable,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

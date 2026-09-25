@@ -80,8 +80,15 @@ trata como "sin nombre". Con esos endpoints, la app solo cambia
 El cliente ve el nombre, el logo y el teléfono del yonke
 (`CotizacionYonke/{guid}` + `Yonkes/{guid}`), pero el yonke no tiene cómo
 ver al cliente: ninguna respuesta incluye datos de `Clientes` y el perfil
-del cliente vive solo en su teléfono (ver el pedido anterior). La bandeja y
-el chat del yonke muestran "Cliente · folio" hasta que el API lo entregue.
+del cliente vive solo en su teléfono (ver el pedido anterior).
+
+**Mientras tanto (sin cambios en el API):** al escribir en una conversación,
+la app del cliente agrega una última línea con su contacto, una vez por
+conversación o cuando cambia (`lib/features/quotes/domain/client_contact.dart`):
+`Contacto: Nombre | +52... | https://foto-de-google`. Ambas apps la quitan del
+texto del chat y el yonke la muestra como nombre, foto, teléfono y botones
+de llamar y WhatsApp. La foto solo viaja si es la de Google (URL https); la
+foto elegida en el teléfono no tiene dónde subirse en el API.
 
 La app del yonke ya lee al cliente de `GET /api/CotizacionYonke/{guid}` en
 cualquiera de estas formas (`QuoteClient` en

@@ -142,6 +142,7 @@ final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
     ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
     ref.watch(quoteYonkeResolverProvider),
+    ref.watch(clientProfileRepositoryProvider),
   ),
 );
 final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(

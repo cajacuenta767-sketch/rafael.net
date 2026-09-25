@@ -67,7 +67,6 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
 
     final previews = await Future.wait(
       quotes.take(inboxLimit).map((quote) async {
-        final client = getClient(quote.id);
         List<QuoteMessageRecord> messages;
         try {
           messages = quoteMessagesFromResponse(
@@ -87,7 +86,8 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
                   ),
             )
             .length;
-        final known = await client;
+        final known =
+            _latestContact(messages, viewerUserId) ?? await getClient(quote.id);
         final name = known?.name ?? 'Cliente';
         return YonkeMessagePreview(
           quote: quote,
@@ -118,6 +118,7 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
               viewerIsClient: false,
             ),
             read: record.read,
+            contact: _clientContact(record, viewerUserId),
           ),
         )
         .toList(growable: false);
@@ -139,6 +140,19 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
     required String message,
   }) => _quotesApi.sendMessage(quoteId: quoteId, message: message);
 }
+
+/// Contacto de un mensaje, solo si lo escribió el cliente.
+QuoteClient? _clientContact(QuoteMessageRecord record, String? viewerUserId) =>
+    record.isFromClient(viewerUserId: viewerUserId, viewerIsClient: false)
+    ? record.contact
+    : null;
+
+QuoteClient? _latestContact(
+  List<QuoteMessageRecord> messages,
+  String? viewerUserId,
+) => messages.reversed
+    .map((record) => _clientContact(record, viewerUserId))
+    .firstWhere((contact) => contact != null, orElse: () => null);
 
 class YonkeMessagesInboxContractPendingException implements Exception {
   const YonkeMessagesInboxContractPendingException();
