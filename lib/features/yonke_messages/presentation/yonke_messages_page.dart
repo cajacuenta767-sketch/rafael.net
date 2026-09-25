@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/realtime/realtime_service.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
@@ -347,6 +350,9 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
   bool _loading = true;
   bool _sending = false;
   Object? _error;
+  Timer? _refreshTimer;
+  StreamSubscription<String>? _realtime;
+  late final RealtimeService _realtimeService;
 
   @override
   void initState() {
@@ -354,12 +360,38 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     _repository =
         widget.repository ?? ref.read(yonkeMessagesRepositoryProvider);
     _load();
+    // SignalR avisa al instante; el sondeo queda como respaldo por si el hub
+    // no acepta la conexión.
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _refreshSilently(),
+    );
+    _realtimeService = ref.read(realtimeServiceProvider);
+    final quoteId = widget.args.quote.id;
+    _realtime = _realtimeService.newMessages
+        .where((id) => id == quoteId)
+        .listen((_) => _refreshSilently());
+    _realtimeService.watchQuote(quoteId);
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
+    _realtime?.cancel();
+    _realtimeService.unwatchQuote(widget.args.quote.id);
     _messageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshSilently() async {
+    if (_loading || _sending || !mounted) return;
+    try {
+      final messages = await _repository.getConversation(widget.args.quote.id);
+      if (!mounted || messages.length == _messages.length) return;
+      setState(() => _messages = messages);
+    } catch (_) {
+      // La actualización automática no reemplaza el historial visible.
+    }
   }
 
   Future<void> _load() async {

@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../domain/client_request.dart';
 
@@ -58,60 +58,30 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       );
       if (!mounted) return;
 
-      final sessionQuotes = SessionSyncStore.instance.clientQuotes.where(
-        (q) =>
-            q.requestId == widget.requestId ||
-            (detail != null &&
-                detail.summary.folio != null &&
-                q.requestFolio == detail.summary.folio),
-      );
-      final remoteQuotes = detail == null
+      final quotes = detail == null
           ? <ClientQuote>[]
           : clientQuotesFromDashboard(results[3])
-              .where((quote) {
-                if (quote.requestId.isNotEmpty) {
-                  return quote.requestId == widget.requestId;
-                }
-                return quote.requestFolio != null &&
-                    quote.requestFolio == detail.summary.folio;
-              })
-              .toList(growable: false);
-      final mergedQuotes = <ClientQuote>[...sessionQuotes];
-      for (final q in remoteQuotes) {
-        if (!mergedQuotes.any((existing) => existing.id == q.id)) {
-          mergedQuotes.add(q);
-        }
-      }
+                .where((quote) {
+                  if (quote.requestId.isNotEmpty) {
+                    return quote.requestId == widget.requestId;
+                  }
+                  return quote.requestFolio != null &&
+                      quote.requestFolio == detail.summary.folio;
+                })
+                .toList(growable: false);
 
       setState(() {
         _detail = detail;
-        _quotes = mergedQuotes;
+        _quotes = quotes;
         _loading = false;
       });
-    } catch (_) {
-      final sessionReq = SessionSyncStore.instance.clientRequests
-          .cast<ClientRequestSummary?>()
-          .firstWhere((r) => r?.id == widget.requestId, orElse: () => null);
-      if (sessionReq != null) {
-        final sessionQuotes = SessionSyncStore.instance.clientQuotes
-            .where((q) => q.requestId == widget.requestId)
-            .toList();
-        if (!mounted) return;
-        setState(() {
-          _detail = ClientRequestDetail(
-            summary: sessionReq,
-            cities: const [],
-            imageUrls: sessionReq.imageUrl != null ? [sessionReq.imageUrl!] : const [],
-          );
-          _quotes = sessionQuotes;
-          _loading = false;
-        });
-        return;
-      }
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No se pudo cargar esta solicitud. Inténtalo nuevamente.';
+        _error = error is ApiException
+            ? error.message
+            : 'No se pudo cargar esta solicitud. Inténtalo nuevamente.';
       });
     }
   }
@@ -221,18 +191,30 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _cancelling = true);
-    SessionSyncStore.instance.removeRequest(widget.requestId);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(requestsApiProvider).cancel(
+      await ref
+          .read(requestsApiProvider)
+          .cancel(
             requestId: widget.requestId,
             notes: (noteText?.isEmpty ?? true) ? null : noteText,
           );
-    } catch (_) {
-      // Si el servidor falla o ya fue retirada, el estado local ya fue actualizado.
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _cancelling = false);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : 'No se pudo cancelar la solicitud. Inténtalo nuevamente.',
+          ),
+        ),
+      );
+      return;
     }
 
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(content: Text('Solicitud cancelada correctamente.')),
     );

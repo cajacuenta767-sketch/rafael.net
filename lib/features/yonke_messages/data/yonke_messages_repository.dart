@@ -1,3 +1,4 @@
+import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
@@ -34,7 +35,18 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
 
   @override
   Future<List<YonkeMessagePreview>> getInbox() async {
-    final page = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes());
+    // `mis-cotizaciones` es del rol Cliente en el API publicado; si lo
+    // rechaza para el yonke, la bandeja queda como contrato pendiente.
+    final dynamic response;
+    try {
+      response = await _dashboardApi.getMyQuotes();
+    } on ApiException catch (error) {
+      if (error.statusCode == 403 || error.statusCode == 404) {
+        throw const YonkeMessagesInboxContractPendingException();
+      }
+      rethrow;
+    }
+    final page = yonkeQuotesPageFromResponse(response);
     if (page == null) throw const YonkeMessagesInboxContractPendingException();
     final quotes = [...page.items]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));

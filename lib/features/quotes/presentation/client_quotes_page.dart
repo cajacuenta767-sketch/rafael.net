@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../domain/client_quote.dart';
 
@@ -33,28 +32,11 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
       _error = null;
     });
     try {
-      List<ClientQuote> remoteQuotes = const [];
-      try {
-        final response = await ref.read(dashboardApiProvider).getMyQuotes();
-        remoteQuotes = clientQuotesFromDashboard(response)
-            .where((quote) => quote.active)
-            .toList();
-      } catch (_) {
-        // Continuar con los de sesión si la respuesta remota está pendiente
-      }
-      final sessionQuotes = SessionSyncStore.instance.clientQuotes;
-      final allQuotes = <ClientQuote>[...sessionQuotes];
-      for (final item in remoteQuotes) {
-        if (!allQuotes.any((existing) =>
-            existing.id == item.id || existing.requestId == item.requestId)) {
-          allQuotes.add(item);
-        }
-      }
+      final response = await ref.read(dashboardApiProvider).getMyQuotes();
+      final allQuotes = clientQuotesFromDashboard(response);
       allQuotes.sort(
         (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(
-              a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-            ),
+            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
       );
       if (!mounted) return;
       setState(() {
@@ -68,41 +50,6 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
         _loading = false;
       });
     }
-  }
-
-  Future<void> _deleteQuote(String quoteId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar cotización?'),
-        content: const Text(
-          '¿Deseas descartar esta cotización? Ya no aparecerá en tu lista.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            key: const Key('confirm-delete-quote-button'),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFB3261E),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() {
-      _quotes = _quotes.where((q) => q.id != quoteId).toList();
-    });
-    SessionSyncStore.instance.removeRequest(quoteId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cotización eliminada.')),
-    );
   }
 
   @override
@@ -247,16 +194,6 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    key: Key('delete-quote-${quote.id}'),
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: Color(0xFFB3261E),
-                      size: 22,
-                    ),
-                    tooltip: 'Eliminar cotización',
-                    onPressed: () => _deleteQuote(quote.id),
                   ),
                   const Icon(
                     Icons.chevron_right_rounded,

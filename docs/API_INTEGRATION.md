@@ -72,6 +72,59 @@ Los logs HTTP están apagados por defecto para no exponer tokens o datos
 personales. Solo durante desarrollo pueden activarse con
 `--dart-define=ENABLE_NETWORK_LOGS=true`.
 
+### Todas las variables
+
+| Variable | Obligatoria | Uso |
+| --- | --- | --- |
+| `API_BASE_URL` | No (Azure por defecto) | Servidor del API |
+| `APP_ENV` | No | `development` o `production` |
+| `GOOGLE_SERVER_CLIENT_ID` | No (proyecto Rafael Net por defecto) | Client ID **Web** de Google; debe ser el mismo valor que `Google:ClientId` en la configuración del API en Azure |
+| `SIGNALR_HUB_PATH` | No (`/hubs/notificaciones`) | Hub de mensajes en tiempo real |
+| `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_SENDER_ID`, `FIREBASE_PROJECT_ID` | Para push | Opciones de Firebase de la app `com.refanet.app`. Sin ellas la app funciona y solo desactiva el push |
+| `FIREBASE_IOS_BUNDLE_ID` | No (`com.refanet.app`) | Bundle de iOS registrado en Firebase |
+
+Compilación de prueba contra Azure con push activo:
+
+```shell
+flutter run --release \
+  --dart-define=APP_ENV=production \
+  --dart-define=FIREBASE_API_KEY=... \
+  --dart-define=FIREBASE_APP_ID=1:...:android:... \
+  --dart-define=FIREBASE_SENDER_ID=... \
+  --dart-define=FIREBASE_PROJECT_ID=...
+```
+
+Los valores de Firebase están en la consola de Firebase → Configuración del
+proyecto → app Android `com.refanet.app`. Deben venir del **mismo proyecto**
+cuya cuenta de servicio usa el API para enviar (`FirebaseAdmin`); si son de
+otro proyecto, el registro funciona pero los avisos nunca llegan.
+
+### Google Sign-In
+
+1. En Google Cloud (proyecto Rafael Net) debe existir un cliente OAuth
+   **Web**; su ID va en `GOOGLE_SERVER_CLIENT_ID` y en `Google:ClientId` del
+   API. El API valida la audiencia del `idToken` contra ese valor: si no
+   coinciden, el login responde 401.
+2. Debe existir un cliente OAuth **Android** con el paquete
+   `com.refanet.app` y el SHA-1 de la firma de depuración y de la de release
+   (`keytool -list -v -keystore <keystore>`). Sin él, el selector de cuentas
+   se cierra con `DEVELOPER_ERROR` / código 10.
+3. En iOS, un cliente OAuth **iOS** para el bundle definitivo y su
+   `REVERSED_CLIENT_ID` como URL scheme en `ios/Runner/Info.plist`.
+
+### Push en iOS
+
+Además de las variables de Firebase: subir la llave APNs a Firebase, activar
+*Push Notifications* en Xcode (agrega `aps-environment` al entitlement) y
+alinear el bundle `com.example.appYonke` con `com.refanet.app`.
+`UIBackgroundModes: remote-notification` ya está en `Info.plist`.
+
+### Tiempo real
+
+Las conversaciones se unen al grupo de la cotización en `/hubs/notificaciones`
+(`UnirseCotizacion`) y se refrescan con `NuevoMensaje`. Si el hub rechaza la
+conexión, la conversación sigue actualizándose cada 15 segundos.
+
 ## Decisiones de seguridad
 
 - El token se guarda mediante almacenamiento seguro de iOS/Android.
@@ -143,7 +196,8 @@ endpoint respondió con error o sin alguna clave necesaria.
 | `GET /api/CotizacionYonke/{guid}` | Detalle de cotización | las mismas del renglón anterior |
 | `GET /api/Orden/cotizacion/{guid}` | Detalle de cotización | `404` significa que no hay orden previa |
 | `GET /api/DashboardSuscriptores/mi-solicitud-reciente` | Inicio del cliente | `Solicitud_Busqueda_DTO` (objeto o lista de uno) |
-| `GET /api/DashboardSuscriptores/mis-solicitudes` | Mis solicitudes (cliente) y bandeja del yonke | `guidId`, `piezaBuscada`, `marca`, `modelo`, `año`, `estatusSolicitud`, `totalCotizaciones`; para el yonke, registros `SolicitudYonkes` con `solicitudes` anidada |
+| `GET /api/DashboardSuscriptores/mis-solicitudes` | Mis solicitudes (cliente) | `guidId`, `piezaBuscada`, `marca`, `modelo`, `año`, `estatusSolicitud`, `totalCotizaciones` |
+| `GET /api/SolicitudYonkes/MisSolicitudes` | Bandeja del yonke | registros `SolicitudYonkes` con `solicitudes` anidada, o proyección plana con `solicitudYonkeGuidId` |
 | `GET /api/Solicitudes/{guid}` + `SolicitudesImagenes/solicitud/{guid}` + `SolicitudCiudades/{guid}/ciudades` | Detalle de solicitud | `Solicitud_Busqueda_DTO`, `urlImagen`, `ciudades.ciudad` + `entidades.entidad` |
 | `GET /api/SolicitudCotizacionMensajes/{guid}` y `PUT .../leer` | Conversaciones (cliente y yonke) | `SolicitudCotizacionMensajes`: `guidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`, `leido`, `fechaCreacion` |
 | `GET /api/Yonkes/{guid}` | Perfil del yonke | `nombre`, `responsable`, `telefono`, `correo`, `direccion`, `cp`, `ciudades.ciudad` |
@@ -155,20 +209,21 @@ cliente HTTP simulado. El OpenAPI no publica un buscador de refacciones: la
 pantalla de búsqueda usa marcas y modelos reales y, al buscar, ofrece crear la
 solicitud con lo capturado.
 
-## Sin modo de prueba
+## Sin datos inventados
 
-La aplicación ya no tiene modo demo ni datos locales de ejemplo: cada pantalla
-consulta la API con el token guardado al iniciar sesión. El yonke usa además el
-`yonkeGuidId` que entrega el login para perfil, cobertura y notificaciones.
+Cada pantalla consulta la API con el token guardado al iniciar sesión. Si una
+llamada falla se muestra el mensaje del servidor con "Reintentar"; nunca se
+mezclan solicitudes, cotizaciones o ciudades locales con las del servidor. El
+acceso "Ingresar en modo prueba" y su mercado local solo existen en
+compilaciones de depuración.
 
-Quedan explícitamente marcadas como pendientes, con su mensaje en pantalla:
+Pendientes marcados en pantalla:
 
 - Buscador de refacciones y catálogo de categorías: no existen en el OpenAPI.
-- Notificaciones: falta Firebase Cloud Messaging en la app; el registro
-  `POST /api/YonkesDispositivos` ya está listo.
-- Edición del perfil del yonke y del cliente.
-- Checkout y resultado de pago (`Pagos`): el cliente HTTP existe, pero la
-  respuesta no está documentada y no hay flujo de retorno definido.
+- Lista de cotizaciones y bandeja de mensajes del yonke: el API solo publica
+  `mis-cotizaciones` para el rol Cliente (ver `docs/BACKEND_ISSUES.md`).
+- Alta y baja de yonkes: el API las reserva al rol Soporte; la app lo explica.
+- Checkout y resultado de pago (`Pagos`): fuera de esta integración.
 - Apple Sign In (requiere configuración en Mac).
 
 ## Fuera del alcance móvil

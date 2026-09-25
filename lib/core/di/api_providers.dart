@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_api.dart';
@@ -20,22 +21,29 @@ import '../../features/yonkes/data/client_yonkes_repository.dart';
 import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
-import '../../features/yonke_notifications/data/yonke_notifications_repository.dart';
 import '../../features/yonke_profile/data/yonke_profile_repository.dart';
 import '../../features/messages/data/client_messages_repository.dart';
 import '../../features/yonke_requests/data/yonke_request_detail_repository.dart';
 import '../../features/yonke_requests/data/yonke_requests_repository.dart';
 import '../network/api_client.dart';
+import '../push/push_service.dart';
+import '../realtime/realtime_service.dart';
 import '../network/development_api_client.dart';
 import '../network/dio_api_client.dart';
+import '../storage/notifying_token_store.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 
-final tokenStoreProvider = Provider<TokenStore>((ref) => SecureTokenStore());
+final tokenStoreProvider = Provider<TokenStore>(
+  (ref) => NotifyingTokenStore(SecureTokenStore()),
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokens = ref.watch(tokenStoreProvider);
-  return DevelopmentApiClient(DioApiClient(tokens), tokens);
+  final remote = DioApiClient(tokens);
+  // El mercado de prueba solo existe en depuración; en release todas las
+  // llamadas van directo al API.
+  return kDebugMode ? DevelopmentApiClient(remote, tokens) : remote;
 });
 
 final authApiProvider = Provider<AuthApi>(
@@ -58,7 +66,10 @@ final requestsApiProvider = Provider<RequestsApi>(
 );
 final requestSubmissionRepositoryProvider =
     Provider<RequestSubmissionRepository>(
-      (ref) => ApiRequestSubmissionRepository(ref.watch(requestsApiProvider)),
+      (ref) => ApiRequestSubmissionRepository(
+        ref.watch(requestsApiProvider),
+        ref.watch(dashboardApiProvider),
+      ),
     );
 final quotesApiProvider = Provider<QuotesApi>(
   (ref) => QuotesApi(ref.watch(apiClientProvider)),
@@ -88,10 +99,7 @@ final yonkeReputationRepositoryProvider = Provider<YonkeReputationRepository>(
   (ref) => ApiYonkeReputationRepository(ref.watch(yonkesApiProvider)),
 );
 final yonkeRequestsRepositoryProvider = Provider<YonkeRequestsRepository>(
-  (ref) => ApiYonkeRequestsRepository(
-    ref.watch(dashboardApiProvider),
-    ref.watch(requestsApiProvider),
-  ),
+  (ref) => ApiYonkeRequestsRepository(ref.watch(requestsApiProvider)),
 );
 final yonkeRequestDetailRepositoryProvider =
     Provider<YonkeRequestDetailRepository>(
@@ -125,10 +133,6 @@ final yonkeProfileRepositoryProvider = Provider<YonkeProfileRepository>(
     ref.watch(tokenStoreProvider),
   ),
 );
-final yonkeNotificationsRepositoryProvider =
-    Provider<YonkeNotificationsRepository>(
-      (ref) => ApiYonkeNotificationsRepository(ref.watch(yonkesApiProvider)),
-    );
 final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
   (ref) => ApiClientMessagesRepository(
     ref.watch(quotesApiProvider),
@@ -142,3 +146,20 @@ final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(
 final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>(
   (ref) => SecureSearchHistoryRepository(),
 );
+
+final pushServiceProvider = Provider<PushService>((ref) {
+  final service = PushService(
+    platform: FirebasePushPlatform(),
+    tokens: ref.watch(tokenStoreProvider),
+    authApi: ref.watch(authApiProvider),
+    yonkesApi: ref.watch(yonkesApiProvider),
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+final realtimeServiceProvider = Provider<RealtimeService>((ref) {
+  final service = RealtimeService(ref.watch(tokenStoreProvider));
+  ref.onDispose(service.stop);
+  return service;
+});

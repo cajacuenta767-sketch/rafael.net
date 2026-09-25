@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/realtime/realtime_service.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../data/client_messages_repository.dart';
@@ -303,6 +304,8 @@ class _ClientConversationPageState
   late final ClientMessagesRepository _repository;
   List<ClientQuoteMessage> _messages = const [];
   Timer? _refreshTimer;
+  StreamSubscription<String>? _realtime;
+  late final RealtimeService _realtimeService;
   bool _loading = true;
   bool _sending = false;
   Object? _error;
@@ -313,15 +316,25 @@ class _ClientConversationPageState
     _repository =
         widget.repository ?? ref.read(clientMessagesRepositoryProvider);
     _load();
+    // SignalR avisa al instante; el sondeo queda como respaldo por si el hub
+    // no acepta la conexión.
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 15),
       (_) => _refreshSilently(),
     );
+    _realtimeService = ref.read(realtimeServiceProvider);
+    final quoteId = widget.args.quote.id;
+    _realtime = _realtimeService.newMessages
+        .where((id) => id == quoteId)
+        .listen((_) => _refreshSilently());
+    _realtimeService.watchQuote(quoteId);
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _realtime?.cancel();
+    _realtimeService.unwatchQuote(widget.args.quote.id);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

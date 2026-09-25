@@ -1,4 +1,4 @@
-import '../../../core/storage/session_sync_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../domain/yonke_quote.dart';
@@ -27,26 +27,22 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     String? search,
     YonkeQuoteFilters filters = const YonkeQuoteFilters(),
   }) async {
-    List<YonkeQuote> remoteItems = const [];
+    // El API publicado no tiene una lista de cotizaciones del yonke:
+    // `mis-cotizaciones` es del rol Cliente. Si el servidor la rechaza (403) o
+    // responde con otra forma se informa como contrato pendiente; cualquier
+    // otro error se propaga en lugar de mostrarse como lista vacía.
+    final dynamic response;
     try {
-      final response = await _dashboardApi.getMyQuotes();
-      final parsed = yonkeQuotesPageFromResponse(response);
-      if (parsed != null) {
-        remoteItems = parsed.items;
+      response = await _dashboardApi.getMyQuotes();
+    } on ApiException catch (error) {
+      if (error.statusCode == 403 || error.statusCode == 404) {
+        throw const YonkeQuotesContractPendingException();
       }
-    } catch (_) {
-      // Si el endpoint no devuelve registros, se continúa con los de sesión
+      rethrow;
     }
-
-    final sessionItems = SessionSyncStore.instance.yonkeQuotes;
-    final allItems = <YonkeQuote>[...sessionItems];
-    for (final item in remoteItems) {
-      if (!allItems.any((existing) =>
-          existing.id == item.id ||
-          existing.requestYonkeId == item.requestYonkeId)) {
-        allItems.add(item);
-      }
-    }
+    final parsed = yonkeQuotesPageFromResponse(response);
+    if (parsed == null) throw const YonkeQuotesContractPendingException();
+    final allItems = parsed.items;
 
     return _filterAndPage(
       allItems,
@@ -59,11 +55,6 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
 
   @override
   Future<YonkeQuote> getById(String quoteId) async {
-    final local = SessionSyncStore.instance.yonkeQuotes
-        .cast<YonkeQuote?>()
-        .firstWhere((q) => q?.id == quoteId, orElse: () => null);
-    if (local != null) return local;
-
     final response = await _quotesApi.getById(quoteId);
     final quote = yonkeQuoteFromResponse(response);
     if (quote == null) throw const YonkeQuoteNotFoundException();

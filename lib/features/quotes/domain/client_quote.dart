@@ -68,9 +68,11 @@ List<ClientQuote> clientQuotesFromDashboard(dynamic response) {
     Map() when data['registros'] is List => data['registros'] as List,
     _ => const <dynamic>[],
   };
+  // `mis-cotizaciones` ya filtra `Activo` en el servidor, pero su proyección
+  // no incluye el campo (siempre llega `false`); por eso aquí se asume activo.
   return records
       .whereType<Map>()
-      .map(clientQuoteFromJson)
+      .map((json) => clientQuoteFromJson(json, fromActiveList: true))
       .whereType<ClientQuote>()
       .toList();
 }
@@ -80,7 +82,10 @@ ClientQuote? clientQuoteFromResponse(dynamic response) {
   return data is Map ? clientQuoteFromJson(data) : null;
 }
 
-ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
+ClientQuote? clientQuoteFromJson(
+  Map<dynamic, dynamic> json, {
+  bool fromActiveList = false,
+}) {
   final rawRequestYonke = json['solicitudYonkes'];
   final requestYonke = rawRequestYonke is Map ? rawRequestYonke : null;
   final yonke = requestYonke?['yonkes'];
@@ -112,15 +117,16 @@ ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
     partName: _cleanText(json['piezaBuscada']),
     brand: _cleanText(json['marca']),
     model: _cleanText(json['modelo']),
-    year: (json['anio'] as num?)?.toInt(),
+    year: ((json['año'] ?? json['anio']) as num?)?.toInt(),
     createdAt: DateTime.tryParse(
       json['fechaCreacionCotizacion']?.toString() ??
           json['fechaCreacion']?.toString() ??
           '',
     )?.toLocal(),
+    // `solicitudYonkeGuidId` identifica la asignación, no al yonke.
     yonkeId:
         requestYonke?['yonkeGuidId']?.toString() ??
-        json['solicitudYonkeGuidId']?.toString() ??
+        json['yonkeGuidId']?.toString() ??
         '',
     yonkeName: yonke is Map && yonke['nombre'] != null
         ? yonke['nombre'].toString()
@@ -141,7 +147,7 @@ ClientQuote? clientQuoteFromJson(Map<dynamic, dynamic> json) {
     warrantyDays: (json['diasGarantia'] as num?)?.toInt() ?? 0,
     shippingAvailable: json['envioDisponible'] == true,
     shippingCost: (json['costoEnvio'] as num?)?.toDouble(),
-    active: json['activo'] == true,
+    active: fromActiveList || json['activo'] == true,
     status: status is Map && status['descripcion'] != null
         ? status['descripcion'].toString()
         : json['estatusSolicitud']?.toString() ?? 'Sin estado',

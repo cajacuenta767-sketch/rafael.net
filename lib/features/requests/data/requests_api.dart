@@ -39,12 +39,9 @@ class RequestsApi {
     String? transmission,
     String? partNumber,
     String? description,
-    String? userId,
   }) => _client.post(
     ApiEndpoints.requests,
     data: {
-      if (userId != null && userId.trim().isNotEmpty)
-        'usuarioId': userId.trim(),
       'marcaId': brandId,
       'modeloId': modelId,
       'año': year,

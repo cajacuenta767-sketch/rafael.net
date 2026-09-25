@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
-import '../data/yonke_notifications_repository.dart';
-import '../domain/yonke_notification.dart';
+import '../../../core/push/push_service.dart';
 
+/// Avisos push del yonke (nuevas solicitudes y mensajes) recibidos en esta
+/// sesión, junto con el estado del registro del dispositivo en el API.
 class YonkeNotificationsPage extends ConsumerStatefulWidget {
-  const YonkeNotificationsPage({super.key, this.yonkeId, this.repository});
+  const YonkeNotificationsPage({super.key, this.yonkeId});
 
   /// Identificador del yonke. Si no se indica, se lee el `yonkeGuidId` que
   /// guardó el inicio de sesión.
   final String? yonkeId;
-  final YonkeNotificationsRepository? repository;
 
   @override
   ConsumerState<YonkeNotificationsPage> createState() =>
@@ -20,51 +22,35 @@ class YonkeNotificationsPage extends ConsumerStatefulWidget {
 
 class _YonkeNotificationsPageState
     extends ConsumerState<YonkeNotificationsPage> {
-  late final YonkeNotificationsRepository _repository;
-  YonkeNotificationSnapshot? _snapshot;
+  late final PushService _push;
   bool _loading = true;
   bool _identityPending = false;
-  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _repository =
-        widget.repository ?? ref.read(yonkeNotificationsRepositoryProvider);
+    _push = ref.read(pushServiceProvider);
     _load();
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _identityPending = false;
-      _error = null;
-    });
-    try {
-      final yonkeId =
-          widget.yonkeId ??
-          await ref.read(tokenStoreProvider).readYonkeGuidId();
-      final snapshot = await _repository.load(yonkeId: yonkeId);
-      if (!mounted) return;
+    setState(() => _loading = true);
+    final yonkeId =
+        widget.yonkeId ?? await ref.read(tokenStoreProvider).readYonkeGuidId();
+    if (!mounted) return;
+    if (yonkeId == null || yonkeId.isEmpty) {
       setState(() {
-        _snapshot = snapshot;
+        _identityPending = true;
         _loading = false;
       });
-    } on YonkeNotificationIdentityPendingException {
-      if (mounted) {
-        setState(() {
-          _identityPending = true;
-          _loading = false;
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _error = error;
-          _loading = false;
-        });
-      }
+      return;
     }
+    await _push.registerCurrentSession();
+    if (!mounted) return;
+    setState(() {
+      _identityPending = false;
+      _loading = false;
+    });
   }
 
   @override
@@ -88,45 +74,94 @@ class _YonkeNotificationsPageState
 
   Widget _body() {
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_identityPending) return const _IdentityPending();
-    if (_error != null) {
-      return _StateCard(
-        icon: Icons.cloud_off_outlined,
-        title: 'No pudimos abrir las notificaciones',
-        message: 'Revisa tu conexión e inténtalo nuevamente.',
-        action: OutlinedButton(
-          onPressed: _load,
-          child: const Text('Reintentar'),
-        ),
+    if (_identityPending) {
+      return const _StateCard(
+        icon: Icons.admin_panel_settings_outlined,
+        title: 'Notificaciones pendientes de sesión',
+        message:
+            'La sesión no incluye el identificador del yonke (yonkeGuidId). '
+            'Vuelve a iniciar sesión para registrar este dispositivo.',
       );
     }
-    return switch (_snapshot?.setup) {
-      YonkeNotificationSetup.identityPending => const _IdentityPending(),
-      YonkeNotificationSetup.firebasePending ||
-      null => const _FirebasePending(),
-    };
+    return ValueListenableBuilder<List<PushNotice>>(
+      valueListenable: _push.inbox,
+      builder: (context, notices, _) => ValueListenableBuilder<PushStatus>(
+        valueListenable: _push.status,
+        builder: (context, status, _) {
+          if (notices.isNotEmpty) return _NoticeList(notices: notices);
+          return switch (status) {
+            PushStatus.notConfigured => const _StateCard(
+              icon: Icons.notifications_paused_outlined,
+              title: 'Avisos push no configurados',
+              message:
+                  'Esta compilación no incluye la configuración de Firebase. '
+                  'Las solicitudes y mensajes siguen llegando a sus bandejas.',
+            ),
+            PushStatus.permissionDenied => const _StateCard(
+              icon: Icons.notifications_off_outlined,
+              title: 'Permiso de notificaciones desactivado',
+              message:
+                  'Activa las notificaciones de Refanet en los ajustes del '
+                  'teléfono para recibir avisos de nuevas solicitudes.',
+            ),
+            PushStatus.registrationFailed => _StateCard(
+              icon: Icons.cloud_off_outlined,
+              title: 'No pudimos registrar este dispositivo',
+              message: 'Revisa tu conexión e inténtalo nuevamente.',
+              action: OutlinedButton(
+                onPressed: _load,
+                child: const Text('Reintentar'),
+              ),
+            ),
+            PushStatus.registered || PushStatus.unknown => const _StateCard(
+              icon: Icons.notifications_active_outlined,
+              title: 'Sin notificaciones nuevas',
+              message:
+                  'Te avisaremos aquí y en el teléfono cuando llegue una '
+                  'solicitud o un mensaje de un cliente.',
+            ),
+          };
+        },
+      ),
+    );
   }
 }
 
-class _IdentityPending extends StatelessWidget {
-  const _IdentityPending();
+class _NoticeList extends StatelessWidget {
+  const _NoticeList({required this.notices});
+
+  final List<PushNotice> notices;
 
   @override
-  Widget build(BuildContext context) => const _StateCard(
-    icon: Icons.admin_panel_settings_outlined,
-    title: 'Notificaciones pendientes de sesión',
-    message: 'La sesión no incluye el identificador del yonke (yonkeGuidId). Vuelve a iniciar sesión para registrar este dispositivo.',
-  );
-}
-
-class _FirebasePending extends StatelessWidget {
-  const _FirebasePending();
-
-  @override
-  Widget build(BuildContext context) => const _StateCard(
-    icon: Icons.notifications_paused_outlined,
-    title: 'Firebase pendiente de configurar',
-    message: 'La API ya permite registrar el token del dispositivo (POST /api/YonkesDispositivos). Falta conectar Firebase Cloud Messaging y pedir el permiso del sistema para recibir avisos reales.',
+  Widget build(BuildContext context) => ListView.separated(
+    padding: const EdgeInsets.all(16),
+    itemCount: notices.length,
+    separatorBuilder: (_, _) => const SizedBox(height: 10),
+    itemBuilder: (context, index) {
+      final notice = notices[index];
+      return Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: Icon(
+            notice.isNewMessage
+                ? Icons.chat_bubble_outline
+                : Icons.assignment_outlined,
+          ),
+          title: Text(
+            notice.title,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: notice.body.isEmpty ? null : Text(notice.body),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go(
+            notice.isNewMessage
+                ? AppRoutes.yonkeMessages
+                : AppRoutes.yonkeRequests,
+          ),
+        ),
+      );
+    },
   );
 }
 

@@ -207,7 +207,11 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {
-        _message = error.message.isNotEmpty
+        // El API publicado reserva el alta de yonkes al rol Soporte.
+        _message = error.statusCode == 401 || error.statusCode == 403
+            ? 'El alta de yonkes la realiza el equipo de soporte de Refanet. '
+                  'Escríbenos con estos datos y te enviamos tu acceso.'
+            : error.message.isNotEmpty
             ? error.message
             : 'No pudimos completar el registro. Verifica los datos.';
       });

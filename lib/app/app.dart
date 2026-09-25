@@ -3,34 +3,67 @@ import 'dart:async';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/di/api_providers.dart';
+import '../core/push/push_service.dart';
 import '../core/session/session_events.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
-class YonkeApp extends StatefulWidget {
+class YonkeApp extends ConsumerStatefulWidget {
   const YonkeApp({super.key});
 
   @override
-  State<YonkeApp> createState() => _YonkeAppState();
+  ConsumerState<YonkeApp> createState() => _YonkeAppState();
 }
 
-class _YonkeAppState extends State<YonkeApp> {
+class _YonkeAppState extends ConsumerState<YonkeApp> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  late final StreamSubscription<void> _expiredSubscription;
+  final _subscriptions = <StreamSubscription<Object?>>[];
 
   @override
   void initState() {
     super.initState();
-    _expiredSubscription = SessionEvents.expired.listen(
-      (_) => _onSessionExpired(),
-    );
+    final push = ref.read(pushServiceProvider);
+    _subscriptions
+      ..add(SessionEvents.expired.listen((_) => _onSessionExpired()))
+      // El push y el tiempo real siguen a la sesión guardada.
+      ..add(SessionEvents.signedIn.listen((_) => push.registerCurrentSession()))
+      ..add(SessionEvents.signedOut.listen((_) => _onSignedOut()))
+      ..add(push.openedNotices.listen(_openNotice));
+    // Una sesión que sigue abierta desde la ejecución anterior.
+    push.registerCurrentSession();
   }
 
   @override
   void dispose() {
-    _expiredSubscription.cancel();
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
     super.dispose();
+  }
+
+  void _onSignedOut() {
+    ref.read(pushServiceProvider).unregister();
+    ref.read(realtimeServiceProvider).stop();
+  }
+
+  /// Abre la pantalla del aviso que el usuario tocó.
+  Future<void> _openNotice(PushNotice notice) async {
+    final isYonke =
+        (await ref.read(tokenStoreProvider).readYonkeGuidId())?.isNotEmpty ==
+        true;
+    final target = notice.targetId;
+    if (isYonke) {
+      appRouter.go(
+        notice.isNewMessage ? AppRoutes.yonkeMessages : AppRoutes.yonkeRequests,
+      );
+    } else if (notice.isNewMessage && target != null) {
+      appRouter.go(AppRoutes.clientQuoteDetail(target));
+    } else {
+      appRouter.go(AppRoutes.clientNotifications);
+    }
   }
 
   /// Lleva al login del rol activo. Varias peticiones pueden recibir 401 a la

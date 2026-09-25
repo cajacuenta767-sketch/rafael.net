@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_exception.dart';
+
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 import '../domain/yonke_request_summary.dart';
@@ -54,9 +55,9 @@ class _YonkeRequestDetailPageState
     try {
       final effectiveRequestId =
           (widget.request?.requestId != null &&
-                  widget.request!.requestId.isNotEmpty)
-              ? widget.request!.requestId
-              : widget.requestYonkeId;
+              widget.request!.requestId.isNotEmpty)
+          ? widget.request!.requestId
+          : widget.requestYonkeId;
       final detail = await _repository.getDetail(
         requestId: effectiveRequestId,
         requestYonkeId: widget.requestYonkeId,
@@ -108,8 +109,19 @@ class _YonkeRequestDetailPageState
         detail.requestYonkeId,
         brandId: detail.brandId,
       );
-    } catch (e) {
-      SessionSyncStore.instance.recordUnavailable(detail.requestYonkeId);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : 'No se pudo marcar como no disponible. Inténtalo nuevamente.',
+          ),
+        ),
+      );
+      return;
     }
     if (!mounted) return;
     setState(() {
