@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../core/network/api_exception.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
 
@@ -183,39 +185,14 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
       if (mounted) {
         context.go(AppRoutes.yonkeHome);
       }
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-      SessionSyncStore.instance.recordQuote(
-        requestYonkeId: widget.requestYonkeId,
-        submission: submission,
-        detail: widget.detail,
-      );
       setState(() => _submitting = false);
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text(
-            '¡Cotización enviada!',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-          content: const Text(
-            'El cliente ya puede consultar tu precio y condiciones.',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            FilledButton(
-              key: const Key('quote-success-button'),
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Entendido'),
-            ),
-          ],
-        ),
+      _message(
+        error is ApiException
+            ? error.message
+            : 'No se pudo enviar la cotización. Inténtalo nuevamente.',
       );
-      if (mounted) {
-        context.go(AppRoutes.yonkeHome);
-      }
     }
   }
 

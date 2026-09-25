@@ -17,6 +17,10 @@ class DioApiClient implements ApiClient {
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: AppConfig.connectTimeout,
               receiveTimeout: AppConfig.receiveTimeout,
+              sendTimeout: AppConfig.sendTimeout,
+              // Un endpoint con [Authorize] sin esquema JWT responde 302 hacia
+              // /Account/Login; seguirlo ocultaría que la sesión no se aceptó.
+              followRedirects: false,
               headers: const {'Accept': 'application/json'},
             ),
           ) {
@@ -33,7 +37,7 @@ class DioApiClient implements ApiClient {
         },
         onError: (error, handler) async {
           // Un 401 con token enviado significa que la sesión ya no es válida.
-          if (error.response?.statusCode == 401 &&
+          if (_isUnauthorized(error.response) &&
               error.requestOptions.headers.containsKey('Authorization')) {
             await _tokenStore.clear();
             SessionEvents.notifyExpired();
@@ -167,10 +171,40 @@ class DioApiClient implements ApiClient {
         queryParameters: _withoutNulls(queryParameters),
         options: Options(method: method),
       );
+      _throwIfEnvelopeFailed(response.data, response.statusCode);
       return response.data;
     } on DioException catch (error) {
       throw _mapException(error);
     }
+  }
+
+  /// El API a veces responde 200 con `success: false` en `ApiResponseGlobal`;
+  /// eso es un error de negocio y no debe interpretarse como datos vacíos.
+  static void _throwIfEnvelopeFailed(Object? body, int? httpStatus) {
+    if (body is! Map || body['success'] != false) return;
+    final message = _firstText(body, const ['message', 'mensaje']);
+    final code = body['statusCode'];
+    throw ApiException(
+      message: message ?? 'La operación no se pudo completar.',
+      statusCode: code is num && code >= 400 ? code.toInt() : httpStatus,
+      details: body,
+    );
+  }
+
+  static String? _firstText(Map<dynamic, dynamic> body, List<String> keys) {
+    for (final key in keys) {
+      final value = body[key];
+      if (value is String && value.trim().isNotEmpty) return value.trim();
+    }
+    return null;
+  }
+
+  static bool _isUnauthorized(Response<dynamic>? response) {
+    if (response == null) return false;
+    if (response.statusCode == 401) return true;
+    final location = response.headers.value('location') ?? '';
+    return response.statusCode == 302 &&
+        location.toLowerCase().contains('/account/login');
   }
 
   Map<String, dynamic>? _withoutNulls(Map<String, dynamic>? values) {
@@ -185,11 +219,9 @@ class DioApiClient implements ApiClient {
     String? serverMessage;
 
     if (responseData is Map<String, dynamic>) {
-      // 1. Mensaje directo
-      if (responseData['message'] is String &&
-          (responseData['message'] as String).trim().isNotEmpty) {
-        serverMessage = (responseData['message'] as String).trim();
-      }
+      // 1. Mensaje directo (`message` en ApiResponseGlobal, `mensaje` en
+      // Orden, Yonkes/updateInfo y ActualizarLogo).
+      serverMessage = _firstText(responseData, const ['message', 'mensaje']);
 
       // 2. Errores de validación de ASP.NET Core: "errors": {"Campo": ["Error 1"]}
       if (serverMessage == null && responseData['errors'] is Map) {
@@ -231,13 +263,21 @@ class DioApiClient implements ApiClient {
       if (serverMessage == null && responseData['title'] is String) {
         serverMessage = (responseData['title'] as String).trim();
       }
-    } else if (responseData is String && responseData.trim().isNotEmpty) {
+    } else if (responseData is String &&
+        responseData.trim().isNotEmpty &&
+        !responseData.trimLeft().startsWith('<')) {
       serverMessage = responseData.trim();
     }
 
+    final unauthorized = _isUnauthorized(error.response);
+    final code = unauthorized ? 401 : error.response?.statusCode;
+    serverMessage = _friendlyServerMessage(serverMessage);
+
     if (serverMessage == null || serverMessage.isEmpty) {
-      final code = error.response?.statusCode;
-      if (code == 400) {
+      if (_isTimeout(error)) {
+        serverMessage =
+            'El servidor tardó demasiado en responder. Inténtalo de nuevo.';
+      } else if (code == 400) {
         serverMessage =
             'Los datos enviados no son válidos. Revisa la información.';
       } else if (code == 401) {
@@ -247,8 +287,7 @@ class DioApiClient implements ApiClient {
       } else if (code == 404) {
         serverMessage = 'El recurso solicitado no fue encontrado.';
       } else if (code != null && code >= 500) {
-        serverMessage =
-            'El servidor no está disponible en este momento. Inténtalo más tarde.';
+        serverMessage = 'El servidor no está disponible en este momento. Inténtalo más tarde.';
       } else {
         serverMessage =
             'No fue posible conectar con el servidor. Revisa tu conexión.';
@@ -257,8 +296,32 @@ class DioApiClient implements ApiClient {
 
     return ApiException(
       message: serverMessage,
-      statusCode: error.response?.statusCode,
+      statusCode: code,
       details: responseData,
     );
+  }
+
+  static bool _isTimeout(DioException error) => const {
+    DioExceptionType.connectionTimeout,
+    DioExceptionType.sendTimeout,
+    DioExceptionType.receiveTimeout,
+  }.contains(error.type);
+
+  /// El API envuelve algunos errores de negocio en un 500 con
+  /// "Error interno: …". Se conserva el detalle útil y se quita el prefijo.
+  static String? _friendlyServerMessage(String? message) {
+    if (message == null) return null;
+    final lower = message.toLowerCase();
+    if (lower.contains('solicitudes') &&
+        (lower.contains('por día') ||
+            lower.contains('por dia') ||
+            lower.contains('diari') ||
+            lower.contains('límite') ||
+            lower.contains('limite'))) {
+      return 'Alcanzaste el límite de solicitudes por día. '
+          'Inténtalo de nuevo mañana.';
+    }
+    final internal = RegExp(r'^error interno:\s*', caseSensitive: false);
+    return message.replaceFirst(internal, '').trim();
   }
 }

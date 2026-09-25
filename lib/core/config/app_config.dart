@@ -22,4 +22,7 @@ abstract final class AppConfig {
 
   static const connectTimeout = Duration(seconds: 20);
   static const receiveTimeout = Duration(seconds: 30);
+  static const sendTimeout = Duration(seconds: 60);
+
+  static bool get isProduction => environmentName == 'production';
 }

@@ -1,6 +1,4 @@
-import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
-import '../../../core/storage/session_sync_store.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_detail.dart';
@@ -49,41 +47,24 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
       summary: summary,
     );
     if (detail == null) throw const YonkeRequestDetailNotFoundException();
-    if (SessionSyncStore.instance.isUnavailable(requestYonkeId)) {
-      return detail.copyWith(status: YonkeRequestStatus.unavailable);
-    }
-    if (SessionSyncStore.instance.isQuoted(requestYonkeId)) {
-      return detail.copyWith(status: YonkeRequestStatus.quoted);
-    }
     return detail;
   }
 
   @override
   Future<void> markUnavailable(String requestYonkeId, {int? brandId}) async {
-    try {
-      await _quotesApi.create(
-        requestYonkeId: requestYonkeId,
-        fields: {
-          'Precio': 0,
-          'Disponible': false,
-          'EsNueva': false,
-          'MarcaId': ?brandId,
-          'Comentarios': 'Pieza no disponible',
-          'DiasGarantia': 0,
-          'EnvioDisponible': false,
-          'TieneGarantia': false,
-        },
-      );
-    } catch (e) {
-      final msg = (e is ApiException ? e.message : e.toString()).toLowerCase();
-      if (msg.contains('no existe') ||
-          msg.contains('solicitud enviada al yonke')) {
-        SessionSyncStore.instance.recordUnavailable(requestYonkeId);
-        return;
-      }
-      rethrow;
-    }
-    SessionSyncStore.instance.recordUnavailable(requestYonkeId);
+    await _quotesApi.create(
+      requestYonkeId: requestYonkeId,
+      fields: {
+        'Precio': 0,
+        'Disponible': false,
+        'EsNueva': false,
+        'MarcaId': ?brandId,
+        'Comentarios': 'Pieza no disponible',
+        'DiasGarantia': 0,
+        'EnvioDisponible': false,
+        'TieneGarantia': false,
+      },
+    );
   }
 
   @override
@@ -92,53 +73,34 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeQuoteSubmission submission, {
     YonkeRequestDetail? detail,
   }) async {
-    try {
-      await _quotesApi.create(
-        requestYonkeId: requestYonkeId,
-        fields: {
-          'Precio': submission.price,
-          'Disponible': true,
-          'EsNueva': submission.isNew,
-          if (submission.brandId != null) 'MarcaId': submission.brandId,
-          if (_notBlank(submission.partNumber))
-            'NumeroParte': submission.partNumber!.trim(),
-          if (_notBlank(submission.comments))
-            'Comentarios': submission.comments!.trim(),
-          if (submission.deliveryDays != null)
-            'TiempoEntregaDias': submission.deliveryDays,
-          'DiasGarantia': submission.hasWarranty ? submission.warrantyDays : 0,
-          'EnvioDisponible': submission.shippingAvailable,
-          if (submission.shippingAvailable && submission.shippingCost != null)
-            'CostoEnvio': submission.shippingCost,
-          'TieneGarantia': submission.hasWarranty,
-        },
-        images: submission.images
-            .map(
-              (image) => ApiFile(
-                fieldName: 'Imagenes',
-                fileName: image.fileName,
-                bytes: image.bytes,
-              ),
-            )
-            .toList(),
-      );
-    } catch (e) {
-      final msg = (e is ApiException ? e.message : e.toString()).toLowerCase();
-      if (msg.contains('no existe') ||
-          msg.contains('solicitud enviada al yonke')) {
-        SessionSyncStore.instance.recordQuote(
-          requestYonkeId: requestYonkeId,
-          submission: submission,
-          detail: detail,
-        );
-        return;
-      }
-      rethrow;
-    }
-    SessionSyncStore.instance.recordQuote(
+    await _quotesApi.create(
       requestYonkeId: requestYonkeId,
-      submission: submission,
-      detail: detail,
+      fields: {
+        'Precio': submission.price,
+        'Disponible': true,
+        'EsNueva': submission.isNew,
+        if (submission.brandId != null) 'MarcaId': submission.brandId,
+        if (_notBlank(submission.partNumber))
+          'NumeroParte': submission.partNumber!.trim(),
+        if (_notBlank(submission.comments))
+          'Comentarios': submission.comments!.trim(),
+        if (submission.deliveryDays != null)
+          'TiempoEntregaDias': submission.deliveryDays,
+        'DiasGarantia': submission.hasWarranty ? submission.warrantyDays : 0,
+        'EnvioDisponible': submission.shippingAvailable,
+        if (submission.shippingAvailable && submission.shippingCost != null)
+          'CostoEnvio': submission.shippingCost,
+        'TieneGarantia': submission.hasWarranty,
+      },
+      images: submission.images
+          .map(
+            (image) => ApiFile(
+              fieldName: 'Imagenes',
+              fileName: image.fileName,
+              bytes: image.bytes,
+            ),
+          )
+          .toList(),
     );
   }
 }

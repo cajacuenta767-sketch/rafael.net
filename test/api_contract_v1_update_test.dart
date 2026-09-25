@@ -1,8 +1,6 @@
 import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_exception.dart';
 import 'package:app_yonke/core/network/api_file.dart';
-import 'package:app_yonke/core/storage/session_sync_store.dart';
-import 'package:app_yonke/features/dashboard/data/dashboard_api.dart';
 import 'package:app_yonke/features/requests/data/requests_api.dart';
 import 'package:app_yonke/features/yonke_home/presentation/yonke_home_page.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_requests_repository.dart';
@@ -11,8 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 /// Rutas agregadas al contrato V1: `SolicitudYonkes/MisSolicitudes`
 /// y `CotizacionYonke/MisCotizaciones/Total`.
 void main() {
-  setUp(SessionSyncStore.instance.clear);
-
   Map<String, dynamic> assignment(String id, String part, String date) => {
     'guidId': 'assignment-$id',
     'solicitudGuidId': 'request-$id',
@@ -21,7 +17,7 @@ void main() {
   };
 
   ApiYonkeRequestsRepository repositoryFor(_RoutedClient client) =>
-      ApiYonkeRequestsRepository(DashboardApi(client), RequestsApi(client));
+      ApiYonkeRequestsRepository(RequestsApi(client));
 
   group('bandeja del yonke', () {
     test('usa MisSolicitudes y pagina en la app', () async {
@@ -64,36 +60,31 @@ void main() {
       expect(result.items.single.requestYonkeId, 'assignment-1');
     });
 
-    test('recurre al dashboard si MisSolicitudes falla', () async {
+    test('no recurre al dashboard del cliente: propaga el error', () async {
+      const forbidden = ApiException(message: 'Prohibido', statusCode: 403);
       final client = _RoutedClient({
-        '/api/SolicitudYonkes/MisSolicitudes': const ApiException(
-          message: 'No encontrado',
-          statusCode: 404,
-        ),
-        '/api/DashboardSuscriptores/mis-solicitudes': {
-          'data': [assignment('9', 'Faro', '2026-09-01T10:00:00Z')],
-        },
-      });
-
-      final result = await repositoryFor(client)
-          .getAssignedRequests(page: 1, pageSize: 20);
-
-      expect(result.items.single.requestYonkeId, 'assignment-9');
-    });
-
-    test('un error de ambas rutas no se muestra como bandeja vacía', () async {
-      const unauthorized = ApiException(
-        message: 'No autorizado',
-        statusCode: 401,
-      );
-      final client = _RoutedClient({
-        '/api/SolicitudYonkes/MisSolicitudes': unauthorized,
-        '/api/DashboardSuscriptores/mis-solicitudes': unauthorized,
+        '/api/SolicitudYonkes/MisSolicitudes': forbidden,
       });
 
       await expectLater(
         repositoryFor(client).getAssignedRequests(page: 1, pageSize: 20),
         throwsA(isA<ApiException>()),
+      );
+      expect(client.calls, ['/api/SolicitudYonkes/MisSolicitudes']);
+    });
+
+    test('una respuesta con otra forma es contrato pendiente', () async {
+      final client = _RoutedClient({
+        '/api/SolicitudYonkes/MisSolicitudes': {
+          'data': [
+            {'otro': 'campo'},
+          ],
+        },
+      });
+
+      await expectLater(
+        repositoryFor(client).getAssignedRequests(page: 1, pageSize: 20),
+        throwsA(isA<AssignedRequestsEndpointPendingException>()),
       );
     });
   });

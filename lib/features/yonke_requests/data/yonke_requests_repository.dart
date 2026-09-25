@@ -1,5 +1,3 @@
-import '../../../core/storage/session_sync_store.dart';
-import '../../dashboard/data/dashboard_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_summary.dart';
 
@@ -20,9 +18,9 @@ class AssignedRequestsEndpointPendingException implements Exception {
   const AssignedRequestsEndpointPendingException();
 }
 
-/// Bandeja del yonke sobre `GET /api/SolicitudYonkes/MisSolicitudes`, con
-/// `GET /api/DashboardSuscriptores/mis-solicitudes` como respaldo mientras el
-/// servidor publique la nueva ruta.
+/// Bandeja del yonke sobre `GET /api/SolicitudYonkes/MisSolicitudes`. Los
+/// endpoints de `DashboardSuscriptores` son solo del rol Cliente, así que no
+/// sirven de respaldo para el yonke (responderían 403).
 ///
 /// El OpenAPI no declara el cuerpo de esas respuestas. Se aceptan registros
 /// `SolicitudYonkes` (con `solicitudes` anidada) o una proyección plana con
@@ -31,9 +29,8 @@ class AssignedRequestsEndpointPendingException implements Exception {
 /// ciudad y fecha se aplican en la app porque el endpoint solo recibe
 /// `Page`, `Search` y `CantidadRegistrosPorPagina`.
 class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
-  const ApiYonkeRequestsRepository(this._dashboardApi, this._requestsApi);
+  const ApiYonkeRequestsRepository(this._requestsApi);
 
-  final DashboardApi _dashboardApi;
   final RequestsApi _requestsApi;
 
   @override
@@ -47,75 +44,30 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     final cleanSearch = search == null || search.trim().isEmpty
         ? null
         : search.trim();
-    Object? loadError;
-    var paged = true;
-    List<YonkeRequestSummary>? parsed;
-    try {
-      final assigned = yonkeAssignedRequestsFromResponse(
-        await _requestsApi.getAssignedToYonke(),
-      );
-      if (assigned != null) {
-        // MisSolicitudes entrega la bandeja completa: la búsqueda y la
-        // paginación se resuelven aquí.
-        paged = false;
-        parsed = cleanSearch == null
-            ? assigned
-            : assigned
-                  .where((item) => _matchesSearch(item, cleanSearch))
-                  .toList();
-      }
-    } catch (error) {
-      loadError = error;
+    // Un fallo de red, de sesión o de permisos se propaga: nunca se muestra
+    // como bandeja vacía.
+    final assigned = yonkeAssignedRequestsFromResponse(
+      await _requestsApi.getAssignedToYonke(),
+    );
+    if (assigned == null) {
+      throw const AssignedRequestsEndpointPendingException();
     }
-    if (parsed == null) {
-      try {
-        parsed = yonkeAssignedRequestsFromResponse(
-          await _dashboardApi.getMyRequests(
-            page: safePage,
-            pageSize: pageSize,
-            search: cleanSearch,
-          ),
-        );
-      } catch (error) {
-        loadError ??= error;
-      }
-    }
-    final sessionRequests = SessionSyncStore.instance.yonkeRequests;
-    // Un fallo de red o de sesión no debe verse como una bandeja vacía.
-    if (parsed == null && loadError != null && sessionRequests.isEmpty) {
-      throw loadError;
-    }
-    final list = parsed ?? <YonkeRequestSummary>[];
-    final combined = <YonkeRequestSummary>[...sessionRequests];
-    for (final item in list) {
-      if (!combined.any((existing) => existing.requestId == item.requestId)) {
-        combined.add(item);
-      }
-    }
-    final updated = combined.map((item) {
-      if (SessionSyncStore.instance.isUnavailable(item.requestYonkeId)) {
-        return item.copyWith(status: YonkeRequestStatus.unavailable);
-      }
-      if (SessionSyncStore.instance.isQuoted(item.requestYonkeId)) {
-        return item.copyWith(status: YonkeRequestStatus.quoted, hasQuote: true);
-      }
-      return item;
-    }).toList();
-
-    final items = updated.where((item) => _matches(item, filters)).toList()
-      ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
-    if (!paged) {
-      final start = (safePage - 1) * pageSize;
-      return YonkeRequestsPageResult(
-        items: items.skip(start).take(pageSize).toList(growable: false),
-        page: safePage,
-        hasMore: items.length > start + pageSize,
-      );
-    }
+    // MisSolicitudes entrega la bandeja completa: la búsqueda, los filtros y
+    // la paginación se resuelven aquí.
+    final items =
+        assigned
+            .where(
+              (item) =>
+                  (cleanSearch == null || _matchesSearch(item, cleanSearch)) &&
+                  _matches(item, filters),
+            )
+            .toList()
+          ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+    final start = (safePage - 1) * pageSize;
     return YonkeRequestsPageResult(
-      items: items,
+      items: items.skip(start).take(pageSize).toList(growable: false),
       page: safePage,
-      hasMore: list.length >= pageSize,
+      hasMore: items.length > start + pageSize,
     );
   }
 
@@ -212,7 +164,8 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
 
   final brands = request['marcas'];
   final models = request['modelos'];
-  final images = request['solicitudesImagenes'] ??
+  final images =
+      request['solicitudesImagenes'] ??
       request['solicitudImagenes'] ??
       request['imagenes'];
   final quotes = json['solicitudCotizaciones'];
@@ -248,7 +201,8 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     model:
         _text(request['modelo']) ??
         (models is Map ? _text(models['modelo']) : null),
-    year: (request['año'] as num?)?.toInt() ??
+    year:
+        (request['año'] as num?)?.toInt() ??
         (request['anio'] as num?)?.toInt() ??
         (request['ano'] as num?)?.toInt() ??
         (request['year'] as num?)?.toInt() ??
@@ -257,9 +211,12 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
-    imageUrl: _firstSafeImage(images) ??
+    imageUrl:
+        _firstSafeImage(images) ??
         (request['urlImagen'] != null
-            ? _firstSafeImage([{'urlImagen': request['urlImagen']}])
+            ? _firstSafeImage([
+                {'urlImagen': request['urlImagen']},
+              ])
             : null),
   );
 }

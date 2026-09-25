@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_api.dart';
@@ -35,7 +36,10 @@ final tokenStoreProvider = Provider<TokenStore>((ref) => SecureTokenStore());
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokens = ref.watch(tokenStoreProvider);
-  return DevelopmentApiClient(DioApiClient(tokens), tokens);
+  final remote = DioApiClient(tokens);
+  // El mercado de prueba solo existe en depuración; en release todas las
+  // llamadas van directo al API.
+  return kDebugMode ? DevelopmentApiClient(remote, tokens) : remote;
 });
 
 final authApiProvider = Provider<AuthApi>(
@@ -58,7 +62,10 @@ final requestsApiProvider = Provider<RequestsApi>(
 );
 final requestSubmissionRepositoryProvider =
     Provider<RequestSubmissionRepository>(
-      (ref) => ApiRequestSubmissionRepository(ref.watch(requestsApiProvider)),
+      (ref) => ApiRequestSubmissionRepository(
+        ref.watch(requestsApiProvider),
+        ref.watch(dashboardApiProvider),
+      ),
     );
 final quotesApiProvider = Provider<QuotesApi>(
   (ref) => QuotesApi(ref.watch(apiClientProvider)),
@@ -88,10 +95,7 @@ final yonkeReputationRepositoryProvider = Provider<YonkeReputationRepository>(
   (ref) => ApiYonkeReputationRepository(ref.watch(yonkesApiProvider)),
 );
 final yonkeRequestsRepositoryProvider = Provider<YonkeRequestsRepository>(
-  (ref) => ApiYonkeRequestsRepository(
-    ref.watch(dashboardApiProvider),
-    ref.watch(requestsApiProvider),
-  ),
+  (ref) => ApiYonkeRequestsRepository(ref.watch(requestsApiProvider)),
 );
 final yonkeRequestDetailRepositoryProvider =
     Provider<YonkeRequestDetailRepository>(
