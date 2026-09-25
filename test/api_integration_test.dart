@@ -16,6 +16,7 @@ import 'package:app_yonke/features/requests/domain/request_submission.dart';
 import 'package:app_yonke/features/quotes/data/quotes_api.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_request_detail_repository.dart';
 import 'package:app_yonke/features/quotes/data/quote_yonke_resolver.dart';
+import 'package:app_yonke/features/yonke_messages/data/quote_client_resolver.dart';
 import 'package:app_yonke/features/yonke_messages/data/yonke_messages_repository.dart';
 import 'package:app_yonke/features/yonke_quotes/data/yonke_quote_registry.dart';
 import 'package:app_yonke/features/yonke_requests/domain/yonke_request_detail.dart';
@@ -426,6 +427,98 @@ void main() {
 
       expect(inbox.single.quote.id, 'q-nueva');
       expect(inbox.single.lastMessage, 'Hola');
+    });
+  });
+
+  group('bandeja del yonke cuando mis-cotizaciones no le sirve', () {
+    final responses = <String, Object?>{
+      '401': const ApiException(message: 'No autorizado', statusCode: 401),
+      '302 de login': const ApiException(
+        message: 'El servidor no aceptó la sesión',
+        statusCode: 302,
+      ),
+      '500': const ApiException(message: 'Error interno', statusCode: 500),
+      '200 con success:false': const ApiException(
+        message: 'Cliente no encontrado',
+        statusCode: 200,
+      ),
+      'lista vacía': {'success': true, 'data': <Object>[]},
+    };
+
+    for (final entry in responses.entries) {
+      test('${entry.key}: usa las cotizaciones del teléfono', () async {
+        FlutterSecureStorage.setMockInitialValues({});
+        final tokens = _YonkeTokens();
+        final registry = YonkeQuoteRegistry(tokens);
+        await registry.add('q-1');
+        final client = _RoutedClient({
+          ApiEndpoints.dashboardQuotes: entry.value,
+          ApiEndpoints.quote('q-1'): {
+            'data': {
+              'guidId': 'q-1',
+              'solicitudYonkeGuidId': 'a1',
+              'precio': 500,
+              'fechaCreacion': '2026-09-25T10:00:00Z',
+              'solicitudYonkes': {
+                'guidId': 'a1',
+                'solicitudGuidId': 's1',
+                'solicitudes': {
+                  'piezaBuscada': 'Carrocería',
+                  'folio': 'SOL-10',
+                },
+              },
+            },
+          },
+          ApiEndpoints.quoteConversation('q-1'): {
+            'data': [
+              {
+                'guidId': 'm1',
+                'usuarioId': 'cliente-1',
+                'tipoRemitenteId': 1,
+                'mensaje': 'Hola',
+                'fechaCreacion': '2026-09-25T11:00:00Z',
+              },
+            ],
+          },
+        });
+
+        final inbox = await ApiYonkeMessagesRepository(
+          QuotesApi(client),
+          DashboardApi(client),
+          tokens,
+          registry,
+          QuoteClientResolver(QuotesApi(client)),
+        ).getInbox();
+
+        expect(inbox.single.quote.id, 'q-1');
+        expect(inbox.single.lastMessage, 'Hola');
+        expect(inbox.single.clientLabel, 'Cliente · SOL-10');
+        // La bandeja no vuelve a pedir la cotización para buscar al cliente.
+        expect(
+          client.calls.where((path) => path == ApiEndpoints.quote('q-1')),
+          hasLength(1),
+        );
+      });
+    }
+
+    test('sin cotizaciones en el teléfono avisa en lugar de fallar', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final client = _RoutedClient({
+        ApiEndpoints.dashboardQuotes: const ApiException(
+          message: 'Error interno',
+          statusCode: 500,
+        ),
+      });
+
+      await expectLater(
+        ApiYonkeMessagesRepository(
+          QuotesApi(client),
+          DashboardApi(client),
+          _YonkeTokens(),
+          YonkeQuoteRegistry(_YonkeTokens()),
+        ).getInbox(),
+        throwsA(isA<YonkeMessagesInboxContractPendingException>()),
+      );
     });
   });
 
