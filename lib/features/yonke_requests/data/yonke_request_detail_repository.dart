@@ -1,7 +1,9 @@
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_detail.dart';
+import 'yonke_requests_repository.dart';
 import '../domain/yonke_request_summary.dart';
 
 abstract interface class YonkeRequestDetailRepository {
@@ -36,18 +38,40 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeRequestSummary? summary,
   }) async {
     if (requestId.isEmpty) throw const YonkeRequestDetailNotFoundException();
-    final responses = await Future.wait<dynamic>([
-      _requestsApi.getById(requestId),
-      _requestsApi.getImages(requestId),
-    ]);
+    final images = _requestsApi.getImages(requestId);
+    dynamic requestResponse;
+    YonkeRequestSummary? known = summary;
+    try {
+      requestResponse = await _requestsApi.getById(requestId);
+    } on ApiException {
+      // `GET /api/Solicitudes/{guid}` responde 302 aunque la sesión sea
+      // válida ([Authorize] sin esquema JWT). La bandeja (MisSolicitudes)
+      // trae pieza, folio, fechas, ciudad y fotos; con eso se arma el detalle.
+      known ??= await _assignedSummary(requestYonkeId);
+      if (known == null) rethrow;
+      requestResponse = {'guidId': requestId};
+    }
     final detail = yonkeRequestDetailFromResponses(
-      requestResponse: responses[0],
-      imagesResponse: responses[1],
+      requestResponse: requestResponse,
+      imagesResponse: await images,
       requestYonkeId: requestYonkeId,
-      summary: summary,
+      summary: known,
     );
     if (detail == null) throw const YonkeRequestDetailNotFoundException();
     return detail;
+  }
+
+  Future<YonkeRequestSummary?> _assignedSummary(String requestYonkeId) async {
+    try {
+      final items = yonkeAssignedRequestsFromResponse(
+        await _requestsApi.getAssignedToYonke(),
+      );
+      return items
+          ?.where((item) => item.requestYonkeId == requestYonkeId)
+          .firstOrNull;
+    } on ApiException {
+      return null;
+    }
   }
 
   @override

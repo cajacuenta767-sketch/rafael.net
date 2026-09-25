@@ -13,6 +13,8 @@ import 'package:app_yonke/features/requests/data/request_submission_repository.d
 import 'package:app_yonke/features/requests/data/requests_api.dart';
 import 'package:app_yonke/features/requests/domain/request_draft.dart';
 import 'package:app_yonke/features/requests/domain/request_submission.dart';
+import 'package:app_yonke/features/quotes/data/quotes_api.dart';
+import 'package:app_yonke/features/yonke_requests/data/yonke_request_detail_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -217,6 +219,83 @@ void main() {
               .having((e) => e.requestId, 'requestId', 'guid'),
         ),
       );
+    });
+  });
+
+  group('detalle de solicitud sin GET Solicitudes/{guid}', () {
+    const redirect = ApiException(
+      message: 'El servidor no aceptó la sesión para esta acción.',
+      statusCode: 302,
+    );
+
+    test('el cliente lo toma de mis-solicitudes', () async {
+      final client = _RoutedClient({
+        ApiEndpoints.request('s1'): redirect,
+        ApiEndpoints.dashboardRequests: {
+          'data': {
+            'data': [
+              {'guidId': 'otra', 'piezaBuscada': 'Marcha'},
+              {'guidId': 'S1', 'piezaBuscada': 'Alternador', 'folio': 'F-1'},
+            ],
+          },
+        },
+      });
+
+      final response = await clientRequestResponse(
+        RequestsApi(client),
+        DashboardApi(client),
+        's1',
+      );
+
+      expect((response as Map)['data']['piezaBuscada'], 'Alternador');
+    });
+
+    test('si tampoco está en mis-solicitudes se informa el error', () async {
+      final client = _RoutedClient({
+        ApiEndpoints.request('s1'): redirect,
+        ApiEndpoints.dashboardRequests: {'data': <Object>[]},
+      });
+
+      await expectLater(
+        clientRequestResponse(RequestsApi(client), DashboardApi(client), 's1'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'code', 302)),
+      );
+    });
+
+    test('el yonke lo arma con la bandeja y las fotos', () async {
+      final client = _RoutedClient({
+        ApiEndpoints.request('s1'): redirect,
+        ApiEndpoints.requestImages('s1'): {
+          'data': [
+            {'guidId': 'i1', 'urlImagen': 'https://blob.example.com/1.jpg'},
+          ],
+        },
+        ApiEndpoints.yonkeAssignedRequests: {
+          'data': [
+            {
+              'solicitudYonkeGuidId': 'a1',
+              'solicitudGuidId': 's1',
+              'folio': 'SOL-1',
+              'piezaBuscada': 'Alternador',
+              'fechaEnvio': '2026-09-25T10:00:00Z',
+              'estatus': 'Enviada',
+              'ciudades': [
+                {'ciudadId': 12, 'ciudad': 'Hermosillo'},
+              ],
+            },
+          ],
+        },
+      });
+
+      final detail = await ApiYonkeRequestDetailRepository(
+        RequestsApi(client),
+        QuotesApi(client),
+      ).getDetail(requestId: 's1', requestYonkeId: 'a1');
+
+      expect(detail.part, 'Alternador');
+      expect(detail.folio, 'SOL-1');
+      expect(detail.city, 'Hermosillo');
+      expect(detail.imageUrls, ['https://blob.example.com/1.jpg']);
     });
   });
 
