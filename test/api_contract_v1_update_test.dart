@@ -3,14 +3,13 @@ import 'package:app_yonke/core/network/api_exception.dart';
 import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/core/storage/session_sync_store.dart';
 import 'package:app_yonke/features/dashboard/data/dashboard_api.dart';
-import 'package:app_yonke/features/payments/data/payments_api.dart';
 import 'package:app_yonke/features/requests/data/requests_api.dart';
 import 'package:app_yonke/features/yonke_home/presentation/yonke_home_page.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_requests_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Rutas agregadas al contrato V1: `SolicitudYonkes/MisSolicitudes`,
-/// `CotizacionYonke/MisCotizaciones/Total` y el checkout de Stripe.
+/// Rutas agregadas al contrato V1: `SolicitudYonkes/MisSolicitudes`
+/// y `CotizacionYonke/MisCotizaciones/Total`.
 void main() {
   setUp(SessionSyncStore.instance.clear);
 
@@ -103,34 +102,6 @@ void main() {
     expect(quoteTotalFromResponse({'success': true, 'data': 7}), 7);
     expect(quoteTotalFromResponse({'data': '12'}), 12);
     expect(quoteTotalFromResponse({'data': null}), isNull);
-  });
-
-  group('checkout de Stripe', () {
-    test('acepta la URL como data o dentro de un objeto', () {
-      expect(
-        checkoutUrlFromResponse({'data': 'https://checkout.stripe.com/c/1'}),
-        Uri.parse('https://checkout.stripe.com/c/1'),
-      );
-      expect(
-        checkoutUrlFromResponse({
-          'data': {'url': 'https://checkout.stripe.com/c/2'},
-        })?.host,
-        'checkout.stripe.com',
-      );
-      expect(
-        checkoutUrlFromResponse({'checkoutUrl': 'https://pay.example.com/x'}),
-        Uri.parse('https://pay.example.com/x'),
-      );
-    });
-
-    test('rechaza respuestas sin URL https', () {
-      expect(checkoutUrlFromResponse(null), isNull);
-      expect(checkoutUrlFromResponse({'data': 'cs_test_123'}), isNull);
-      expect(
-        checkoutUrlFromResponse({'data': 'http://checkout.stripe.com/c/1'}),
-        isNull,
-      );
-    });
   });
 }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/api_providers.dart';
+import '../../../core/session/session_events.dart';
 
 /// Protege las secciones privadas del yonke: sin token guardado redirige al
 /// inicio de sesión.
@@ -25,10 +26,7 @@ class _YonkeSessionGateState extends ConsumerState<YonkeSessionGate> {
     _session = _hasSession();
   }
 
-  Future<bool> _hasSession() async {
-    final token = await ref.read(tokenStoreProvider).readAccessToken();
-    return token?.isNotEmpty == true;
-  }
+  Future<bool> _hasSession() => hasActiveSession(ref.read(tokenStoreProvider));
 
   @override
   Widget build(BuildContext context) => FutureBuilder<bool>(

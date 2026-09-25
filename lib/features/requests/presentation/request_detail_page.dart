@@ -29,6 +29,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
   List<ClientQuote> _quotes = const [];
   bool _loading = true;
   bool _cancelling = false;
+  bool _deletingPhoto = false;
   String? _error;
 
   @override
@@ -99,7 +100,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
         setState(() {
           _detail = ClientRequestDetail(
             summary: sessionReq,
-            cities: const ['Nogales, Sonora'],
+            cities: const [],
             imageUrls: sessionReq.imageUrl != null ? [sessionReq.imageUrl!] : const [],
           );
           _quotes = sessionQuotes;
@@ -112,6 +113,43 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
         _loading = false;
         _error = 'No se pudo cargar esta solicitud. Inténtalo nuevamente.';
       });
+    }
+  }
+
+  Future<void> _deletePhoto(String imageId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Eliminar esta foto?'),
+        content: const Text('Los yonkes dejarán de verla en tu solicitud.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirm-request-photo-delete'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deletingPhoto = true);
+    try {
+      await ref.read(requestsApiProvider).deleteImage(imageId);
+      if (mounted) await _loadDetail();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo eliminar la foto. Inténtalo nuevamente.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deletingPhoto = false);
     }
   }
 
@@ -301,7 +339,16 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
                 ),
                 _RequestSummary(detail: detail),
                 const SizedBox(height: 18),
-                _PhotosSection(imageUrls: detail.imageUrls),
+                _PhotosSection(
+                  imageUrls: detail.imageUrls,
+                  onDelete: detail.summary.closed || _deletingPhoto
+                      ? null
+                      : (url) {
+                          final id = detail.imageIds[url];
+                          if (id != null) _deletePhoto(id);
+                        },
+                  canDelete: (url) => detail.imageIds.containsKey(url),
+                ),
                 const SizedBox(height: 20),
                 const _DispatchSection(),
                 const SizedBox(height: 20),
@@ -437,8 +484,14 @@ class _RequestSummary extends StatelessWidget {
 }
 
 class _PhotosSection extends StatelessWidget {
-  const _PhotosSection({required this.imageUrls});
+  const _PhotosSection({
+    required this.imageUrls,
+    this.onDelete,
+    this.canDelete,
+  });
   final List<String> imageUrls;
+  final ValueChanged<String>? onDelete;
+  final bool Function(String url)? canDelete;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -478,8 +531,39 @@ class _PhotosSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: imageUrls.length,
             separatorBuilder: (_, _) => const SizedBox(width: 9),
-            itemBuilder: (_, index) =>
-                _RequestImage(url: imageUrls[index], size: 82),
+            itemBuilder: (_, index) {
+              final url = imageUrls[index];
+              final image = _RequestImage(url: url, size: 82);
+              if (onDelete == null || canDelete?.call(url) != true) {
+                return image;
+              }
+              return Stack(
+                children: [
+                  image,
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Material(
+                      color: Colors.black54,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        key: Key('request-photo-delete-$index'),
+                        customBorder: const CircleBorder(),
+                        onTap: () => onDelete!(url),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
     ],

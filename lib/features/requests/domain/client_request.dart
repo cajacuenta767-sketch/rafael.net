@@ -48,6 +48,7 @@ class ClientRequestDetail {
     required this.summary,
     required this.cities,
     required this.imageUrls,
+    this.imageIds = const {},
     this.description,
     this.engine,
     this.transmission,
@@ -57,6 +58,10 @@ class ClientRequestDetail {
   final ClientRequestSummary summary;
   final List<String> cities;
   final List<String> imageUrls;
+
+  /// `guidId` de cada imagen por URL; permite eliminarla con
+  /// `DELETE /api/SolicitudesImagenes/{imagenGuidId}`.
+  final Map<String, String> imageIds;
   final String? description;
   final String? engine;
   final String? transmission;
@@ -133,6 +138,7 @@ ClientRequestDetail? clientRequestDetailFromResponses({
     summary: summary,
     cities: requestCityNamesFromResponse(citiesResponse),
     imageUrls: requestImageUrlsFromResponse(imagesResponse),
+    imageIds: requestImageIdsFromResponse(imagesResponse),
     description: _text(raw['descripcion']),
     engine: _text(raw['motor']),
     transmission: _text(raw['transmicion']),
@@ -148,6 +154,17 @@ List<String> requestImageUrlsFromResponse(dynamic response) =>
         .whereType<String>()
         .where(_isSafeImageUrl)
         .toList(growable: false);
+
+/// `guidId` de los registros `SolicitudesImagenes`, indexado por `urlImagen`.
+Map<String, String> requestImageIdsFromResponse(dynamic response) {
+  final ids = <String, String>{};
+  for (final image in _records(response).whereType<Map>()) {
+    final url = _text(image['urlImagen']);
+    final id = _text(image['guidId']);
+    if (url != null && id != null) ids[url] = id;
+  }
+  return ids;
+}
 
 /// `GET /api/SolicitudCiudades/{id}/ciudades`: registros `SolicitudesCiudades`
 /// (con `ciudades` anidada) o `Ciudades` directamente.
