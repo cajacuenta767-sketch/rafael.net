@@ -210,6 +210,31 @@ cliente HTTP simulado. El OpenAPI no publica un buscador de refacciones: la
 pantalla de búsqueda usa marcas y modelos reales y, al buscar, ofrece crear la
 solicitud con lo capturado.
 
+## Cliente nuevo
+
+Después del login (OTP o Google), si esa cuenta no tiene perfil completo en
+el teléfono, `ClientSessionGate` la lleva a `/cliente/registro`:
+
+- Nombre completo, celular, correo, estado y ciudad son obligatorios; la foto
+  es opcional (galería o cámara).
+- Con Google llegan nombre, correo y foto de la cuenta; con OTP el celular
+  verificado (bloqueado) y el nombre vacío: el número nunca se usa como
+  nombre.
+- Estado y ciudad salen del catálogo `Utilerias`.
+- Un cliente que ya se registró va directo al inicio y ve sus datos en
+  "Mi perfil"; "Mis datos" usa el mismo formulario para editarlos.
+
+El perfil se guarda en el teléfono por cuenta mientras el API no publique
+uno (ver `docs/BACKEND_ISSUES.md`).
+
+## Sesión
+
+La sesión solo se cierra cuando el usuario elige "Cerrar sesión", al dar de
+baja la cuenta o cuando el token de verdad ya no sirve: venció su `exp`,
+JwtBearer responde `invalid_token` o `GET /api/Yonkes/byPage` (esquema JWT)
+también responde 401. Un 302 hacia `/Account/Login` o un 401 aislado de un
+endpoint mal configurado solo hacen fallar esa acción.
+
 ## Sin datos inventados
 
 Cada pantalla consulta la API con el token guardado al iniciar sesión. Si una

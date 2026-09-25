@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/request_draft.dart';
+import '../../catalogs/domain/location_options.dart';
 
 class RequestCityPage extends ConsumerStatefulWidget {
   const RequestCityPage({super.key, required this.draft});
@@ -16,8 +17,8 @@ class RequestCityPage extends ConsumerStatefulWidget {
 }
 
 class _RequestCityPageState extends ConsumerState<RequestCityPage> {
-  List<_StateOption> _states = const [];
-  List<_CityOption> _cities = const [];
+  List<StateOption> _states = const [];
+  List<CityOption> _cities = const [];
   int? _selectedStateId;
   int? _selectedCityId;
   bool _loadingStates = true;
@@ -38,7 +39,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
     });
     try {
       final response = await ref.read(catalogsApiProvider).getStates();
-      final states = _statesFromResponse(response);
+      final states = statesFromResponse(response);
       if (states.isEmpty) throw StateError('No hay estados disponibles.');
       if (!mounted) return;
       setState(() {
@@ -74,10 +75,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
           .where((state) => state.id == stateId)
           .map((state) => state.name)
           .firstOrNull;
-      final cities = _citiesFromResponse(
-        response,
-        fallbackStateName: stateName,
-      );
+      final cities = citiesFromResponse(response, fallbackStateName: stateName);
       if (!mounted) return;
       setState(() {
         _cities = cities;
@@ -313,74 +311,6 @@ class _SelectionCircle extends StatelessWidget {
           )
         : null,
   );
-}
-
-class _StateOption {
-  const _StateOption({required this.id, required this.name});
-
-  final int id;
-  final String name;
-}
-
-class _CityOption {
-  const _CityOption({
-    required this.id,
-    required this.name,
-    required this.stateName,
-  });
-
-  final int id;
-  final String name;
-  final String stateName;
-
-  String get fullName => stateName.isEmpty ? name : '$name, $stateName';
-}
-
-List<_StateOption> _statesFromResponse(dynamic response) => _records(response)
-    .map(
-      (record) => _StateOption(
-        id: _integer(record['id']) ?? -1,
-        name: _text(record['entidad']) ?? '',
-      ),
-    )
-    .where((state) => state.id > 0 && state.name.isNotEmpty)
-    .toList(growable: false);
-
-/// Registros `Ciudades`: `id`, `ciudad` y, cuando la API la incluye, la
-/// entidad anidada en `entidades.entidad`; si no viene, se usa el nombre del
-/// estado seleccionado.
-List<_CityOption> _citiesFromResponse(
-  dynamic response, {
-  String? fallbackStateName,
-}) => _records(response)
-    .map(
-      (record) => _CityOption(
-        id: _integer(record['id']) ?? -1,
-        name: _text(record['ciudad']) ?? '',
-        stateName: _nestedStateName(record) ?? fallbackStateName ?? '',
-      ),
-    )
-    .where((city) => city.id > 0 && city.name.isNotEmpty)
-    .toList(growable: false);
-
-String? _nestedStateName(Map<dynamic, dynamic> record) {
-  final state = record['entidades'];
-  return state is Map ? _text(state['entidad']) : null;
-}
-
-List<Map<dynamic, dynamic>> _records(dynamic response) {
-  final data = response is Map ? response['data'] ?? response : response;
-  return data is List
-      ? data.whereType<Map>().toList(growable: false)
-      : const [];
-}
-
-int? _integer(dynamic value) =>
-    value is num ? value.toInt() : int.tryParse('$value');
-
-String? _text(dynamic value) {
-  final text = value?.toString().trim();
-  return text == null || text.isEmpty ? null : text;
 }
 
 extension _FirstOrNull<T> on Iterable<T> {

@@ -16,6 +16,7 @@ import '../../../core/network/api_exception.dart';
 import '../domain/international_phone.dart';
 import 'client_login_controller.dart';
 import 'legal_document_page.dart';
+import '../../profile/domain/client_profile.dart';
 
 const _navy = Color(0xFF092B61);
 const _blue = Color(0xFF0B4AA5);
@@ -194,6 +195,14 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     onPending: _showPendingWithConsent,
   );
 
+  Future<void> _saveLoginHints(ClientLoginHints hints) async {
+    try {
+      await ref.read(clientProfileRepositoryProvider).saveLoginHints(hints);
+    } catch (_) {
+      // Sin las pistas el registro solo aparece vacío; no bloquea el acceso.
+    }
+  }
+
   Future<void> _requestCodeWithConsent() async {
     if (await _ensureLegalAccepted()) await _requestCode();
   }
@@ -244,6 +253,14 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             refreshToken: result.refreshToken,
             expiresAt: result.expiresAt,
           );
+      // Prellenan el registro si la cuenta es nueva en este dispositivo.
+      await _saveLoginHints(
+        ClientLoginHints(
+          name: result.name ?? account.displayName,
+          email: result.email ?? account.email,
+          photoUrl: result.photoUrl ?? account.photoUrl,
+        ),
+      );
       if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
@@ -556,7 +573,12 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     final authenticated = await _controller.verifyCode();
     if (!mounted) return;
     if (authenticated) {
-      context.go(AppRoutes.clientHome);
+      // El teléfono verificado prellena el registro; nunca se usa como
+      // nombre.
+      await _saveLoginHints(
+        ClientLoginHints(phone: _controller.normalizedPhone),
+      );
+      if (mounted) context.go(AppRoutes.clientHome);
       return;
     }
 

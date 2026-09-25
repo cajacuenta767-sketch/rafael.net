@@ -8,6 +8,7 @@ import '../../features/dashboard/data/dashboard_api.dart';
 import '../../features/orders/data/orders_api.dart';
 import '../../features/orders/data/client_orders_repository.dart';
 import '../../features/payments/data/payments_api.dart';
+import '../../features/profile/data/client_profile_repository.dart';
 import '../../features/quotes/data/quotes_api.dart';
 import '../../features/requests/data/requests_api.dart';
 import '../../features/requests/data/request_submission_repository.dart';
@@ -158,3 +159,8 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
   ref.onDispose(service.stop);
   return service;
 });
+
+final clientProfileRepositoryProvider = Provider<ClientProfileRepository>(
+  (ref) =>
+      LocalClientProfileRepository(tokenStore: ref.watch(tokenStoreProvider)),
+);
