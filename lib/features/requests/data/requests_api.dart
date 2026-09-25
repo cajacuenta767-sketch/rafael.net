@@ -1,6 +1,8 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_file.dart';
+import '../../dashboard/data/dashboard_api.dart';
 
 class RequestsApi {
   const RequestsApi(this._client);
@@ -130,4 +132,42 @@ class RequestsApi {
   /// Número de solicitudes nuevas del yonke de la sesión.
   Future<dynamic> getYonkeNewRequestsTotal() =>
       _client.get(ApiEndpoints.yonkeNewRequestsTotal);
+}
+
+/// `GET /api/Solicitudes/{guid}` usa `[Authorize]` sin el esquema JWT y el API
+/// lo responde con un 302 hacia `/Account/Login` aunque la sesión sea válida
+/// (ver docs/BACKEND_ISSUES.md). El mismo `Solicitud_Busqueda_DTO` llega en
+/// `DashboardSuscriptores/mis-solicitudes`, que sí acepta el JWT del cliente.
+Future<dynamic> clientRequestResponse(
+  RequestsApi requests,
+  DashboardApi dashboard,
+  String requestId,
+) async {
+  try {
+    return await requests.getById(requestId);
+  } on ApiException catch (original) {
+    final Object? response;
+    try {
+      response = await dashboard.getMyRequests(pageSize: 100);
+    } on ApiException {
+      throw original;
+    }
+    for (final record in _recordsOf(response)) {
+      if (record['guidId']?.toString().toLowerCase() ==
+          requestId.toLowerCase()) {
+        return {'data': record};
+      }
+    }
+    rethrow;
+  }
+}
+
+List<Map<dynamic, dynamic>> _recordsOf(Object? response) {
+  Object? node = response;
+  for (var depth = 0; depth < 3; depth++) {
+    if (node is List) return node.whereType<Map>().toList(growable: false);
+    if (node is! Map) break;
+    node = node['data'] ?? node['items'] ?? node['registros'];
+  }
+  return const [];
 }

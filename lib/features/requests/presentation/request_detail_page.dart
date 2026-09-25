@@ -9,6 +9,7 @@ import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../domain/client_request.dart';
+import '../data/requests_api.dart';
 
 const _navy = Color(0xFF072C4F);
 const _greenDark = Color(0xFF26971F);
@@ -46,7 +47,11 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
     try {
       final requests = ref.read(requestsApiProvider);
       final results = await Future.wait<dynamic>([
-        requests.getById(widget.requestId),
+        clientRequestResponse(
+          requests,
+          ref.read(dashboardApiProvider),
+          widget.requestId,
+        ),
         _optional(requests.getImages(widget.requestId)),
         _optional(requests.getCities(widget.requestId)),
         _optional(ref.read(dashboardApiProvider).getMyQuotes()),
