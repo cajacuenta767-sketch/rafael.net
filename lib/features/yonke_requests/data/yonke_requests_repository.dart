@@ -176,7 +176,11 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
           : null) ??
       _text(json['estatusSolicitud']) ??
       _text(json['estatus']);
-  final hasQuote = quotes is List && quotes.isNotEmpty;
+  // `SolicitudYonke_List_DTO` (MisSolicitudes) trae `cotizaciones` como
+  // número; los registros `SolicitudYonkes` la traen como lista.
+  final hasQuote =
+      (quotes is List && quotes.isNotEmpty) ||
+      (json['cotizaciones'] is num && (json['cotizaciones'] as num) > 0);
   final closed = request['cerrada'] == true;
   final receivedAt =
       _date(json['fechaEnvio']) ??
@@ -192,7 +196,7 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
       statusText,
       closed: closed,
       hasQuote: hasQuote,
-      viewed: _date(json['fechaVista']) != null,
+      viewed: json['vista'] == true || _date(json['fechaVista']) != null,
     ),
     receivedAt: receivedAt,
     brand:
@@ -207,7 +211,9 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
         (request['ano'] as num?)?.toInt() ??
         (request['year'] as num?)?.toInt() ??
         (request['a\u00f1o'] as num?)?.toInt(),
-    city: _cityName(request['solicitudesCiudades']),
+    city:
+        _cityName(request['solicitudesCiudades']) ??
+        _cityName(json['ciudades']),
     folio: _text(request['folio']),
     photoCount: images is List ? images.length : 0,
     hasQuote: hasQuote,
@@ -224,7 +230,7 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
 String? _firstSafeImage(dynamic images) {
   if (images is! List) return null;
   for (final image in images.whereType<Map>()) {
-    final value = _text(image['urlImagen']);
+    final value = _text(image['urlImagen']) ?? _text(image['url']);
     if (value == null) continue;
     if (value.startsWith('asset://assets/')) return value;
     if (value.startsWith('data:image/') && value.contains(';base64,')) {

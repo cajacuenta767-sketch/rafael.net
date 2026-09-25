@@ -126,4 +126,8 @@ class RequestsApi {
   /// Solicitudes asignadas al yonke de la sesión. No recibe paginación.
   Future<dynamic> getAssignedToYonke() =>
       _client.get(ApiEndpoints.yonkeAssignedRequests);
+
+  /// Número de solicitudes nuevas del yonke de la sesión.
+  Future<dynamic> getYonkeNewRequestsTotal() =>
+      _client.get(ApiEndpoints.yonkeNewRequestsTotal);
 }
