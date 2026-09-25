@@ -40,14 +40,10 @@ class ClientProfile {
       _hasValue(phone) ||
       _hasValue(city);
 
-  /// Datos obligatorios del registro: nombre, teléfono, correo, estado y
-  /// ciudad. La foto es opcional.
+  /// Datos obligatorios del registro: nombre, teléfono y correo, los campos
+  /// que existen en la tabla `Clientes` del API. La foto es opcional.
   bool get isComplete =>
-      _hasValue(name) &&
-      _hasValue(phone) &&
-      _hasValue(email) &&
-      stateId != null &&
-      cityId != null;
+      _hasValue(name) && _hasValue(phone) && _hasValue(email);
 
   String? get displayCity {
     if (_hasValue(cityName)) {

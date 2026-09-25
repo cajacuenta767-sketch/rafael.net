@@ -58,6 +58,9 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   bool _autoVerifying = false;
   bool _googleInitialized = false;
   bool _googleLoading = false;
+
+  /// Entre que el servidor acepta el login y se abre la siguiente pantalla.
+  bool _enteringApp = false;
   bool _legalPromptOpen = false;
   late bool _legalAccepted;
   late final Future<void> _legalLoaded;
@@ -123,8 +126,30 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
               },
             ),
           ),
+          // El login con Google espera al selector de cuentas y al API; sin
+          // este aviso la pantalla parecía no hacer nada durante segundos.
+          if (_googleLoading || _enteringApp)
+            const Positioned.fill(child: _SigningInOverlay()),
         ],
       ),
+    );
+  }
+
+  /// Después de un login correcto: el cliente nuevo va directo al registro
+  /// y el que ya se registró, al inicio.
+  Future<void> _enterApp(ClientLoginHints hints) async {
+    if (mounted) setState(() => _enteringApp = true);
+    final profiles = ref.read(clientProfileRepositoryProvider);
+    var needsProfile = false;
+    try {
+      await profiles.saveLoginHints(hints);
+      needsProfile = await profiles.needsOnboarding();
+    } catch (_) {
+      // Sin las pistas el registro solo aparece vacío; no bloquea el acceso.
+    }
+    if (!mounted) return;
+    context.go(
+      needsProfile ? AppRoutes.clientOnboarding : AppRoutes.clientHome,
     );
   }
 
@@ -195,14 +220,6 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     onPending: _showPendingWithConsent,
   );
 
-  Future<void> _saveLoginHints(ClientLoginHints hints) async {
-    try {
-      await ref.read(clientProfileRepositoryProvider).saveLoginHints(hints);
-    } catch (_) {
-      // Sin las pistas el registro solo aparece vacío; no bloquea el acceso.
-    }
-  }
-
   Future<void> _requestCodeWithConsent() async {
     if (await _ensureLegalAccepted()) await _requestCode();
   }
@@ -254,14 +271,13 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             expiresAt: result.expiresAt,
           );
       // Prellenan el registro si la cuenta es nueva en este dispositivo.
-      await _saveLoginHints(
+      await _enterApp(
         ClientLoginHints(
           name: result.name ?? account.displayName,
           email: result.email ?? account.email,
           photoUrl: result.photoUrl ?? account.photoUrl,
         ),
       );
-      if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
       final message = switch (error.code) {
@@ -575,10 +591,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     if (authenticated) {
       // El teléfono verificado prellena el registro; nunca se usa como
       // nombre.
-      await _saveLoginHints(
-        ClientLoginHints(phone: _controller.normalizedPhone),
-      );
-      if (mounted) context.go(AppRoutes.clientHome);
+      await _enterApp(ClientLoginHints(phone: _controller.normalizedPhone));
       return;
     }
 
@@ -1464,6 +1477,33 @@ class _DotGrid extends StatelessWidget {
             shape: BoxShape.circle,
           ),
         ),
+      ),
+    ),
+  );
+}
+
+class _SigningInOverlay extends StatelessWidget {
+  const _SigningInOverlay();
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+    color: Color(0xE6FFFFFF),
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: _green),
+          SizedBox(height: 16),
+          Text(
+            'Iniciando sesión…',
+            key: Key('client-signing-in'),
+            style: TextStyle(
+              color: _navy,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     ),
   );

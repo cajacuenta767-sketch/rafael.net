@@ -7,11 +7,14 @@ import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/auth/domain/client_auth_repository.dart';
+import 'package:app_yonke/features/auth/presentation/client_login_page.dart';
 import 'package:app_yonke/features/auth/presentation/client_session_gate.dart';
 import 'package:app_yonke/features/profile/data/client_profile_repository.dart';
 import 'package:app_yonke/features/profile/domain/client_profile.dart';
 import 'package:app_yonke/features/profile/presentation/client_onboarding_page.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,10 +31,6 @@ const _complete = ClientProfile(
   name: 'Noe Gamez',
   phone: '+526621234567',
   email: 'noe@email.com',
-  stateId: 26,
-  stateName: 'Sonora',
-  cityId: 12,
-  cityName: 'Hermosillo',
 );
 
 void main() {
@@ -86,7 +85,7 @@ void main() {
       expect(await repository.needsOnboarding(), isFalse);
       final snapshot = await repository.load();
       expect(snapshot.profile.name, 'Noe Gamez');
-      expect(snapshot.profile.displayCity, 'Hermosillo, Sonora');
+      expect(snapshot.profile.email, 'noe@email.com');
     });
 
     test('dos cuentas en el mismo teléfono no comparten perfil', () async {
@@ -180,6 +179,98 @@ void main() {
       child: MaterialApp.router(routerConfig: router),
     );
 
+    Future<void> loginWithOtp(
+      WidgetTester tester,
+      _MemoryTokenStore tokens,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/cliente/login',
+        routes: [
+          GoRoute(
+            path: '/cliente/login',
+            builder: (context, state) =>
+                const ClientLoginPage(initialLegalAccepted: true),
+          ),
+          GoRoute(
+            path: '/cliente',
+            builder: (context, state) => const Scaffold(body: Text('INICIO')),
+          ),
+          GoRoute(
+            path: '/cliente/registro',
+            builder: (context, state) => const ClientOnboardingPage(),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tokenStoreProvider.overrideWithValue(tokens),
+            clientAuthRepositoryProvider.overrideWithValue(
+              _OtpRepository(_jwt('cliente-otp', name: 'Cliente refaNet')),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: const [
+              CountryLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('es')],
+            locale: const Locale('es'),
+            home: Router(
+              routerDelegate: router.routerDelegate,
+              routeInformationParser: router.routeInformationParser,
+              routeInformationProvider: router.routeInformationProvider,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('client_phone_field')),
+        '6621234567',
+      );
+      await tester.pump();
+      await tester.tap(find.text('Enviar código'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('otp_digit_0')));
+      await tester.enterText(
+        find.byKey(const Key('client_otp_field')),
+        '123456',
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('OTP de un cliente nuevo abre directo el registro', (
+      tester,
+    ) async {
+      final tokens = _MemoryTokenStore(null);
+      await loginWithOtp(tester, tokens);
+
+      expect(find.text('Completa tu perfil'), findsOneWidget);
+      expect(find.text('INICIO'), findsNothing);
+      final phone = tester.widget<TextField>(
+        find.descendant(
+          of: find.byKey(const Key('profile-phone-field')),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(phone.controller!.text, contains('6621234567'));
+    });
+
+    testWidgets('OTP de un cliente ya registrado va al inicio', (tester) async {
+      final tokens = _MemoryTokenStore(_jwt('cliente-otp'));
+      await LocalClientProfileRepository(tokenStore: tokens)
+          .saveProfile(_complete);
+      tokens.accessToken = null;
+
+      await loginWithOtp(tester, tokens);
+
+      expect(find.text('INICIO'), findsOneWidget);
+      expect(find.text('Completa tu perfil'), findsNothing);
+    });
+
     testWidgets('un cliente ya registrado entra directo al inicio', (
       tester,
     ) async {
@@ -212,6 +303,9 @@ void main() {
 
       expect(find.text('Completa tu perfil'), findsOneWidget);
       expect(find.text('Agregar foto (opcional)'), findsOneWidget);
+      // Solo los campos que existen en la tabla Clientes del API.
+      expect(find.text('Estado *'), findsNothing);
+      expect(find.text('Ciudad *'), findsNothing);
       final phone = tester.widget<TextField>(
         find.descendant(
           of: find.byKey(const Key('profile-phone-field')),
@@ -235,14 +329,6 @@ void main() {
         find.byKey(const Key('profile-email-field')),
         'noe@email.com',
       );
-      await tester.tap(find.byKey(const Key('profile-state-field')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Sonora').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('profile-city-field-26')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Hermosillo').last);
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('save-profile-data')));
       await tester.pumpAndSettle();
 
@@ -251,9 +337,30 @@ void main() {
           .load();
       expect(saved.profile.name, 'Noe Gamez');
       expect(saved.profile.phone, '+526621234567');
-      expect(saved.profile.displayCity, 'Hermosillo, Sonora');
       expect(saved.profile.photoPath, isNull);
     });
+  });
+}
+
+class _OtpRepository implements ClientAuthRepository {
+  _OtpRepository(this.token);
+
+  final String token;
+
+  @override
+  Future<ClientOtpVerification> loginWithGoogle(String idToken) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> requestOtp(String phone) async {}
+
+  @override
+  Future<ClientOtpVerification> verifyOtp({
+    required String phone,
+    required String code,
+  }) async => ClientOtpVerification.fromResponse({
+    'token': token,
+    'nombre': 'Cliente refaNet',
   });
 }
 
