@@ -2,6 +2,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
+import '../../yonke_quotes/data/yonke_quote_registry.dart';
 import '../domain/yonke_request_detail.dart';
 import 'yonke_requests_repository.dart';
 import '../domain/yonke_request_summary.dart';
@@ -26,10 +27,15 @@ abstract interface class YonkeRequestDetailRepository {
 }
 
 class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
-  const ApiYonkeRequestDetailRepository(this._requestsApi, this._quotesApi);
+  const ApiYonkeRequestDetailRepository(
+    this._requestsApi,
+    this._quotesApi, [
+    this._registry,
+  ]);
 
   final RequestsApi _requestsApi;
   final QuotesApi _quotesApi;
+  final YonkeQuoteRegistry? _registry;
 
   @override
   Future<YonkeRequestDetail> getDetail({
@@ -97,7 +103,7 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeQuoteSubmission submission, {
     YonkeRequestDetail? detail,
   }) async {
-    await _quotesApi.create(
+    final response = await _quotesApi.create(
       requestYonkeId: requestYonkeId,
       fields: {
         'Precio': submission.price,
@@ -126,6 +132,10 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
           )
           .toList(),
     );
+    // Sin lista de cotizaciones del yonke en el API, se recuerda la creada
+    // para que su conversación aparezca en la bandeja de mensajes.
+    final quoteId = createdQuoteId(response);
+    if (quoteId != null) await _registry?.add(quoteId);
   }
 }
 

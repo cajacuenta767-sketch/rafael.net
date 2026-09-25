@@ -9,6 +9,7 @@ import '../../features/orders/data/orders_api.dart';
 import '../../features/orders/data/client_orders_repository.dart';
 import '../../features/payments/data/payments_api.dart';
 import '../../features/profile/data/client_profile_repository.dart';
+import '../../features/quotes/data/quote_yonke_resolver.dart';
 import '../../features/quotes/data/quotes_api.dart';
 import '../../features/requests/data/requests_api.dart';
 import '../../features/requests/data/request_submission_repository.dart';
@@ -18,6 +19,7 @@ import '../../features/search/data/parts_search_repository.dart';
 import '../../features/search/data/search_history_repository.dart';
 import '../../features/yonkes/data/yonkes_api.dart';
 import '../../features/yonkes/data/client_yonkes_repository.dart';
+import '../../features/yonke_quotes/data/yonke_quote_registry.dart';
 import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
@@ -102,12 +104,14 @@ final yonkeRequestDetailRepositoryProvider =
       (ref) => ApiYonkeRequestDetailRepository(
         ref.watch(requestsApiProvider),
         ref.watch(quotesApiProvider),
+        ref.watch(yonkeQuoteRegistryProvider),
       ),
     );
 final yonkeQuotesRepositoryProvider = Provider<YonkeQuotesRepository>(
   (ref) => ApiYonkeQuotesRepository(
     ref.watch(dashboardApiProvider),
     ref.watch(quotesApiProvider),
+    ref.watch(yonkeQuoteRegistryProvider),
   ),
 );
 final yonkeMessagesRepositoryProvider = Provider<YonkeMessagesRepository>(
@@ -115,6 +119,7 @@ final yonkeMessagesRepositoryProvider = Provider<YonkeMessagesRepository>(
     ref.watch(quotesApiProvider),
     ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
+    ref.watch(yonkeQuoteRegistryProvider),
   ),
 );
 final yonkeCoverageRepositoryProvider = Provider<YonkeCoverageRepository>(
@@ -134,6 +139,7 @@ final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
     ref.watch(quotesApiProvider),
     ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
+    ref.watch(quoteYonkeResolverProvider),
   ),
 );
 final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(
@@ -163,4 +169,15 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
 final clientProfileRepositoryProvider = Provider<ClientProfileRepository>(
   (ref) =>
       LocalClientProfileRepository(tokenStore: ref.watch(tokenStoreProvider)),
+);
+
+final quoteYonkeResolverProvider = Provider<QuoteYonkeResolver>(
+  (ref) => QuoteYonkeResolver(
+    ref.watch(quotesApiProvider),
+    ref.watch(yonkesApiProvider),
+  ),
+);
+
+final yonkeQuoteRegistryProvider = Provider<YonkeQuoteRegistry>(
+  (ref) => YonkeQuoteRegistry(ref.watch(tokenStoreProvider)),
 );

@@ -65,12 +65,15 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       final response = await ref
           .read(quotesApiProvider)
           .getById(widget.quoteId);
+      final parsed = clientQuoteFromResponse(response);
+      final quote = parsed == null
+          ? null
+          : await ref.read(quoteYonkeResolverProvider).resolve(parsed);
       if (!mounted) return;
       setState(() {
-        _quote = clientQuoteFromResponse(response);
+        _quote = quote;
         _loading = false;
       });
-      final quote = _quote;
       if (quote != null) unawaited(_loadExistingOrder(quote));
     } catch (_) {
       if (!mounted) return;

@@ -298,6 +298,7 @@ class _ClientConversationPageState
   Timer? _refreshTimer;
   StreamSubscription<String>? _realtime;
   late final RealtimeService _realtimeService;
+  late ClientQuote _quote = widget.args.quote;
   bool _loading = true;
   bool _sending = false;
   Object? _error;
@@ -308,6 +309,7 @@ class _ClientConversationPageState
     _repository =
         widget.repository ?? ref.read(clientMessagesRepositoryProvider);
     _load();
+    _resolveYonke();
     // SignalR avisa al instante; el sondeo queda como respaldo por si el hub
     // no acepta la conexión.
     _refreshTimer = Timer.periodic(
@@ -320,6 +322,15 @@ class _ClientConversationPageState
         .where((id) => id == quoteId)
         .listen((_) => _refreshSilently());
     _realtimeService.watchQuote(quoteId);
+  }
+
+  /// Nombre y foto del yonke cuando la cotización llegó sin ellos.
+  Future<void> _resolveYonke() async {
+    if (_quote.hasYonkeIdentity && _quote.logoUrl != null) return;
+    final resolved = await ref.read(quoteYonkeResolverProvider).resolve(_quote);
+    if (mounted && !identical(resolved, _quote)) {
+      setState(() => _quote = resolved);
+    }
   }
 
   @override
@@ -420,7 +431,7 @@ class _ClientConversationPageState
 
   @override
   Widget build(BuildContext context) {
-    final quote = widget.args.quote;
+    final quote = _quote;
     return Scaffold(
       backgroundColor: _page,
       appBar: AppBar(

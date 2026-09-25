@@ -4,6 +4,7 @@ import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../quotes/domain/quote_message.dart';
+import '../../yonke_quotes/data/yonke_quote_registry.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../domain/yonke_message.dart';
 
@@ -22,12 +23,14 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
   const ApiYonkeMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
-    this._tokenStore,
-  );
+    this._tokenStore, [
+    this._registry,
+  ]);
 
   final QuotesApi _quotesApi;
   final DashboardApi _dashboardApi;
   final TokenStore _tokenStore;
+  final YonkeQuoteRegistry? _registry;
 
   /// Conversaciones consultadas por carga de bandeja, de la más reciente a
   /// la más antigua, para no disparar una llamada por cada cotización vieja.
@@ -35,20 +38,23 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
 
   @override
   Future<List<YonkeMessagePreview>> getInbox() async {
-    // `mis-cotizaciones` es del rol Cliente en el API publicado; si lo
-    // rechaza para el yonke, la bandeja queda como contrato pendiente.
-    final dynamic response;
+    // `mis-cotizaciones` es del rol Cliente en el API publicado. Si lo
+    // rechaza, la bandeja se arma con las cotizaciones registradas en el
+    // teléfono (enviadas desde la app o recibidas en avisos de mensaje).
+    List<YonkeQuote>? known;
     try {
-      response = await _dashboardApi.getMyQuotes();
+      known = yonkeQuotesPageFromResponse(
+        await _dashboardApi.getMyQuotes(),
+      )?.items;
     } on ApiException catch (error) {
-      if (error.statusCode == 403 || error.statusCode == 404) {
-        throw const YonkeMessagesInboxContractPendingException();
-      }
-      rethrow;
+      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
     }
-    final page = yonkeQuotesPageFromResponse(response);
-    if (page == null) throw const YonkeMessagesInboxContractPendingException();
-    final quotes = [...page.items]
+    final registry = _registry;
+    if (known == null && registry != null) {
+      known = await knownYonkeQuotes(registry, _quotesApi);
+    }
+    if (known == null) throw const YonkeMessagesInboxContractPendingException();
+    final quotes = [...known]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final viewerUserId = await currentUserIdFrom(_tokenStore);
 

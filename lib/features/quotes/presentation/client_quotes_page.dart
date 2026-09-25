@@ -33,7 +33,9 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
     });
     try {
       final response = await ref.read(dashboardApiProvider).getMyQuotes();
-      final allQuotes = clientQuotesFromDashboard(response);
+      final allQuotes = await ref
+          .read(quoteYonkeResolverProvider)
+          .resolveAll(clientQuotesFromDashboard(response));
       allQuotes.sort(
         (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
             .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),

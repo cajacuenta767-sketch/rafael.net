@@ -15,7 +15,13 @@ import 'package:app_yonke/features/requests/domain/request_draft.dart';
 import 'package:app_yonke/features/requests/domain/request_submission.dart';
 import 'package:app_yonke/features/quotes/data/quotes_api.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_request_detail_repository.dart';
+import 'package:app_yonke/features/quotes/data/quote_yonke_resolver.dart';
+import 'package:app_yonke/features/yonke_messages/data/yonke_messages_repository.dart';
+import 'package:app_yonke/features/yonke_quotes/data/yonke_quote_registry.dart';
+import 'package:app_yonke/features/yonke_requests/domain/yonke_request_detail.dart';
+import 'package:app_yonke/features/yonkes/data/yonkes_api.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Comportamiento de la app frente a las respuestas reales del API publicado.
@@ -299,6 +305,130 @@ void main() {
     });
   });
 
+  group('yonke de la cotización', () {
+    test('se completa con CotizacionYonke y Yonkes', () async {
+      final client = _RoutedClient({
+        ApiEndpoints.quote('q-yonke'): {
+          'data': {
+            'guidId': 'q-yonke',
+            'solicitudYonkes': {'yonkeGuidId': 'y-john'},
+          },
+        },
+        ApiEndpoints.yonke('y-john'): {
+          'data': {
+            'guidId': 'y-john',
+            'nombre': 'Yonke John',
+            'logoUrl': 'https://blob.example.com/logo.png',
+            'telefono': '6621234567',
+          },
+        },
+      });
+      final quote = clientQuotesFromDashboard({
+        'data': [
+          {'guidId': 'q-yonke', 'folio': 'SOL-1', 'precio': 100},
+        ],
+      }).single;
+      expect(quote.yonkeName, ClientQuote.pendingYonkeName);
+
+      final resolved = await QuoteYonkeResolver(
+        QuotesApi(client),
+        YonkesApi(client),
+      ).resolve(quote);
+
+      expect(resolved.yonkeName, 'Yonke John');
+      expect(resolved.logoUrl, 'https://blob.example.com/logo.png');
+      expect(resolved.yonkeId, 'y-john');
+    });
+
+    test('si el API falla conserva la cotización', () async {
+      final client = _RoutedClient({
+        ApiEndpoints.quote('q-sin'): const ApiException(
+          message: 'x',
+          statusCode: 500,
+        ),
+      });
+      final quote = clientQuotesFromDashboard({
+        'data': [
+          {'guidId': 'q-sin', 'folio': 'SOL-2', 'precio': 1},
+        ],
+      }).single;
+
+      final resolved = await QuoteYonkeResolver(
+        QuotesApi(client),
+        YonkesApi(client),
+      ).resolve(quote);
+
+      expect(identical(resolved, quote), isTrue);
+    });
+  });
+
+  group('cotizaciones del yonke registradas en el teléfono', () {
+    test('la cotización creada se recuerda y arma la bandeja', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final tokens = _YonkeTokens();
+      final registry = YonkeQuoteRegistry(tokens);
+      final client = _RoutedClient({
+        ApiEndpoints.quotes: {'success': true, 'data': 'q-nueva'},
+        ApiEndpoints.dashboardQuotes: const ApiException(
+          message: 'Prohibido',
+          statusCode: 403,
+        ),
+        ApiEndpoints.quote('q-nueva'): {
+          'data': {
+            'guidId': 'q-nueva',
+            'solicitudYonkeGuidId': 'a1',
+            'precio': 850,
+            'fechaCreacion': '2026-09-25T10:00:00Z',
+            'solicitudYonkes': {
+              'guidId': 'a1',
+              'solicitudGuidId': 's1',
+              'solicitudes': {'piezaBuscada': 'Faro', 'folio': 'SOL-9'},
+            },
+          },
+        },
+        ApiEndpoints.quoteConversation('q-nueva'): {
+          'data': [
+            {
+              'guidId': 'm1',
+              'usuarioId': 'cliente-1',
+              'tipoRemitenteId': 1,
+              'mensaje': 'Hola',
+              'leido': false,
+              'fechaCreacion': '2026-09-25T11:00:00Z',
+            },
+          ],
+        },
+      });
+
+      await ApiYonkeRequestDetailRepository(
+        RequestsApi(client),
+        QuotesApi(client),
+        registry,
+      ).submitQuote(
+        'a1',
+        const YonkeQuoteSubmission(
+          price: 850,
+          isNew: false,
+          hasWarranty: false,
+          warrantyDays: 0,
+          shippingAvailable: false,
+          images: [],
+        ),
+      );
+      expect(await registry.ids(), ['q-nueva']);
+
+      final inbox = await ApiYonkeMessagesRepository(
+        QuotesApi(client),
+        DashboardApi(client),
+        tokens,
+        registry,
+      ).getInbox();
+
+      expect(inbox.single.quote.id, 'q-nueva');
+      expect(inbox.single.lastMessage, 'Hola');
+    });
+  });
+
   group('cotizaciones del cliente', () {
     test('mis-cotizaciones se asume activa y no inventa yonkeId', () {
       final quotes = clientQuotesFromDashboard({
@@ -421,6 +551,31 @@ class _MemoryTokenStore implements TokenStore {
 
   @override
   Future<String?> readYonkeGuidId() async => null;
+
+  @override
+  Future<void> writeTokens({
+    required String accessToken,
+    String? refreshToken,
+    DateTime? expiresAt,
+    String? yonkeGuidId,
+  }) async {}
+
+  @override
+  Future<void> clear() async {}
+}
+
+class _YonkeTokens implements TokenStore {
+  @override
+  Future<String?> readAccessToken() async => 'jwt';
+
+  @override
+  Future<String?> readRefreshToken() async => null;
+
+  @override
+  Future<DateTime?> readExpiresAt() async => null;
+
+  @override
+  Future<String?> readYonkeGuidId() async => 'yonke-1';
 
   @override
   Future<void> writeTokens({

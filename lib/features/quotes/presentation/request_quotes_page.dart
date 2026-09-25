@@ -52,15 +52,19 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
 
     try {
       final response = await ref.read(dashboardApiProvider).getMyQuotes();
-      final quotes = clientQuotesFromDashboard(response)
-          .where(
-            (quote) =>
-                quote.requestId == widget.requestId ||
-                (quote.requestId.isEmpty &&
-                    widget.requestFolio != null &&
-                    quote.requestFolio == widget.requestFolio),
-          )
-          .toList();
+      final quotes = await ref
+          .read(quoteYonkeResolverProvider)
+          .resolveAll(
+            clientQuotesFromDashboard(response)
+                .where(
+                  (quote) =>
+                      quote.requestId == widget.requestId ||
+                      (quote.requestId.isEmpty &&
+                          widget.requestFolio != null &&
+                          quote.requestFolio == widget.requestFolio),
+                )
+                .toList(),
+          );
 
       if (!mounted) return;
       setState(() {
