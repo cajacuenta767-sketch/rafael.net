@@ -50,7 +50,6 @@ class DioApiClient implements ApiClient {
 
   bool _isAuthenticationPath(String path) => const {
     ApiEndpoints.clientGoogleLogin,
-    ApiEndpoints.clientAppleLogin,
     ApiEndpoints.requestOtp,
     ApiEndpoints.verifyOtp,
     ApiEndpoints.yonkeLogin,

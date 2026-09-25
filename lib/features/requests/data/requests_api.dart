@@ -125,4 +125,8 @@ class RequestsApi {
 
   Future<dynamic> markAsViewedByYonke(String requestYonkeId) =>
       _client.put(ApiEndpoints.markYonkeRequestViewed(requestYonkeId));
+
+  /// Solicitudes asignadas al yonke de la sesión. No recibe paginación.
+  Future<dynamic> getAssignedToYonke() =>
+      _client.get(ApiEndpoints.yonkeAssignedRequests);
 }

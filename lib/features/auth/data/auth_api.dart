@@ -9,23 +9,6 @@ class AuthApi {
   Future<dynamic> loginClientWithGoogle(String idToken) =>
       _client.post(ApiEndpoints.clientGoogleLogin, data: {'idToken': idToken});
 
-  Future<dynamic> loginClientWithApple({
-    required String identityToken,
-    required String authorizationCode,
-    required String userIdentifier,
-    String? firstName,
-    String? lastName,
-  }) => _client.post(
-    ApiEndpoints.clientAppleLogin,
-    data: {
-      'identityToken': identityToken,
-      'authorizationCode': authorizationCode,
-      'userIdentifier': userIdentifier,
-      'nombre': firstName,
-      'apellido': lastName,
-    },
-  );
-
   Future<dynamic> requestOtp(String phone) =>
       _client.post(ApiEndpoints.requestOtp, data: {'telefono': phone});
 

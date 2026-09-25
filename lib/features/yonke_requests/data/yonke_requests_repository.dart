@@ -20,9 +20,11 @@ class AssignedRequestsEndpointPendingException implements Exception {
   const AssignedRequestsEndpointPendingException();
 }
 
-/// Bandeja del yonke sobre `GET /api/DashboardSuscriptores/mis-solicitudes`.
+/// Bandeja del yonke sobre `GET /api/SolicitudYonkes/MisSolicitudes`, con
+/// `GET /api/DashboardSuscriptores/mis-solicitudes` como respaldo mientras el
+/// servidor publique la nueva ruta.
 ///
-/// El OpenAPI no declara el cuerpo de esa respuesta. Se aceptan registros
+/// El OpenAPI no declara el cuerpo de esas respuestas. Se aceptan registros
 /// `SolicitudYonkes` (con `solicitudes` anidada) o una proyección plana con
 /// `solicitudYonkeGuidId`; cualquier otra forma se reporta como contrato
 /// pendiente en lugar de mostrar datos incompletos. Los filtros de estado,
@@ -42,20 +44,48 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     YonkeRequestFilters filters = const YonkeRequestFilters(),
   }) async {
     final safePage = page < 1 ? 1 : page;
-    dynamic response;
+    final cleanSearch = search == null || search.trim().isEmpty
+        ? null
+        : search.trim();
+    Object? loadError;
+    var paged = true;
+    List<YonkeRequestSummary>? parsed;
     try {
-      response = await _dashboardApi.getMyRequests(
-        page: safePage,
-        pageSize: pageSize,
-        search: search == null || search.trim().isEmpty ? null : search.trim(),
+      final assigned = yonkeAssignedRequestsFromResponse(
+        await _requestsApi.getAssignedToYonke(),
       );
-    } catch (_) {
-      // Ignorar error si está pendiente
+      if (assigned != null) {
+        // MisSolicitudes entrega la bandeja completa: la búsqueda y la
+        // paginación se resuelven aquí.
+        paged = false;
+        parsed = cleanSearch == null
+            ? assigned
+            : assigned
+                  .where((item) => _matchesSearch(item, cleanSearch))
+                  .toList();
+      }
+    } catch (error) {
+      loadError = error;
     }
-    final parsed =
-        response != null ? yonkeAssignedRequestsFromResponse(response) : null;
-    final list = parsed ?? <YonkeRequestSummary>[];
+    if (parsed == null) {
+      try {
+        parsed = yonkeAssignedRequestsFromResponse(
+          await _dashboardApi.getMyRequests(
+            page: safePage,
+            pageSize: pageSize,
+            search: cleanSearch,
+          ),
+        );
+      } catch (error) {
+        loadError ??= error;
+      }
+    }
     final sessionRequests = SessionSyncStore.instance.yonkeRequests;
+    // Un fallo de red o de sesión no debe verse como una bandeja vacía.
+    if (parsed == null && loadError != null && sessionRequests.isEmpty) {
+      throw loadError;
+    }
+    final list = parsed ?? <YonkeRequestSummary>[];
     final combined = <YonkeRequestSummary>[...sessionRequests];
     for (final item in list) {
       if (!combined.any((existing) => existing.requestId == item.requestId)) {
@@ -74,6 +104,14 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
 
     final items = updated.where((item) => _matches(item, filters)).toList()
       ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+    if (!paged) {
+      final start = (safePage - 1) * pageSize;
+      return YonkeRequestsPageResult(
+        items: items.skip(start).take(pageSize).toList(growable: false),
+        page: safePage,
+        hasMore: items.length > start + pageSize,
+      );
+    }
     return YonkeRequestsPageResult(
       items: items,
       page: safePage,
@@ -84,6 +122,17 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
   @override
   Future<void> markAsViewed(String requestYonkeId) =>
       _requestsApi.markAsViewedByYonke(requestYonkeId);
+}
+
+bool _matchesSearch(YonkeRequestSummary item, String search) {
+  final query = search.toLowerCase();
+  return [
+    item.folio,
+    item.part,
+    item.brand,
+    item.model,
+    item.city,
+  ].any((value) => value != null && value.toLowerCase().contains(query));
 }
 
 bool _matches(YonkeRequestSummary item, YonkeRequestFilters filters) {

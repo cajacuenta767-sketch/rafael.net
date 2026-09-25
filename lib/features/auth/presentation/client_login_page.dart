@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:country_picker/country_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -892,34 +893,38 @@ class _LoginCard extends StatelessWidget {
           ),
           onPressed: () => onPending('El acceso con Apple'),
         ),
-        SizedBox(height: _responsiveSize(context, dense, 3, 4, 7)),
-        OutlinedButton.icon(
-          key: const Key('client_test_mode_button'),
-          onPressed: onTestMode,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _navy,
-            minimumSize: Size(
-              double.infinity,
-              _responsiveSize(context, dense, 30, 38, 48),
+        // El mercado de prueba solo existe en compilaciones de depuración; en
+        // release este acceso dejaría una sesión falsa contra la API real.
+        if (kDebugMode) ...[
+          SizedBox(height: _responsiveSize(context, dense, 3, 4, 7)),
+          OutlinedButton.icon(
+            key: const Key('client_test_mode_button'),
+            onPressed: onTestMode,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _navy,
+              minimumSize: Size(
+                double.infinity,
+                _responsiveSize(context, dense, 30, 38, 48),
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: _responsiveSize(context, dense, 9, 12, 16),
+              ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              side: const BorderSide(color: Color(0xFFD1D3D9)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            padding: EdgeInsets.symmetric(
-              horizontal: _responsiveSize(context, dense, 9, 12, 16),
-            ),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            side: const BorderSide(color: Color(0xFFD1D3D9)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+            icon: const Icon(Icons.science_outlined, color: _green, size: 20),
+            label: Text(
+              'Ingresar en modo prueba',
+              style: TextStyle(
+                fontSize: _responsiveSize(context, dense, 12, 13, 15),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          icon: const Icon(Icons.science_outlined, color: _green, size: 20),
-          label: Text(
-            'Ingresar en modo prueba',
-            style: TextStyle(
-              fontSize: _responsiveSize(context, dense, 12, 13, 15),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+        ],
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(

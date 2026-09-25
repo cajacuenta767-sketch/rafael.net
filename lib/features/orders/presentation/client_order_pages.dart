@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../payments/data/payments_api.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
@@ -385,6 +387,7 @@ class _ClientOrderTrackingPageState
   Object? _error;
   bool _loading = true;
   bool _cancelling = false;
+  bool _paying = false;
 
   @override
   void initState() {
@@ -464,6 +467,34 @@ class _ClientOrderTrackingPageState
     }
   }
 
+  /// Crea la sesión de Stripe Checkout y la abre en el navegador. El
+  /// resultado lo confirma el servidor por webhook de Stripe.
+  Future<void> _pay() async {
+    final orderId = _order?.id;
+    if (orderId == null || _paying) return;
+    setState(() => _paying = true);
+    String? failure;
+    try {
+      final url = checkoutUrlFromResponse(
+        await ref.read(paymentsApiProvider).createCheckout(orderId),
+      );
+      if (url == null) {
+        failure = 'El servidor no devolvió un enlace de pago válido.';
+      } else if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        failure = 'No se pudo abrir la página de pago.';
+      }
+    } catch (_) {
+      failure = 'No se pudo iniciar el pago. Inténtalo nuevamente.';
+    } finally {
+      if (mounted) setState(() => _paying = false);
+    }
+    if (!mounted) return;
+    if (failure != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failure)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFFCFCFC),
@@ -489,6 +520,8 @@ class _ClientOrderTrackingPageState
                   order: _order!,
                   cancelling: _cancelling,
                   onCancel: _cancel,
+                  paying: _paying,
+                  onPay: _pay,
                 ),
         ),
       ),
@@ -502,12 +535,23 @@ class _TrackingContent extends StatelessWidget {
     required this.order,
     required this.cancelling,
     required this.onCancel,
+    required this.paying,
+    required this.onPay,
   });
 
   final ClientQuote quote;
   final ClientOrder order;
   final bool cancelling;
   final VoidCallback onCancel;
+  final bool paying;
+  final VoidCallback onPay;
+
+  bool get _canPay {
+    final status = (order.status ?? '').toLowerCase();
+    return !order.isCancelled &&
+        order.id != null &&
+        !['pagad', 'complet', 'entreg', 'finaliz'].any(status.contains);
+  }
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -554,6 +598,24 @@ class _TrackingContent extends StatelessWidget {
         const _OrderStatusInfoCard(contractPending: true),
       ],
       const SizedBox(height: 22),
+      if (_canPay) ...[
+        FilledButton.icon(
+          key: const Key('client-pay-order'),
+          onPressed: paying ? null : onPay,
+          icon: paying
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.payment_outlined),
+          label: Text(paying ? 'Abriendo pago...' : 'Pagar orden'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF00695C),
+            minimumSize: const Size.fromHeight(52),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
       if (order.canCancel)
         OutlinedButton.icon(
           key: const Key('client-cancel-order'),
