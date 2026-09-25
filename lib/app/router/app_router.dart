@@ -19,6 +19,7 @@ import '../../features/quotes/presentation/quote_detail_page.dart';
 import '../../features/quotes/presentation/client_quotes_page.dart';
 import '../../features/quotes/presentation/request_quotes_page.dart';
 import '../../features/search/presentation/parts_search_page.dart';
+import '../../features/profile/presentation/client_onboarding_page.dart';
 import '../../features/profile/presentation/client_profile_page.dart';
 import '../../features/messages/presentation/client_conversation_page.dart';
 import '../../features/orders/presentation/client_order_pages.dart';
@@ -45,6 +46,7 @@ abstract final class AppRoutes {
   static const clientHome = '/cliente';
   static const clientSearch = '/cliente/buscar';
   static const clientProfile = '/cliente/perfil';
+  static const clientOnboarding = '/cliente/registro';
   static const clientMessages = '/cliente/mensajes';
   static const clientNotifications = '/cliente/notificaciones';
   static const clientYonkes = '/cliente/yonkes';
@@ -111,6 +113,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => ClientSessionGate(
         builder: (_) =>
             PartsSearchPage(initialQuery: state.uri.queryParameters['q']),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.clientOnboarding,
+      builder: (context, state) => ClientSessionGate(
+        requireCompleteProfile: false,
+        builder: (_) => const ClientOnboardingPage(),
       ),
     ),
     GoRoute(

@@ -7,6 +7,9 @@ class ClientOtpVerification {
     this.refreshToken,
     this.expiresAt,
     this.userId,
+    this.name,
+    this.email,
+    this.photoUrl,
     this.sessionContractPending = false,
     this.availableKeys = const <String>[],
   });
@@ -39,6 +42,9 @@ class ClientOtpVerification {
       refreshToken: payload.refreshToken,
       expiresAt: payload.expiresAt,
       userId: payload.userId,
+      name: _profileText(response, const ['nombre', 'name']),
+      email: _profileText(response, const ['correo', 'email']),
+      photoUrl: _profileText(response, const ['fotoPerfil', 'foto', 'picture']),
       availableKeys: payload.availableKeys,
     );
   }
@@ -47,6 +53,12 @@ class ClientOtpVerification {
   final String? refreshToken;
   final DateTime? expiresAt;
   final String? userId;
+
+  /// Datos del perfil que devuelve el login (`LoginClienteResponse`): con
+  /// Google llegan nombre, correo y foto; con OTP el nombre es genérico.
+  final String? name;
+  final String? email;
+  final String? photoUrl;
   final bool sessionContractPending;
 
   /// Claves que traía la respuesta. Solo para diagnóstico: permite ver el
@@ -94,4 +106,19 @@ class ApiClientAuthRepository implements ClientAuthRepository {
     final response = await _api.verifyOtp(phone: phone, code: code);
     return ClientOtpVerification.fromResponse(response);
   }
+}
+
+/// Busca un texto del perfil en la raíz o en `data` de la respuesta del login.
+String? _profileText(Object? response, List<String> keys) {
+  if (response is! Map) return null;
+  final data = response['data'];
+  for (final scope in [response, if (data is Map) data]) {
+    for (final entry in scope.entries) {
+      final key = entry.key.toString().toLowerCase();
+      if (!keys.any((candidate) => candidate.toLowerCase() == key)) continue;
+      final text = entry.value?.toString().trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+  }
+  return null;
 }

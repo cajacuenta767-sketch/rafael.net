@@ -18,7 +18,7 @@ const _jwt =
     'ZmFrZS1zaWduYXR1cmU';
 
 void main() {
-  testWidgets('modo de prueba usa chat local cuando el API responde 401', (
+  testWidgets('un 401 del chat muestra el error, nunca mensajes de ejemplo', (
     tester,
   ) async {
     final api = _FakeApiClient(unauthorizedChat: true);
@@ -26,9 +26,7 @@ void main() {
       ProviderScope(
         overrides: [
           apiClientProvider.overrideWithValue(api),
-          tokenStoreProvider.overrideWithValue(
-            _MemoryTokenStore('development-client-session'),
-          ),
+          tokenStoreProvider.overrideWithValue(_MemoryTokenStore(_jwt)),
         ],
         child: const MaterialApp(
           home: ClientConversationPage(
@@ -38,27 +36,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.fling(
-      find.byType(CustomScrollView),
-      const Offset(0, 600),
-      1000,
-    );
-    await tester.pumpAndSettle();
 
-    expect(find.textContaining('Modo de prueba'), findsOneWidget);
+    expect(find.text('No pudimos abrir el historial'), findsOneWidget);
     expect(
       find.text('Buen día, tenemos disponible la pieza que buscas.'),
-      findsOneWidget,
+      findsNothing,
     );
-
-    await tester.enterText(
-      find.byKey(const Key('client-message-input')),
-      'Mensaje guardado localmente',
-    );
-    await tester.tap(find.byKey(const Key('client-send-message')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Mensaje guardado localmente'), findsOneWidget);
     expect(api.sentMessages, isEmpty);
   });
 

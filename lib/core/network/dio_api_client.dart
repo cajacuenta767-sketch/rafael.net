@@ -36,9 +36,12 @@ class DioApiClient implements ApiClient {
           handler.next(options);
         },
         onError: (error, handler) async {
-          // Un 401 con token enviado significa que la sesión ya no es válida.
-          if (_isUnauthorized(error.response) &&
-              error.requestOptions.headers.containsKey('Authorization')) {
+          // Solo se cierra la sesión cuando está confirmado que el token ya no
+          // sirve; un 401 o un 302 de un endpoint mal configurado no basta.
+          if (error.requestOptions.extra[_sessionProbeFlag] != true &&
+              error.response?.statusCode == 401 &&
+              error.requestOptions.headers.containsKey('Authorization') &&
+              await _sessionIsInvalid(error.response!)) {
             await _tokenStore.clear();
             SessionEvents.notifyExpired();
           }
@@ -61,6 +64,44 @@ class DioApiClient implements ApiClient {
 
   final TokenStore _tokenStore;
   final Dio _dio;
+  Future<bool>? _sessionProbe;
+
+  static const _sessionProbeFlag = 'refanet.sessionProbe';
+
+  /// Varios endpoints del API responden 401 o 302 aunque el token sea válido
+  /// (usan `[Authorize]` sin el esquema JWT). Por eso un 401 solo cierra la
+  /// sesión si el token venció, si JwtBearer lo declara inválido o si un
+  /// endpoint que sí acepta el JWT también lo rechaza.
+  Future<bool> _sessionIsInvalid(Response<dynamic> response) async {
+    final expiresAt = await _tokenStore.readExpiresAt();
+    if (expiresAt != null && !expiresAt.isAfter(DateTime.now().toUtc())) {
+      return true;
+    }
+    final challenge = response.headers.value('www-authenticate') ?? '';
+    if (challenge.toLowerCase().contains('invalid_token')) return true;
+    return _sessionProbe ??= _probeSession().whenComplete(
+      () => _sessionProbe = null,
+    );
+  }
+
+  /// `GET /api/Yonkes/byPage` exige el esquema JWT y acepta a los roles
+  /// Cliente y Asociado: si también responde 401, el token ya no sirve. Un
+  /// fallo de red conserva la sesión.
+  Future<bool> _probeSession() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        ApiEndpoints.pagedYonkes,
+        queryParameters: const {'Page': 1, 'CantidadRegistrosPorPagina': 1},
+        options: Options(
+          extra: const {_sessionProbeFlag: true},
+          validateStatus: (_) => true,
+        ),
+      );
+      return response.statusCode == 401;
+    } catch (_) {
+      return false;
+    }
+  }
 
   bool _isAuthenticationPath(String path) => const {
     ApiEndpoints.clientGoogleLogin,
@@ -199,12 +240,11 @@ class DioApiClient implements ApiClient {
     return null;
   }
 
-  static bool _isUnauthorized(Response<dynamic>? response) {
-    if (response == null) return false;
-    if (response.statusCode == 401) return true;
-    final location = response.headers.value('location') ?? '';
-    return response.statusCode == 302 &&
-        location.toLowerCase().contains('/account/login');
+  /// `[Authorize]` sin esquema JWT responde 302 hacia `/Account/Login`.
+  static bool _isLoginRedirect(Response<dynamic>? response) {
+    if (response?.statusCode != 302) return false;
+    final location = response!.headers.value('location') ?? '';
+    return location.toLowerCase().contains('/account/login');
   }
 
   Map<String, dynamic>? _withoutNulls(Map<String, dynamic>? values) {
@@ -269,9 +309,13 @@ class DioApiClient implements ApiClient {
       serverMessage = responseData.trim();
     }
 
-    final unauthorized = _isUnauthorized(error.response);
-    final code = unauthorized ? 401 : error.response?.statusCode;
+    final code = error.response?.statusCode;
     serverMessage = _friendlyServerMessage(serverMessage);
+    if (_isLoginRedirect(error.response)) {
+      serverMessage =
+          'El servidor no aceptó la sesión para esta acción. '
+          'Inténtalo más tarde.';
+    }
 
     if (serverMessage == null || serverMessage.isEmpty) {
       if (_isTimeout(error)) {

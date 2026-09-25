@@ -52,13 +52,9 @@ void main() {
       );
     });
 
-    test('sin sesión o con sesión de prueba no registra', () async {
+    test('sin sesión no registra', () async {
       final client = _RecordingClient();
       await service(client, _MemoryTokenStore()).registerCurrentSession();
-      await service(
-        client,
-        _MemoryTokenStore(token: 'development-client-session'),
-      ).registerCurrentSession();
 
       expect(client.posts, isEmpty);
     });

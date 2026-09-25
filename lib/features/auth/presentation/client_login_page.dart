@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:country_picker/country_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +16,7 @@ import '../../../core/network/api_exception.dart';
 import '../domain/international_phone.dart';
 import 'client_login_controller.dart';
 import 'legal_document_page.dart';
+import '../../profile/domain/client_profile.dart';
 
 const _navy = Color(0xFF092B61);
 const _blue = Color(0xFF0B4AA5);
@@ -193,17 +193,14 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     onBack: _goBack,
     onGoogle: _signInWithGoogle,
     onPending: _showPendingWithConsent,
-    onTestMode: _enterTestMode,
   );
 
-  Future<void> _enterTestMode() async {
-    if (!await _ensureLegalAccepted()) return;
-    await ref.read(tokenStoreProvider).writeTokens(
-      accessToken: 'development-client-session',
-      refreshToken: null,
-      expiresAt: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (mounted) context.go(AppRoutes.clientHome);
+  Future<void> _saveLoginHints(ClientLoginHints hints) async {
+    try {
+      await ref.read(clientProfileRepositoryProvider).saveLoginHints(hints);
+    } catch (_) {
+      // Sin las pistas el registro solo aparece vacío; no bloquea el acceso.
+    }
   }
 
   Future<void> _requestCodeWithConsent() async {
@@ -256,6 +253,14 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             refreshToken: result.refreshToken,
             expiresAt: result.expiresAt,
           );
+      // Prellenan el registro si la cuenta es nueva en este dispositivo.
+      await _saveLoginHints(
+        ClientLoginHints(
+          name: result.name ?? account.displayName,
+          email: result.email ?? account.email,
+          photoUrl: result.photoUrl ?? account.photoUrl,
+        ),
+      );
       if (mounted) context.go(AppRoutes.clientHome);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
@@ -568,7 +573,12 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
     final authenticated = await _controller.verifyCode();
     if (!mounted) return;
     if (authenticated) {
-      context.go(AppRoutes.clientHome);
+      // El teléfono verificado prellena el registro; nunca se usa como
+      // nombre.
+      await _saveLoginHints(
+        ClientLoginHints(phone: _controller.normalizedPhone),
+      );
+      if (mounted) context.go(AppRoutes.clientHome);
       return;
     }
 
@@ -701,7 +711,6 @@ class _LoginCard extends StatelessWidget {
     required this.onBack,
     required this.onGoogle,
     required this.onPending,
-    required this.onTestMode,
   });
 
   final ClientLoginController controller;
@@ -717,7 +726,6 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onGoogle;
   final ValueChanged<String> onPending;
-  final VoidCallback onTestMode;
 
   @override
   Widget build(BuildContext context) {
@@ -893,38 +901,6 @@ class _LoginCard extends StatelessWidget {
           ),
           onPressed: () => onPending('El acceso con Apple'),
         ),
-        // El mercado de prueba solo existe en compilaciones de depuración; en
-        // release este acceso dejaría una sesión falsa contra la API real.
-        if (kDebugMode) ...[
-          SizedBox(height: _responsiveSize(context, dense, 3, 4, 7)),
-          OutlinedButton.icon(
-            key: const Key('client_test_mode_button'),
-            onPressed: onTestMode,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _navy,
-              minimumSize: Size(
-                double.infinity,
-                _responsiveSize(context, dense, 30, 38, 48),
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: _responsiveSize(context, dense, 9, 12, 16),
-              ),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              side: const BorderSide(color: Color(0xFFD1D3D9)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            icon: const Icon(Icons.science_outlined, color: _green, size: 20),
-            label: Text(
-              'Ingresar en modo prueba',
-              style: TextStyle(
-                fontSize: _responsiveSize(context, dense, 12, 13, 15),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(

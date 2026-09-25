@@ -67,7 +67,7 @@ void main() {
       );
     });
 
-    test('el 302 hacia /Account/Login se trata como 401', () async {
+    test('el 302 hacia /Account/Login es un error de la acción', () async {
       final client = clientReturning(
         302,
         '',
@@ -78,7 +78,11 @@ void main() {
 
       await expectLater(
         client.get(ApiEndpoints.request('x')),
-        throwsA(isA<ApiException>().having((e) => e.statusCode, 'code', 401)),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'code', 302)
+              .having((e) => e.message, 'message', contains('no aceptó')),
+        ),
       );
     });
 

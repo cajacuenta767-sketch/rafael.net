@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/data/auth_api.dart';
@@ -9,6 +8,7 @@ import '../../features/dashboard/data/dashboard_api.dart';
 import '../../features/orders/data/orders_api.dart';
 import '../../features/orders/data/client_orders_repository.dart';
 import '../../features/payments/data/payments_api.dart';
+import '../../features/profile/data/client_profile_repository.dart';
 import '../../features/quotes/data/quotes_api.dart';
 import '../../features/requests/data/requests_api.dart';
 import '../../features/requests/data/request_submission_repository.dart';
@@ -28,7 +28,6 @@ import '../../features/yonke_requests/data/yonke_requests_repository.dart';
 import '../network/api_client.dart';
 import '../push/push_service.dart';
 import '../realtime/realtime_service.dart';
-import '../network/development_api_client.dart';
 import '../network/dio_api_client.dart';
 import '../storage/notifying_token_store.dart';
 import '../storage/secure_token_store.dart';
@@ -40,10 +39,7 @@ final tokenStoreProvider = Provider<TokenStore>(
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokens = ref.watch(tokenStoreProvider);
-  final remote = DioApiClient(tokens);
-  // El mercado de prueba solo existe en depuración; en release todas las
-  // llamadas van directo al API.
-  return kDebugMode ? DevelopmentApiClient(remote, tokens) : remote;
+  return DioApiClient(tokens);
 });
 
 final authApiProvider = Provider<AuthApi>(
@@ -163,3 +159,8 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
   ref.onDispose(service.stop);
   return service;
 });
+
+final clientProfileRepositoryProvider = Provider<ClientProfileRepository>(
+  (ref) =>
+      LocalClientProfileRepository(tokenStore: ref.watch(tokenStoreProvider)),
+);

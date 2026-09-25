@@ -81,7 +81,7 @@ class RealtimeService {
     } catch (_) {
       return false;
     }
-    if (token == null || token.isEmpty || token.startsWith('development-')) {
+    if (token == null || token.isEmpty) {
       return false;
     }
     final connection = HubConnectionBuilder()

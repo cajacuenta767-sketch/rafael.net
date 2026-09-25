@@ -108,10 +108,6 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
             'Consulta el historial de cada cotización.',
             style: TextStyle(color: _muted, fontSize: 15),
           ),
-          if (_usingDevelopmentFallback) ...[
-            const SizedBox(height: 12),
-            const _DevelopmentBanner(),
-          ],
           const SizedBox(height: 18),
           ..._content(),
         ],
@@ -152,10 +148,6 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
     }
     return _items.map(_conversationTile).toList(growable: false);
   }
-
-  bool get _usingDevelopmentFallback =>
-      _repository is DevelopmentMessagesStatus &&
-      (_repository as DevelopmentMessagesStatus).usingDevelopmentFallback;
 
   Widget _conversationTile(ClientMessagePreview item) {
     final quote = item.quote;
@@ -459,10 +451,6 @@ class _ClientConversationPageState
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     sliver: SliverList.list(
                       children: [
-                        if (_usingDevelopmentFallback) ...[
-                          const _DevelopmentBanner(),
-                          const SizedBox(height: 8),
-                        ],
                         _YonkeHeader(quote: quote),
                         const SizedBox(height: 8),
                         _QuoteHeader(quote: quote),
@@ -485,10 +473,6 @@ class _ClientConversationPageState
       ),
     );
   }
-
-  bool get _usingDevelopmentFallback =>
-      _repository is DevelopmentMessagesStatus &&
-      (_repository as DevelopmentMessagesStatus).usingDevelopmentFallback;
 
   List<Widget> _messageSlivers() {
     if (_loading) {
@@ -591,37 +575,6 @@ class _YonkeHeader extends StatelessWidget {
                 ],
               ),
             ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _DevelopmentBanner extends StatelessWidget {
-  const _DevelopmentBanner();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF4D6),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFF2CA68)),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.science_outlined, color: Color(0xFF8A5B00), size: 20),
-        SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Modo de prueba: estos mensajes se guardan solo durante esta sesión.',
-            style: TextStyle(
-              color: Color(0xFF6F4A00),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
       ],

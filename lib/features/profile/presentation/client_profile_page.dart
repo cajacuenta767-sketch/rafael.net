@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import '../../auth/presentation/legal_document_page.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../data/client_profile_repository.dart';
 import '../domain/client_profile.dart';
+import 'client_onboarding_page.dart';
 import 'client_profile_controller.dart';
 
 const _navy = Color(0xFF07284D);
@@ -37,8 +40,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
     final TokenStore tokenStore =
         widget.tokenStore ?? ref.read(tokenStoreProvider);
     _repository =
-        widget.repository ??
-        LocalClientProfileRepository(tokenStore: tokenStore);
+        widget.repository ?? ref.read(clientProfileRepositoryProvider);
     _controller = ClientProfileController(_repository, tokenStore)
       ..addListener(_refresh);
     _controller.load();
@@ -167,7 +169,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) =>
-            ClientDetailsPage(initial: profile, repository: _repository),
+            ClientOnboardingPage(editing: true, repository: _repository),
       ),
     );
     if (changed == true) await _controller.load();
@@ -233,6 +235,13 @@ class _AccountCard extends StatelessWidget {
   final ClientProfile profile;
   final VoidCallback onTap;
 
+  ImageProvider? get _photo {
+    final path = profile.photoPath;
+    if (path != null && File(path).existsSync()) return FileImage(File(path));
+    final url = profile.photoUrl;
+    return url != null && url.startsWith('https://') ? NetworkImage(url) : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = profile.name?.trim().isNotEmpty == true
@@ -258,15 +267,24 @@ class _AccountCard extends StatelessWidget {
                 width: 64,
                 height: 64,
                 alignment: Alignment.center,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFF173B64),
                   border: Border.all(color: _green, width: 1.2),
+                  image: _photo == null
+                      ? null
+                      : DecorationImage(image: _photo!, fit: BoxFit.cover),
                 ),
-                child: Text(
-                  initials.isEmpty ? 'CR' : initials,
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                ),
+                child: _photo != null
+                    ? null
+                    : Text(
+                        initials.isEmpty ? 'CR' : initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
               ),
               const SizedBox(width: 15),
               Expanded(
@@ -287,16 +305,21 @@ class _AccountCard extends StatelessWidget {
                       'Cliente',
                       style: TextStyle(color: Color(0xFFCCD6E0)),
                     ),
-                    if (profile.email?.trim().isNotEmpty == true)
-                      Text(
-                        profile.email!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFCCD6E0),
-                          fontSize: 12,
+                    for (final line in [
+                      profile.email,
+                      profile.phone,
+                      profile.displayCity,
+                    ])
+                      if (line?.trim().isNotEmpty == true)
+                        Text(
+                          line!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFCCD6E0),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
                   ],
                 ),
               ),
@@ -345,103 +368,6 @@ class _MenuTile extends StatelessWidget {
               )),
     onTap: onTap,
   );
-}
-
-class ClientDetailsPage extends StatefulWidget {
-  const ClientDetailsPage({
-    super.key,
-    required this.initial,
-    required this.repository,
-  });
-
-  final ClientProfile initial;
-  final ClientProfileRepository repository;
-
-  @override
-  State<ClientDetailsPage> createState() => _ClientDetailsPageState();
-}
-
-class _ClientDetailsPageState extends State<ClientDetailsPage> {
-  late final _name = TextEditingController(text: widget.initial.name);
-  late final _email = TextEditingController(text: widget.initial.email);
-  late final _phone = TextEditingController(text: widget.initial.phone);
-  late final _city = TextEditingController(text: widget.initial.city);
-  final _formKey = GlobalKey<FormState>();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _phone.dispose();
-    _city.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: _page,
-    appBar: AppBar(title: const Text('Mis datos'), centerTitle: true),
-    body: Form(
-      key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const _LocalNotice(),
-          const SizedBox(height: 18),
-          TextFormField(
-            key: const Key('profile-name-field'),
-            controller: _name,
-            decoration: const InputDecoration(labelText: 'Nombre'),
-            validator: (value) =>
-                value?.trim().isEmpty == true ? 'Escribe tu nombre' : null,
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Correo electrónico'),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Celular'),
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _city,
-            decoration: const InputDecoration(labelText: 'Ciudad'),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            key: const Key('save-profile-data'),
-            onPressed: _saving ? null : _save,
-            style: FilledButton.styleFrom(
-              backgroundColor: _green,
-              minimumSize: const Size.fromHeight(52),
-            ),
-            child: Text(_saving ? 'Guardando...' : 'Guardar cambios'),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Future<void> _save() async {
-    if (_formKey.currentState?.validate() != true) return;
-    setState(() => _saving = true);
-    await widget.repository.saveProfile(
-      ClientProfile(
-        id: widget.initial.id,
-        name: _name.text.trim(),
-        email: _emptyToNull(_email.text),
-        phone: _emptyToNull(_phone.text),
-        city: _emptyToNull(_city.text),
-      ),
-    );
-    if (mounted) Navigator.pop(context, true);
-  }
 }
 
 class ClientAddressesPage extends StatefulWidget {
