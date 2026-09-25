@@ -46,19 +46,21 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
 
   @override
   Future<List<YonkeMessagePreview>> getInbox() async {
-    // `mis-cotizaciones` es del rol Cliente en el API publicado. Si lo
-    // rechaza, la bandeja se arma con las cotizaciones registradas en el
-    // teléfono (enviadas desde la app o recibidas en avisos de mensaje).
+    // `mis-cotizaciones` es del rol Cliente en el API publicado. Si la
+    // rechaza de cualquier forma (403, 401, 302 de login, 500 o
+    // `success:false`) o no trae nada, la bandeja se arma con las
+    // cotizaciones registradas en el teléfono (enviadas desde la app o
+    // recibidas en avisos de mensaje).
     List<YonkeQuote>? known;
     try {
       known = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
           ?.items;
-    } on ApiException catch (error) {
-      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
+    } on ApiException {
+      known = null;
     }
     final registry = _registry;
-    if (known == null && registry != null) {
-      known = await knownYonkeQuotes(registry, _quotesApi);
+    if ((known == null || known.isEmpty) && registry != null) {
+      known = await knownYonkeQuotes(registry, _quotesApi) ?? known;
     }
     if (known == null) throw const YonkeMessagesInboxContractPendingException();
     final quotes = [...known]
@@ -86,8 +88,9 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
                   ),
             )
             .length;
-        final known =
-            _latestContact(messages, viewerUserId) ?? await getClient(quote.id);
+        // Solo el contacto que el cliente mandó en el chat: pedir otra vez la
+        // cotización por cada conversación hacía lenta la bandeja.
+        final known = _latestContact(messages, viewerUserId);
         final name = known?.name ?? 'Cliente';
         return YonkeMessagePreview(
           quote: quote,

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/realtime/realtime_service.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../../../app/theme/yonke_theme.dart';
@@ -165,7 +166,12 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
         _StateCard(
           icon: Icons.cloud_off_outlined,
           title: 'No pudimos cargar los mensajes',
-          message: 'Revisa tu conexión e inténtalo nuevamente.',
+          // El motivo del servidor ayuda a distinguir sesión, permisos y red.
+          message: switch (_error) {
+            ApiException(:final message) when message.trim().isNotEmpty =>
+              message,
+            _ => 'Revisa tu conexión e inténtalo nuevamente.',
+          },
           action: OutlinedButton(
             onPressed: _load,
             child: const Text('Reintentar'),
