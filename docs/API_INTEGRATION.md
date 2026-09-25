@@ -197,7 +197,8 @@ endpoint respondió con error o sin alguna clave necesaria.
 | `GET /api/Orden/cotizacion/{guid}` | Detalle de cotización | `404` significa que no hay orden previa |
 | `GET /api/DashboardSuscriptores/mi-solicitud-reciente` | Inicio del cliente | `Solicitud_Busqueda_DTO` (objeto o lista de uno) |
 | `GET /api/DashboardSuscriptores/mis-solicitudes` | Mis solicitudes (cliente) | `guidId`, `piezaBuscada`, `marca`, `modelo`, `año`, `estatusSolicitud`, `totalCotizaciones` |
-| `GET /api/SolicitudYonkes/MisSolicitudes` | Bandeja del yonke | registros `SolicitudYonkes` con `solicitudes` anidada, o proyección plana con `solicitudYonkeGuidId` |
+| `GET /api/SolicitudYonkes/MisSolicitudes` | Bandeja del yonke | `SolicitudYonke_List_DTO`: `solicitudYonkeGuidId`, `solicitudGuidId`, `folio`, `piezaBuscada`, `fechaEnvio`, `estatus`, `vista`, `cotizaciones`, `imagenes[].url`, `ciudades[].ciudad` |
+| `GET /api/SolicitudYonkes/TotalSolicitudesNuevas` | Inicio del yonke | número en `data` |
 | `GET /api/Solicitudes/{guid}` + `SolicitudesImagenes/solicitud/{guid}` + `SolicitudCiudades/{guid}/ciudades` | Detalle de solicitud | `Solicitud_Busqueda_DTO`, `urlImagen`, `ciudades.ciudad` + `entidades.entidad` |
 | `GET /api/SolicitudCotizacionMensajes/{guid}` y `PUT .../leer` | Conversaciones (cliente y yonke) | `SolicitudCotizacionMensajes`: `guidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`, `leido`, `fechaCreacion` |
 | `GET /api/Yonkes/{guid}` | Perfil del yonke | `nombre`, `responsable`, `telefono`, `correo`, `direccion`, `cp`, `ciudades.ciudad` |

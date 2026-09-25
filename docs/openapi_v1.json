@@ -1448,7 +1448,7 @@
         }
       }
     },
-    "/api/SolicitudYonkes/MisSolicitudes": {
+    "/api/SolicitudYonkes/TotalSolicitudesNuevas": {
       "get": {
         "tags": [
           "SolicitudYonkes"
@@ -1456,6 +1456,37 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudYonkes/MasReciente": {
+      "get": {
+        "tags": [
+          "SolicitudYonkes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/SolicitudYonkes/MisSolicitudes": {
+      "get": {
+        "tags": [
+          "SolicitudYonkes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudYonke_List_DTOListApiResponseGlobal"
+                }
+              }
+            }
           }
         }
       }
@@ -2683,111 +2714,75 @@
         },
         "additionalProperties": false
       },
-      "Solicitud_Busqueda_DTO": {
+      "SolicitudCiudad_DTO": {
+        "type": "object",
+        "properties": {
+          "ciudadId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ciudad": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionEstatus": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
           },
-          "fechaCreacion": {
+          "descripcion": {
             "type": "string",
-            "format": "date-time"
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudCotizacionMensajes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
           },
           "guidId": {
             "type": "string",
             "format": "uuid"
           },
-          "estatusSolicitudId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "estatusSolicitud": {
+          "solicitudCotizacionGuidId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
           "usuarioId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
-          "marcaId": {
+          "tipoRemitenteId": {
             "type": "integer",
             "format": "int32"
           },
-          "marca": {
+          "mensaje": {
             "type": "string",
             "nullable": true
           },
-          "modeloId": {
-            "type": "integer",
-            "format": "int32"
+          "leido": {
+            "type": "boolean"
           },
-          "modelo": {
-            "type": "string",
-            "nullable": true
-          },
-          "año": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "motor": {
-            "type": "string",
-            "nullable": true
-          },
-          "transmicion": {
-            "type": "string",
-            "nullable": true
-          },
-          "piezaBuscada": {
-            "type": "string",
-            "nullable": true
-          },
-          "numeroParte": {
-            "type": "string",
-            "nullable": true
-          },
-          "descripcion": {
-            "type": "string",
-            "nullable": true
-          },
-          "folio": {
-            "type": "string",
-            "nullable": true
-          },
-          "fechaCierre": {
+          "fechaLectura": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
-          "totalCotizaciones": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "cerrada": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "Solicitud_Busqueda_DTOApiResponseGlobal": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
+          "fechaCreacion": {
             "type": "string",
-            "nullable": true
+            "format": "date-time"
           },
-          "data": {
-            "$ref": "#/components/schemas/Solicitud_Busqueda_DTO"
-          },
-          "statusCode": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "errors": {
-            "nullable": true
+          "solicitudCotizacion": {
+            "$ref": "#/components/schemas/SolicitudCotizaciones"
           }
         },
         "additionalProperties": false
@@ -2809,7 +2804,7 @@
           },
           "usuarioId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
           "solicitudYonkeGuidId": {
             "type": "string",
@@ -2965,21 +2960,140 @@
         },
         "additionalProperties": false
       },
-      "SolicitudCotizacionEstatus": {
+      "SolicitudImagen_DTO": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
           },
-          "descripcion": {
+          "url": {
             "type": "string",
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "SolicitudCotizacionMensajes": {
+      "SolicitudUpdateStatusDTO": {
+        "type": "object",
+        "properties": {
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estatusId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notas": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonke_List_DTO": {
+        "type": "object",
+        "properties": {
+          "solicitudYonkeGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "solicitudGuidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "folio": {
+            "type": "string",
+            "nullable": true
+          },
+          "piezaBuscada": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaSolicitud": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaEnvio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estatusId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "vista": {
+            "type": "boolean"
+          },
+          "fechaVista": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cotizaciones": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "imagenes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudImagen_DTO"
+            },
+            "nullable": true
+          },
+          "ciudades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudCiudad_DTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonke_List_DTOListApiResponseGlobal": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudYonke_List_DTO"
+            },
+            "nullable": true
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonkes": {
         "type": "object",
         "properties": {
           "id": {
@@ -2990,36 +3104,182 @@
             "type": "string",
             "format": "uuid"
           },
-          "solicitudCotizacionGuidId": {
+          "solicitudGuidId": {
             "type": "string",
             "format": "uuid"
           },
-          "usuarioId": {
+          "yonkeGuidId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
-          "tipoRemitenteId": {
+          "fechaEnvio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estatusId": {
             "type": "integer",
             "format": "int32"
           },
-          "mensaje": {
-            "type": "string",
-            "nullable": true
-          },
-          "leido": {
-            "type": "boolean"
-          },
-          "fechaLectura": {
+          "fechaVista": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "fechaRespuesta": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fechaCambioEstatus": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "solicitudes": {
+            "$ref": "#/components/schemas/Solicitudes"
+          },
+          "yonkes": {
+            "$ref": "#/components/schemas/Yonkes"
+          },
+          "solicitudYonkesEstatus": {
+            "$ref": "#/components/schemas/SolicitudYonkesEstatus"
+          },
+          "solicitudCotizaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudCotizaciones"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SolicitudYonkesEstatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatusSolicitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "solicitudYonkes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitudYonkes"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitud_Busqueda_DTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
           },
           "fechaCreacion": {
             "type": "string",
             "format": "date-time"
           },
-          "solicitudCotizacion": {
-            "$ref": "#/components/schemas/SolicitudCotizaciones"
+          "guidId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "estatusSolicitudId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "estatusSolicitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "usuarioId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "marcaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marca": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeloId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelo": {
+            "type": "string",
+            "nullable": true
+          },
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "motor": {
+            "type": "string",
+            "nullable": true
+          },
+          "transmicion": {
+            "type": "string",
+            "nullable": true
+          },
+          "piezaBuscada": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "folio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaCierre": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalCotizaciones": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cerrada": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Solicitud_Busqueda_DTOApiResponseGlobal": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/Solicitud_Busqueda_DTO"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3041,7 +3301,7 @@
           },
           "usuarioId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
           "estatusSolicitudId": {
             "type": "integer",
@@ -3138,52 +3398,6 @@
         },
         "additionalProperties": false
       },
-      "Solicitudes_Create_DTO": {
-        "type": "object",
-        "properties": {
-          "marcaId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "modeloId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "año": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "motor": {
-            "type": "string",
-            "nullable": true
-          },
-          "transmicion": {
-            "type": "string",
-            "nullable": true
-          },
-          "piezaBuscada": {
-            "type": "string",
-            "nullable": true
-          },
-          "numeroParte": {
-            "type": "string",
-            "nullable": true
-          },
-          "descripcion": {
-            "type": "string",
-            "nullable": true
-          },
-          "ciudadesIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "SolicitudesCiudades": {
         "type": "object",
         "properties": {
@@ -3261,7 +3475,7 @@
           },
           "usuarioId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
           "comentarios": {
             "type": "string",
@@ -3309,105 +3523,46 @@
         },
         "additionalProperties": false
       },
-      "SolicitudUpdateStatusDTO": {
+      "Solicitudes_Create_DTO": {
         "type": "object",
         "properties": {
-          "guidId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "estatusId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "userId": {
-            "type": "string",
-            "nullable": true
-          },
-          "notas": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "SolicitudYonkes": {
-        "type": "object",
-        "properties": {
-          "id": {
+          "marcaId": {
             "type": "integer",
             "format": "int32"
           },
-          "guidId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "solicitudGuidId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "yonkeGuidId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fechaEnvio": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "estatusId": {
+          "modeloId": {
             "type": "integer",
             "format": "int32"
           },
-          "fechaVista": {
+          "año": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "motor": {
             "type": "string",
-            "format": "date-time",
             "nullable": true
           },
-          "fechaRespuesta": {
+          "transmicion": {
             "type": "string",
-            "format": "date-time",
             "nullable": true
           },
-          "fechaCambioEstatus": {
+          "piezaBuscada": {
             "type": "string",
-            "format": "date-time",
             "nullable": true
           },
-          "solicitudes": {
-            "$ref": "#/components/schemas/Solicitudes"
+          "numeroParte": {
+            "type": "string",
+            "nullable": true
           },
-          "yonkes": {
-            "$ref": "#/components/schemas/Yonkes"
+          "descripcion": {
+            "type": "string",
+            "nullable": true
           },
-          "solicitudYonkesEstatus": {
-            "$ref": "#/components/schemas/SolicitudYonkesEstatus"
-          },
-          "solicitudCotizaciones": {
+          "ciudadesIds": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SolicitudCotizaciones"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "SolicitudYonkesEstatus": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "estatusSolicitud": {
-            "type": "string",
-            "nullable": true
-          },
-          "solicitudYonkes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SolicitudYonkes"
+              "type": "integer",
+              "format": "int32"
             },
             "nullable": true
           }
@@ -3579,6 +3734,7 @@
           },
           "createBy": {
             "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "stripeAccountId": {
@@ -3661,7 +3817,7 @@
           },
           "usuarioId": {
             "type": "string",
-            "nullable": true
+            "format": "uuid"
           },
           "solicitudGuidId": {
             "type": "string",

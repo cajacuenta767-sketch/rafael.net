@@ -4,6 +4,7 @@ import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/features/requests/data/requests_api.dart';
 import 'package:app_yonke/features/yonke_home/presentation/yonke_home_page.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_requests_repository.dart';
+import 'package:app_yonke/features/yonke_requests/domain/yonke_request_summary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Rutas agregadas al contrato V1: `SolicitudYonkes/MisSolicitudes`
@@ -87,6 +88,63 @@ void main() {
         throwsA(isA<AssignedRequestsEndpointPendingException>()),
       );
     });
+  });
+
+  test('MisSolicitudes lee SolicitudYonke_List_DTO del Swagger publicado', () {
+    final items = yonkeAssignedRequestsFromResponse({
+      'success': true,
+      'data': [
+        {
+          'solicitudYonkeGuidId': 'asignacion-1',
+          'solicitudGuidId': 'solicitud-1',
+          'folio': 'SOL-202609-0001',
+          'piezaBuscada': 'Alternador',
+          'numeroParte': 'S/N',
+          'fechaSolicitud': '2026-09-25T10:00:00Z',
+          'fechaEnvio': '2026-09-25T10:05:00Z',
+          'estatusId': 2,
+          'estatus': 'Vista',
+          'vista': true,
+          'fechaVista': '2026-09-25T11:00:00Z',
+          'cotizaciones': 1,
+          'imagenes': [
+            {'guidId': 'img-1', 'url': 'https://blob.example.com/1.jpg'},
+          ],
+          'ciudades': [
+            {'ciudadId': 12, 'ciudad': 'Hermosillo'},
+          ],
+        },
+      ],
+    })!;
+
+    final item = items.single;
+    expect(item.requestYonkeId, 'asignacion-1');
+    expect(item.requestId, 'solicitud-1');
+    expect(item.folio, 'SOL-202609-0001');
+    expect(item.hasQuote, isTrue);
+    expect(item.status, YonkeRequestStatus.quoted);
+    expect(item.photoCount, 1);
+    expect(item.imageUrl, 'https://blob.example.com/1.jpg');
+    expect(item.city, 'Hermosillo');
+  });
+
+  test('MisSolicitudes sin cotizar y vista queda como vista', () {
+    final item = yonkeAssignedRequestsFromResponse({
+      'data': [
+        {
+          'solicitudYonkeGuidId': 'a',
+          'solicitudGuidId': 's',
+          'piezaBuscada': 'Marcha',
+          'fechaEnvio': '2026-09-25T10:05:00Z',
+          'estatus': 'Enviada',
+          'vista': true,
+          'cotizaciones': 0,
+        },
+      ],
+    })!.single;
+
+    expect(item.hasQuote, isFalse);
+    expect(item.status, YonkeRequestStatus.viewed);
   });
 
   test('total de cotizaciones lee Int32ApiResponseGlobal', () {

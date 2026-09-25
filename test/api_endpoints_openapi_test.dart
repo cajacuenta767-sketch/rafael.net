@@ -54,6 +54,7 @@ void main() {
     ('post', ApiEndpoints.sendRequestToYonkes(id)),
     ('put', ApiEndpoints.markYonkeRequestViewed(id)),
     ('get', ApiEndpoints.yonkeAssignedRequests),
+    ('get', ApiEndpoints.yonkeNewRequestsTotal),
     ('get', ApiEndpoints.states),
     ('get', ApiEndpoints.citiesByState(1)),
     ('get', ApiEndpoints.brands),

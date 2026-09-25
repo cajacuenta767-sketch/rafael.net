@@ -67,6 +67,8 @@ abstract final class ApiEndpoints {
   static String markYonkeRequestViewed(String requestYonkeId) =>
       '/api/SolicitudYonkes/$requestYonkeId/vista';
   static const yonkeAssignedRequests = '/api/SolicitudYonkes/MisSolicitudes';
+  static const yonkeNewRequestsTotal =
+      '/api/SolicitudYonkes/TotalSolicitudesNuevas';
 
   // Utilerias
   static const states = '/api/Utilerias/entidades';

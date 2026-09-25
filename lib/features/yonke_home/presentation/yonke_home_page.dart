@@ -48,12 +48,18 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
         await ref.read(quotesApiProvider).getYonkeTotal(),
       ),
     );
+    final newRequestsTotal = await _safe(
+      () async => quoteTotalFromResponse(
+        await ref.read(requestsApiProvider).getYonkeNewRequestsTotal(),
+      ),
+    );
     final messages = await _safe(messagesRepository.getInbox);
     final profile = await _safe(profileRepository.load);
 
     return YonkeHomeData(
       requests: requests?.items ?? const [],
       quoteCount: quoteTotal ?? quotes?.items.length ?? 0,
+      newRequestsTotal: newRequestsTotal,
       unreadMessages:
           messages?.fold<int>(0, (total, item) => total + item.unreadCount) ??
           0,
@@ -155,14 +161,21 @@ class YonkeHomeData {
     this.quoteCount = 0,
     this.unreadMessages = 0,
     this.businessName,
+    this.newRequestsTotal,
   });
   final List<YonkeRequestSummary> requests;
   final int quoteCount;
   final int unreadMessages;
   final String? businessName;
-  int get newRequests => requests
-      .where((item) => item.status == YonkeRequestStatus.newRequest)
-      .length;
+
+  /// `GET /api/SolicitudYonkes/TotalSolicitudesNuevas`; si no responde se
+  /// cuentan las nuevas de la bandeja cargada.
+  final int? newRequestsTotal;
+  int get newRequests =>
+      newRequestsTotal ??
+      requests
+          .where((item) => item.status == YonkeRequestStatus.newRequest)
+          .length;
 }
 
 class _Hero extends StatelessWidget {
@@ -499,7 +512,8 @@ class _SalesBanner extends StatelessWidget {
   );
 }
 
-/// Lee `data` de `GET /api/CotizacionYonke/MisCotizaciones/Total`.
+/// Lee `data` de los totales del yonke (`CotizacionYonke/MisCotizaciones/Total`
+/// y `SolicitudYonkes/TotalSolicitudesNuevas`).
 int? quoteTotalFromResponse(dynamic response) {
   final value = response is Map ? response['data'] : response;
   if (value is num) return value.toInt();

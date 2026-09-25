@@ -7,6 +7,13 @@ punta. El API desplegado en Azure es más reciente que ese código: publica
 que no están en el repositorio. Cada punto debe confirmarse contra Azure
 antes de corregirlo.
 
+Swagger en vivo (25 de septiembre de 2026, copia en `docs/openapi_v1.json`):
+confirma `MisSolicitudes` con `SolicitudYonke_List_DTO`, agrega
+`SolicitudYonkes/TotalSolicitudesNuevas` y `SolicitudYonkes/MasReciente`, y
+`usuarioId` ya es `uuid`. El Swagger no publica roles ni respuestas de la
+mayoría de operaciones, así que los puntos de roles y formatos de este
+documento siguen viniendo del código del repositorio.
+
 La columna **App** indica qué hace hoy la app mientras el API no cambie.
 
 ## Críticos
@@ -27,7 +34,7 @@ La columna **App** indica qué hace hoy la app mientras el API no cambie.
 | --- | --- | --- | --- |
 | 8 | `mis-cotizaciones` no proyecta `Activo` (siempre `false`), `SolicitudGuidId`, año, yonke ni `TiempoEntregaDias`. | `SolicitudesRepository.cs:265-297` | Asume activas las de esa lista (el servidor ya filtra) y relaciona por folio. |
 | 9 | El remitente de los mensajes se etiqueta al revés y el push siempre va al yonke; los tokens de los clientes nunca se usan. | `SolicitudCotizacionMensajeService.cs:77-89,143-160` | Decide "mío" comparando `usuarioId` con el del JWT. El cliente no recibe push de mensajes hasta corregirlo. |
-| 10 | No hay endpoint del yonke para listar sus cotizaciones ni sus conversaciones; `mis-cotizaciones` es del rol Cliente. | `DashboardSuscriptoresController.cs` | Muestra "pendiente" en lugar de 403. |
+| 10 | No hay endpoint del yonke para listar sus cotizaciones ni sus conversaciones (el Swagger en vivo solo publica el total); `mis-cotizaciones` es del rol Cliente. `SolicitudYonke_List_DTO` tampoco trae marca, modelo ni año. | `DashboardSuscriptoresController.cs` | Muestra "pendiente" en lugar de 403; la bandeja muestra pieza, folio, ciudad y fotos. |
 | 11 | `POST /api/Yonkes` y `PUT baja` exigen rol Soporte. | `YonkesController.cs:233,315` | Explica que el alta y la baja las hace soporte. |
 | 12 | `SignalR` no lee `access_token` de la query (`JwtBearerEvents.OnMessageReceived`), que es como se autentican los WebSockets. Nadie une al yonke al grupo que recibe `NuevaSolicitud`. | `Program.cs:181-205` | Intenta conectar y usa sondeo si falla. |
 | 13 | `solicitar-otp` sin límite por teléfono ni por IP (costo de SMS); crea el cliente como confirmado antes de verificar. | `ClienteOtpService.cs` | — |
