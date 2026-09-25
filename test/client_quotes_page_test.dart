@@ -1,7 +1,6 @@
 import 'package:app_yonke/core/di/api_providers.dart';
 import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_file.dart';
-import 'package:app_yonke/core/network/development_api_client.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/quotes/presentation/client_quotes_page.dart';
 import 'package:flutter/material.dart';
@@ -12,12 +11,24 @@ void main() {
   testWidgets('el cliente conserva y muestra las cotizaciones recibidas', (
     tester,
   ) async {
-    final tokens = _MemoryTokenStore('development-client-session');
-    final api = DevelopmentApiClient(
-      _UnexpectedRemote(),
-      tokens,
-      seedDemoData: true,
-    );
+    final tokens = _MemoryTokenStore('jwt');
+    final api = _DashboardRemote({
+      'success': true,
+      'data': [
+        {
+          'guidId': 'quote-1',
+          'solicitudYonkeGuidId': 'asignacion-1',
+          'folio': 'SOL-202609-0001',
+          'piezaBuscada': 'Alternador',
+          'marca': 'Nissan',
+          'precio': 1850,
+          'disponible': true,
+          'activo': false,
+          'fechaCreacionCotizacion': '2026-09-25T10:00:00Z',
+          'yonkeNombre': 'Yonke El Profe',
+        },
+      ],
+    });
 
     await tester.pumpWidget(
       ProviderScope(
@@ -34,7 +45,7 @@ void main() {
     expect(find.text('Alternador'), findsWidgets);
     expect(find.text('Yonke El Profe'), findsWidgets);
     expect(
-      find.byKey(const Key('client-global-quote-demo-quote-1')),
+      find.byKey(const Key('client-global-quote-quote-1')),
       findsOneWidget,
     );
   });
@@ -58,7 +69,7 @@ class _MemoryTokenStore implements TokenStore {
   Future<DateTime?> readExpiresAt() async => null;
 
   @override
-  Future<String?> readYonkeGuidId() async => 'demo-yonke';
+  Future<String?> readYonkeGuidId() async => null;
 
   @override
   Future<void> writeTokens({
@@ -69,8 +80,14 @@ class _MemoryTokenStore implements TokenStore {
   }) async => this.accessToken = accessToken;
 }
 
-class _UnexpectedRemote implements ApiClient {
-  Never _unexpected() => throw StateError('No debe usar la API remota');
+/// Responde `mis-cotizaciones` como el API publicado (el campo `activo`
+/// llega en false aunque el servidor ya filtró las activas).
+class _DashboardRemote implements ApiClient {
+  _DashboardRemote(this.quotes);
+
+  final Object quotes;
+
+  Never _unexpected() => throw StateError('Llamada inesperada');
 
   @override
   Future<dynamic> delete(
@@ -83,7 +100,10 @@ class _UnexpectedRemote implements ApiClient {
   Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
-  }) async => _unexpected();
+  }) async {
+    if (path == '/api/DashboardSuscriptores/mis-cotizaciones') return quotes;
+    _unexpected();
+  }
 
   @override
   Future<dynamic> multipart(

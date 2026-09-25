@@ -27,7 +27,6 @@ void main() {
         model: 'Sentra',
         year: 2018,
         city: 'Nogales, Sonora',
-        imageUrl: 'asset://assets/images/demo_alternator.png',
       ),
       YonkeRequestSummary(
         requestId: 'request-2',
@@ -36,7 +35,6 @@ void main() {
         status: YonkeRequestStatus.viewed,
         receivedAt: DateTime(2026, 9, 8, 8, 45),
         city: 'Hermosillo, Sonora',
-        imageUrl: 'asset://assets/images/demo_ac_compressor.png',
       ),
       YonkeRequestSummary(
         requestId: 'request-3',
@@ -45,7 +43,6 @@ void main() {
         status: YonkeRequestStatus.quoted,
         receivedAt: DateTime(2026, 9, 7, 16, 15),
         city: 'Agua Prieta, Sonora',
-        imageUrl: 'asset://assets/images/demo_starter.png',
       ),
     ];
 

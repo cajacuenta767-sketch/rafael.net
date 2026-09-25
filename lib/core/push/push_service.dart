@@ -136,11 +136,7 @@ class PushService {
   Future<void> registerCurrentSession() async {
     try {
       final accessToken = await _tokens.readAccessToken();
-      if (accessToken == null ||
-          accessToken.isEmpty ||
-          accessToken.startsWith('development-')) {
-        return;
-      }
+      if (accessToken == null || accessToken.isEmpty) return;
       if (!await _ensureReady()) return;
       final token = await _platform.requestToken();
       if (token == null || token.isEmpty) {

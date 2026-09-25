@@ -214,9 +214,9 @@ solicitud con lo capturado.
 
 Cada pantalla consulta la API con el token guardado al iniciar sesión. Si una
 llamada falla se muestra el mensaje del servidor con "Reintentar"; nunca se
-mezclan solicitudes, cotizaciones o ciudades locales con las del servidor. El
-acceso "Ingresar en modo prueba" y su mercado local solo existen en
-compilaciones de depuración.
+mezclan solicitudes, cotizaciones o ciudades locales con las del servidor. No
+existe modo prueba: el cliente entra con OTP o Google y el yonke con su
+correo y contraseña.
 
 Pendientes marcados en pantalla:
 
