@@ -1,4 +1,4 @@
-package com.example.app_yonke
+package com.refanet.app
 
 import io.flutter.embedding.android.FlutterActivity
 

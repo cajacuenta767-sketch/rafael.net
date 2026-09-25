@@ -20,10 +20,10 @@ antes sería pedir al usuario acceso para una función que aún no existe.
 
 ## Decisiones necesarias antes de generar una versión de tienda
 
-1. **Identificador definitivo de la aplicación.** Android e iOS todavía usan
-   identificadores `com.example`. No deben cambiarse hasta que el propietario
-   confirme el dominio o nombre único, porque después de publicar no se puede
-   sustituir sin crear otra aplicación en la tienda.
+1. **Identificador definitivo de la aplicación.** Android usa `com.refanet.app`,
+   confirmado por el propietario; después de publicar no se puede sustituir sin
+   crear otra aplicación en la tienda. iOS todavía usa `com.example.appYonke` y
+   debe alinearse al configurar la cuenta de Apple.
 2. **Firma de Android.** La compilación release todavía utiliza la firma de
    depuración. Se necesita crear y custodiar un keystore de producción fuera
    del repositorio.
