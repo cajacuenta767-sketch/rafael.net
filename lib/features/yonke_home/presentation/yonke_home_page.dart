@@ -43,12 +43,17 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
     final quotes = await _safe(
       () => quotesRepository.getMyQuotes(page: 1, pageSize: 30),
     );
+    final quoteTotal = await _safe(
+      () async => quoteTotalFromResponse(
+        await ref.read(quotesApiProvider).getYonkeTotal(),
+      ),
+    );
     final messages = await _safe(messagesRepository.getInbox);
     final profile = await _safe(profileRepository.load);
 
     return YonkeHomeData(
       requests: requests?.items ?? const [],
-      quoteCount: quotes?.items.length ?? 0,
+      quoteCount: quoteTotal ?? quotes?.items.length ?? 0,
       unreadMessages:
           messages?.fold<int>(0, (total, item) => total + item.unreadCount) ??
           0,
@@ -492,4 +497,11 @@ class _SalesBanner extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Lee `data` de `GET /api/CotizacionYonke/MisCotizaciones/Total`.
+int? quoteTotalFromResponse(dynamic response) {
+  final value = response is Map ? response['data'] : response;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
 }

@@ -3,9 +3,9 @@ import 'dart:convert';
 /// Datos de sesión extraídos de la respuesta de un login.
 ///
 /// La API todavía no documenta el cuerpo de respuesta de
-/// `/api/ClienteAuth/verificar-otp`, `/api/ClienteAuth/google`,
-/// `/api/ClienteAuth/apple` ni `/api/YonkeAuth/login`: en el OpenAPI publicado
-/// las cuatro operaciones declaran solamente `200 OK`, sin `content` ni
+/// `/api/ClienteAuth/verificar-otp`, `/api/ClienteAuth/google` ni
+/// `/api/YonkeAuth/login`: en el OpenAPI publicado las tres operaciones
+/// declaran solamente `200 OK`, sin `content` ni
 /// `schema`. Lo único confirmado del contrato es el sobre `ApiResponseGlobal`
 /// (`success`, `message`, `data`, `statusCode`, `errors`), que sí aparece
 /// documentado en las tres operaciones que publican respuesta.

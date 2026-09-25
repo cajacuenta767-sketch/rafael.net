@@ -27,6 +27,9 @@ class QuotesApi {
   Future<dynamic> getById(String quoteId) =>
       _client.get(ApiEndpoints.quote(quoteId));
 
+  /// Total de cotizaciones del yonke de la sesión (`Int32ApiResponseGlobal`).
+  Future<dynamic> getYonkeTotal() => _client.get(ApiEndpoints.yonkeQuotesTotal);
+
   Future<dynamic> sendMessage({
     required String quoteId,
     required String message,

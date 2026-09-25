@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
+import '../session/session_events.dart';
 import '../storage/token_store.dart';
 import 'api_client.dart';
 import 'api_exception.dart';
@@ -30,6 +31,15 @@ class DioApiClient implements ApiClient {
           }
           handler.next(options);
         },
+        onError: (error, handler) async {
+          // Un 401 con token enviado significa que la sesión ya no es válida.
+          if (error.response?.statusCode == 401 &&
+              error.requestOptions.headers.containsKey('Authorization')) {
+            await _tokenStore.clear();
+            SessionEvents.notifyExpired();
+          }
+          handler.next(error);
+        },
       ),
     );
 
@@ -50,7 +60,6 @@ class DioApiClient implements ApiClient {
 
   bool _isAuthenticationPath(String path) => const {
     ApiEndpoints.clientGoogleLogin,
-    ApiEndpoints.clientAppleLogin,
     ApiEndpoints.requestOtp,
     ApiEndpoints.verifyOtp,
     ApiEndpoints.yonkeLogin,

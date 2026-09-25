@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/api_providers.dart';
+import '../../../core/session/session_events.dart';
 
 class ClientSessionGate extends ConsumerStatefulWidget {
   const ClientSessionGate({super.key, required this.builder});
@@ -23,11 +24,7 @@ class _ClientSessionGateState extends ConsumerState<ClientSessionGate> {
     _session = _hasSession();
   }
 
-  Future<bool> _hasSession() async {
-    final tokenStore = ref.read(tokenStoreProvider);
-    final token = await tokenStore.readAccessToken();
-    return token?.isNotEmpty == true;
-  }
+  Future<bool> _hasSession() => hasActiveSession(ref.read(tokenStoreProvider));
 
   @override
   Widget build(BuildContext context) => FutureBuilder<bool>(

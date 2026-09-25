@@ -28,11 +28,14 @@ class YonkeProfilePage extends ConsumerStatefulWidget {
 
 class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
   late final YonkeProfileController _controller;
+  late final TokenStore _tokenStore;
+  bool _deactivating = false;
 
   @override
   void initState() {
     super.initState();
     final TokenStore store = widget.tokenStore ?? ref.read(tokenStoreProvider);
+    _tokenStore = store;
     _controller = YonkeProfileController(
       widget.repository ?? ref.read(yonkeProfileRepositoryProvider),
       store,
@@ -167,6 +170,22 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
                       : const Icon(Icons.logout),
                   label: const Text('Cerrar sesión'),
                 ),
+                TextButton.icon(
+                  key: const Key('yonke-deactivate-account'),
+                  onPressed: _deactivating ? null : _confirmDeactivate,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    foregroundColor: const Color(0xFF596276),
+                    alignment: Alignment.centerLeft,
+                  ),
+                  icon: _deactivating
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.person_remove_outlined),
+                  label: const Text('Dar de baja mi cuenta'),
+                ),
               ],
             ),
           ),
@@ -258,6 +277,59 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     if (confirmed != true || !mounted) return;
     await _controller.signOut();
     if (mounted) context.go(AppRoutes.yonkeLogin);
+  }
+
+  /// Baja del asociado con `PUT /api/Yonkes/baja/byGuidId/{guidId}`.
+  Future<void> _confirmDeactivate() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Dar de baja tu cuenta?'),
+        content: const Text(
+          'Tu yonke dejará de recibir solicitudes y se cerrará la sesión. '
+          'Para reactivarla tendrás que contactar a soporte.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirm-yonke-deactivate'),
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB3261E),
+            ),
+            child: const Text('Dar de baja'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final yonkeId =
+        _controller.snapshot?.profile?.guidId ??
+        await _tokenStore.readYonkeGuidId();
+    if (yonkeId == null || yonkeId.isEmpty) {
+      _showUnavailable(
+        'La sesión no incluye el identificador del yonke. Vuelve a iniciar sesión.',
+      );
+      return;
+    }
+    setState(() => _deactivating = true);
+    try {
+      await ref.read(yonkesApiProvider).deactivate(yonkeId);
+      await _tokenStore.clear();
+      if (mounted) context.go(AppRoutes.start);
+    } catch (_) {
+      if (mounted) {
+        _showUnavailable(
+          'No se pudo dar de baja la cuenta. Inténtalo nuevamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deactivating = false);
+    }
   }
 }
 
