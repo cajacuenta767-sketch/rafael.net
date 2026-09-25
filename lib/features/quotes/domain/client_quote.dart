@@ -53,6 +53,45 @@ class ClientQuote {
   final String status;
   final List<String> imageUrls;
 
+  /// Nombre que se muestra mientras no se conoce el yonke real.
+  static const pendingYonkeName = 'Yonke asignado';
+
+  bool get hasYonkeIdentity =>
+      yonkeName.trim().isNotEmpty && yonkeName != pendingYonkeName;
+
+  ClientQuote withYonke({
+    required String yonkeId,
+    required String yonkeName,
+    String? logoUrl,
+    String? phone,
+  }) => ClientQuote(
+    id: id,
+    requestId: requestId,
+    yonkeId: yonkeId,
+    yonkeName: yonkeName,
+    price: price,
+    available: available,
+    isNew: isNew,
+    hasWarranty: hasWarranty,
+    warrantyDays: warrantyDays,
+    shippingAvailable: shippingAvailable,
+    active: active,
+    status: status,
+    imageUrls: imageUrls,
+    logoUrl: logoUrl ?? this.logoUrl,
+    requestFolio: requestFolio,
+    partName: partName,
+    brand: brand,
+    model: model,
+    year: year,
+    createdAt: createdAt,
+    phone: phone ?? this.phone,
+    partNumber: partNumber,
+    comments: comments,
+    deliveryDays: deliveryDays,
+    shippingCost: shippingCost,
+  );
+
   String get condition => isNew ? 'Nueva' : 'Usada';
   String get availability => available ? 'Disponible' : 'No disponible';
   String get warranty => hasWarranty
@@ -130,7 +169,7 @@ ClientQuote? clientQuoteFromJson(
         '',
     yonkeName: yonke is Map && yonke['nombre'] != null
         ? yonke['nombre'].toString()
-        : json['yonkeNombre']?.toString() ?? 'Yonke asignado',
+        : json['yonkeNombre']?.toString() ?? ClientQuote.pendingYonkeName,
     logoUrl: yonke is Map && _isSafeImageUrl(yonke['logoUrl']?.toString())
         ? yonke['logoUrl'].toString()
         : _isSafeImageUrl(json['logoUrl']?.toString())

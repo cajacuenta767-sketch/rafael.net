@@ -1,6 +1,7 @@
 import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
+import '../../quotes/data/quote_yonke_resolver.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../quotes/domain/quote_message.dart';
@@ -23,18 +24,24 @@ class ApiClientMessagesRepository implements ClientMessagesRepository {
   ApiClientMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
-    this._tokenStore,
-  );
+    this._tokenStore, [
+    this._yonkeResolver,
+  ]);
 
   final QuotesApi _quotesApi;
   final DashboardApi _dashboardApi;
   final TokenStore _tokenStore;
+  final QuoteYonkeResolver? _yonkeResolver;
 
   static const inboxLimit = 20;
 
   @override
   Future<List<ClientMessagePreview>> getInbox() async {
-    final quotes = clientQuotesFromDashboard(await _dashboardApi.getMyQuotes());
+    final dashboardQuotes = clientQuotesFromDashboard(
+      await _dashboardApi.getMyQuotes(),
+    );
+    final quotes =
+        await _yonkeResolver?.resolveAll(dashboardQuotes) ?? dashboardQuotes;
     final ordered = [...quotes]
       ..sort(
         (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))

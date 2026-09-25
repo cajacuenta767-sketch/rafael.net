@@ -21,23 +21,38 @@ class YonkeApp extends ConsumerStatefulWidget {
 class _YonkeAppState extends ConsumerState<YonkeApp> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final _subscriptions = <StreamSubscription<Object?>>[];
+  late final PushService _push;
 
   @override
   void initState() {
     super.initState();
-    final push = ref.read(pushServiceProvider);
+    final push = _push = ref.read(pushServiceProvider);
     _subscriptions
       ..add(SessionEvents.expired.listen((_) => _onSessionExpired()))
       // El push y el tiempo real siguen a la sesión guardada.
       ..add(SessionEvents.signedIn.listen((_) => push.registerCurrentSession()))
       ..add(SessionEvents.signedOut.listen((_) => _onSignedOut()))
       ..add(push.openedNotices.listen(_openNotice));
+    // Un aviso de mensaje nuevo trae la cotización: el yonke la agrega a su
+    // bandeja aunque la haya enviado desde otro teléfono.
+    push.inbox.addListener(_rememberQuotesFromNotices);
     // Una sesión que sigue abierta desde la ejecución anterior.
     push.registerCurrentSession();
   }
 
+  void _rememberQuotesFromNotices() {
+    final notices = _push.inbox.value;
+    if (notices.isEmpty) return;
+    final latest = notices.first;
+    final quoteId = latest.targetId;
+    if (latest.isNewMessage && quoteId != null) {
+      ref.read(yonkeQuoteRegistryProvider).add(quoteId);
+    }
+  }
+
   @override
   void dispose() {
+    _push.inbox.removeListener(_rememberQuotesFromNotices);
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }

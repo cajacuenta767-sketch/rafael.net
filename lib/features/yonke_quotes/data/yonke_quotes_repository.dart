@@ -2,6 +2,7 @@ import '../../../core/network/api_exception.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../domain/yonke_quote.dart';
+import 'yonke_quote_registry.dart';
 
 abstract interface class YonkeQuotesRepository {
   Future<YonkeQuotesPageResult> getMyQuotes({
@@ -15,10 +16,15 @@ abstract interface class YonkeQuotesRepository {
 }
 
 class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
-  const ApiYonkeQuotesRepository(this._dashboardApi, this._quotesApi);
+  const ApiYonkeQuotesRepository(
+    this._dashboardApi,
+    this._quotesApi, [
+    this._registry,
+  ]);
 
   final DashboardApi _dashboardApi;
   final QuotesApi _quotesApi;
+  final YonkeQuoteRegistry? _registry;
 
   @override
   Future<YonkeQuotesPageResult> getMyQuotes({
@@ -31,18 +37,20 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     // `mis-cotizaciones` es del rol Cliente. Si el servidor la rechaza (403) o
     // responde con otra forma se informa como contrato pendiente; cualquier
     // otro error se propaga en lugar de mostrarse como lista vacía.
-    final dynamic response;
+    // Mientras tanto se usan las cotizaciones registradas en el teléfono.
+    List<YonkeQuote>? allItems;
     try {
-      response = await _dashboardApi.getMyQuotes();
+      allItems = yonkeQuotesPageFromResponse(
+        await _dashboardApi.getMyQuotes(),
+      )?.items;
     } on ApiException catch (error) {
-      if (error.statusCode == 403 || error.statusCode == 404) {
-        throw const YonkeQuotesContractPendingException();
-      }
-      rethrow;
+      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
     }
-    final parsed = yonkeQuotesPageFromResponse(response);
-    if (parsed == null) throw const YonkeQuotesContractPendingException();
-    final allItems = parsed.items;
+    final registry = _registry;
+    if (allItems == null && registry != null) {
+      allItems = await knownYonkeQuotes(registry, _quotesApi);
+    }
+    if (allItems == null) throw const YonkeQuotesContractPendingException();
 
     return _filterAndPage(
       allItems,

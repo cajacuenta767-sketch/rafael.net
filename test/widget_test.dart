@@ -985,8 +985,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Contrato de lista pendiente'), findsOneWidget);
-    expect(find.textContaining('datos inventados'), findsOneWidget);
+    expect(
+      find.text('Aún no hay cotizaciones en este teléfono'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('lista completa'), findsOneWidget);
   });
 
   for (final size in const [Size(320, 640), Size(390, 844), Size(800, 360)]) {

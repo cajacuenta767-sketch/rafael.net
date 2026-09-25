@@ -65,15 +65,20 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
 
       final quotes = detail == null
           ? <ClientQuote>[]
-          : clientQuotesFromDashboard(results[3])
-                .where((quote) {
-                  if (quote.requestId.isNotEmpty) {
-                    return quote.requestId == widget.requestId;
-                  }
-                  return quote.requestFolio != null &&
-                      quote.requestFolio == detail.summary.folio;
-                })
-                .toList(growable: false);
+          : await ref
+                .read(quoteYonkeResolverProvider)
+                .resolveAll(
+                  clientQuotesFromDashboard(results[3])
+                      .where((quote) {
+                        if (quote.requestId.isNotEmpty) {
+                          return quote.requestId == widget.requestId;
+                        }
+                        return quote.requestFolio != null &&
+                            quote.requestFolio == detail.summary.folio;
+                      })
+                      .toList(growable: false),
+                );
+      if (!mounted) return;
 
       setState(() {
         _detail = detail;

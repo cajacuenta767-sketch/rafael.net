@@ -149,8 +149,11 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
       return const [
         _StateCard(
           icon: Icons.rule_folder_outlined,
-          title: 'Bandeja pendiente de conexión',
-          message: 'No se pudieron interpretar las cotizaciones del yonke para armar la bandeja de mensajes. Se reportó al backend.',
+          title: 'Aún no hay conversaciones',
+          message:
+              'Aquí aparecen los chats de las cotizaciones que envíes desde '
+              'la app y de los mensajes nuevos que te lleguen. El servidor '
+              'todavía no entrega la lista completa de tus cotizaciones.',
         ),
       ];
     }

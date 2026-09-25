@@ -52,8 +52,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(_FakeApiClient())],
+        child: const MaterialApp(
           home: ClientConversationPage(
             args: ClientConversationArgs(quote: _visualQuote),
             repository: _VisualMessagesRepository(),

@@ -367,8 +367,11 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       return const [
         _StateCard(
           icon: Icons.rule_folder_outlined,
-          title: 'Contrato de lista pendiente',
-          message: 'La API publica “mis-cotizaciones”, pero todavía no documenta la estructura de su respuesta. No se mostrarán datos inventados.',
+          title: 'Aún no hay cotizaciones en este teléfono',
+          message:
+              'Aquí aparecen las cotizaciones que envíes desde la app. El '
+              'servidor todavía no entrega la lista completa de tus '
+              'cotizaciones.',
         ),
       ];
     }
