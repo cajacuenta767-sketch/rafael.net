@@ -74,3 +74,34 @@ El login por OTP crea al cliente con `Nombre = "Cliente refaNet"`; la app lo
 trata como "sin nombre". Con esos endpoints, la app solo cambia
 `LocalClientProfileRepository` por una implementación contra el API.
 
+
+## Pedido para el API: cliente en la cotización
+
+El cliente ve el nombre, el logo y el teléfono del yonke
+(`CotizacionYonke/{guid}` + `Yonkes/{guid}`), pero el yonke no tiene cómo
+ver al cliente: ninguna respuesta incluye datos de `Clientes` y el perfil
+del cliente vive solo en su teléfono (ver el pedido anterior).
+
+**Mientras tanto (sin cambios en el API):** al escribir en una conversación,
+la app del cliente agrega una última línea con su contacto, una vez por
+conversación o cuando cambia (`lib/features/quotes/domain/client_contact.dart`):
+`Contacto: Nombre | +52... | https://foto-de-google`. Ambas apps la quitan del
+texto del chat y el yonke la muestra como nombre, foto, teléfono y botones
+de llamar y WhatsApp. La foto solo viaja si es la de Google (URL https); la
+foto elegida en el teléfono no tiene dónde subirse en el API.
+
+La app del yonke ya lee al cliente de `GET /api/CotizacionYonke/{guid}` en
+cualquiera de estas formas (`QuoteClient` en
+`lib/features/yonke_messages/domain/quote_client.dart`):
+
+| Forma | Campos |
+| --- | --- |
+| Objeto `cliente` en `data`, en `solicitudYonkes` o en `solicitudYonkes.solicitudes` | `nombre`, `telefono` (formato `+52...`), `fotoPerfil` (https) |
+| Campos planos en `data` | `nombreCliente`, `telefonoCliente`, `fotoCliente` |
+
+Requisitos del lado del servidor:
+
+- Guardar el perfil del cliente en `Clientes` (endpoints del pedido
+  anterior); si no, el yonke solo vería "Cliente refaNet", que la app oculta.
+- Entregar el cliente solo al yonke asignado a esa cotización (punto 7,
+  IDOR): el teléfono es un dato personal.

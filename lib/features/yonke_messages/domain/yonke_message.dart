@@ -1,4 +1,5 @@
 import '../../yonke_quotes/domain/yonke_quote.dart';
+import 'quote_client.dart';
 
 class YonkeMessagePreview {
   const YonkeMessagePreview({
@@ -7,6 +8,7 @@ class YonkeMessagePreview {
     required this.lastMessage,
     required this.lastMessageAt,
     required this.unreadCount,
+    this.client,
   });
 
   final YonkeQuote quote;
@@ -14,6 +16,7 @@ class YonkeMessagePreview {
   final String lastMessage;
   final DateTime lastMessageAt;
   final int unreadCount;
+  final QuoteClient? client;
 }
 
 class YonkeQuoteMessage {
@@ -23,6 +26,7 @@ class YonkeQuoteMessage {
     required this.sentAt,
     required this.fromClient,
     this.read = true,
+    this.contact,
   });
 
   final String id;
@@ -30,4 +34,7 @@ class YonkeQuoteMessage {
   final DateTime sentAt;
   final bool fromClient;
   final bool read;
+
+  /// Contacto que la app del cliente agregó a este mensaje.
+  final QuoteClient? contact;
 }

@@ -1,3 +1,6 @@
+import '../../yonke_messages/domain/quote_client.dart';
+import 'client_contact.dart';
+
 /// Mensaje de la conversación de una cotización, según el esquema
 /// `SolicitudCotizacionMensajes` del OpenAPI: `guidId`,
 /// `solicitudCotizacionGuidId`, `usuarioId`, `tipoRemitenteId`, `mensaje`,
@@ -11,6 +14,7 @@ class QuoteMessageRecord {
     required this.read,
     this.senderUserId,
     this.senderTypeId,
+    this.contact,
   });
 
   final String id;
@@ -26,6 +30,10 @@ class QuoteMessageRecord {
   /// [clientSenderType] identifica al cliente cuando no se puede comparar el
   /// `usuarioId` con el usuario que consulta.
   final int? senderTypeId;
+
+  /// Contacto que la app del cliente agregó al final del mensaje. Ya se
+  /// quitó de [text].
+  final QuoteClient? contact;
 
   /// Indica si el mensaje lo escribió el cliente de la solicitud.
   ///
@@ -67,7 +75,9 @@ List<QuoteMessageRecord> quoteMessagesFromResponse(dynamic response) {
 }
 
 QuoteMessageRecord? quoteMessageFromJson(Map<dynamic, dynamic> json) {
-  final text = _text(json['mensaje']);
+  final raw = _text(json['mensaje']);
+  final split = raw == null ? null : splitClientContact(raw);
+  final text = split?.text;
   final id = _text(json['guidId']) ?? _text(json['id']);
   if (text == null || id == null) return null;
   final senderType = json['tipoRemitenteId'];
@@ -83,6 +93,7 @@ QuoteMessageRecord? quoteMessageFromJson(Map<dynamic, dynamic> json) {
     senderTypeId: senderType is num
         ? senderType.toInt()
         : int.tryParse('$senderType'),
+    contact: split?.contact,
   );
 }
 

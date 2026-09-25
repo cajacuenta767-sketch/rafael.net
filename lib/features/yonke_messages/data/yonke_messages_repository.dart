@@ -6,12 +6,18 @@ import '../../quotes/data/quotes_api.dart';
 import '../../quotes/domain/quote_message.dart';
 import '../../yonke_quotes/data/yonke_quote_registry.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
+import '../domain/quote_client.dart';
 import '../domain/yonke_message.dart';
+import 'quote_client_resolver.dart';
 
 abstract interface class YonkeMessagesRepository {
   Future<List<YonkeMessagePreview>> getInbox();
 
   Future<List<YonkeQuoteMessage>> getConversation(String quoteId);
+
+  /// Nombre, teléfono y foto del cliente de la cotización, si el API los
+  /// entrega.
+  Future<QuoteClient?> getClient(String quoteId);
 
   Future<void> sendMessage({required String quoteId, required String message});
 }
@@ -25,12 +31,14 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
     this._dashboardApi,
     this._tokenStore, [
     this._registry,
+    this._clients,
   ]);
 
   final QuotesApi _quotesApi;
   final DashboardApi _dashboardApi;
   final TokenStore _tokenStore;
   final YonkeQuoteRegistry? _registry;
+  final QuoteClientResolver? _clients;
 
   /// Conversaciones consultadas por carga de bandeja, de la más reciente a
   /// la más antigua, para no disparar una llamada por cada cotización vieja.
@@ -43,9 +51,8 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
     // teléfono (enviadas desde la app o recibidas en avisos de mensaje).
     List<YonkeQuote>? known;
     try {
-      known = yonkeQuotesPageFromResponse(
-        await _dashboardApi.getMyQuotes(),
-      )?.items;
+      known = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
+          ?.items;
     } on ApiException catch (error) {
       if (error.statusCode != 403 && error.statusCode != 404) rethrow;
     }
@@ -79,11 +86,13 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
                   ),
             )
             .length;
+        final known =
+            _latestContact(messages, viewerUserId) ?? await getClient(quote.id);
+        final name = known?.name ?? 'Cliente';
         return YonkeMessagePreview(
           quote: quote,
-          clientLabel: quote.folio == null
-              ? 'Cliente'
-              : 'Cliente · ${quote.folio}',
+          client: known,
+          clientLabel: quote.folio == null ? name : '$name · ${quote.folio}',
           lastMessage: last?.text ?? 'Sin mensajes todavía',
           lastMessageAt: last?.sentAt ?? quote.createdAt,
           unreadCount: unread,
@@ -109,6 +118,7 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
               viewerIsClient: false,
             ),
             read: record.read,
+            contact: _clientContact(record, viewerUserId),
           ),
         )
         .toList(growable: false);
@@ -121,11 +131,28 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
   }
 
   @override
+  Future<QuoteClient?> getClient(String quoteId) async =>
+      await _clients?.resolve(quoteId);
+
+  @override
   Future<void> sendMessage({
     required String quoteId,
     required String message,
   }) => _quotesApi.sendMessage(quoteId: quoteId, message: message);
 }
+
+/// Contacto de un mensaje, solo si lo escribió el cliente.
+QuoteClient? _clientContact(QuoteMessageRecord record, String? viewerUserId) =>
+    record.isFromClient(viewerUserId: viewerUserId, viewerIsClient: false)
+    ? record.contact
+    : null;
+
+QuoteClient? _latestContact(
+  List<QuoteMessageRecord> messages,
+  String? viewerUserId,
+) => messages.reversed
+    .map((record) => _clientContact(record, viewerUserId))
+    .firstWhere((contact) => contact != null, orElse: () => null);
 
 class YonkeMessagesInboxContractPendingException implements Exception {
   const YonkeMessagesInboxContractPendingException();

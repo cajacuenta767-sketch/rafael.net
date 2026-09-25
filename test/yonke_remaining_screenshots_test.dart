@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app_yonke/app/theme/yonke_theme.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/yonke_messages/data/yonke_messages_repository.dart';
+import 'package:app_yonke/features/yonke_messages/domain/quote_client.dart';
 import 'package:app_yonke/features/yonke_messages/domain/yonke_message.dart';
 import 'package:app_yonke/features/yonke_messages/presentation/yonke_messages_page.dart';
 import 'package:app_yonke/features/yonke_profile/data/yonke_profile_repository.dart';
@@ -104,6 +105,9 @@ class _ScreenshotMessagesRepo implements YonkeMessagesRepository {
 
   @override
   Future<List<YonkeQuoteMessage>> getConversation(String quoteId) async => [];
+
+  @override
+  Future<QuoteClient?> getClient(String quoteId) async => null;
 
   @override
   Future<void> sendMessage({

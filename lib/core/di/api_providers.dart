@@ -21,6 +21,7 @@ import '../../features/yonkes/data/yonkes_api.dart';
 import '../../features/yonkes/data/client_yonkes_repository.dart';
 import '../../features/yonke_quotes/data/yonke_quote_registry.dart';
 import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
+import '../../features/yonke_messages/data/quote_client_resolver.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
 import '../../features/yonke_profile/data/yonke_profile_repository.dart';
@@ -120,6 +121,7 @@ final yonkeMessagesRepositoryProvider = Provider<YonkeMessagesRepository>(
     ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
     ref.watch(yonkeQuoteRegistryProvider),
+    ref.watch(quoteClientResolverProvider),
   ),
 );
 final yonkeCoverageRepositoryProvider = Provider<YonkeCoverageRepository>(
@@ -140,6 +142,7 @@ final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
     ref.watch(dashboardApiProvider),
     ref.watch(tokenStoreProvider),
     ref.watch(quoteYonkeResolverProvider),
+    ref.watch(clientProfileRepositoryProvider),
   ),
 );
 final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(
@@ -176,6 +179,10 @@ final quoteYonkeResolverProvider = Provider<QuoteYonkeResolver>(
     ref.watch(quotesApiProvider),
     ref.watch(yonkesApiProvider),
   ),
+);
+
+final quoteClientResolverProvider = Provider<QuoteClientResolver>(
+  (ref) => QuoteClientResolver(ref.watch(quotesApiProvider)),
 );
 
 final yonkeQuoteRegistryProvider = Provider<YonkeQuoteRegistry>(

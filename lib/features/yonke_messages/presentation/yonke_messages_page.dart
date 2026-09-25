@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
@@ -11,12 +12,14 @@ import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_messages_repository.dart';
+import '../domain/quote_client.dart';
 import '../domain/yonke_message.dart';
 
 class YonkeConversationArgs {
-  const YonkeConversationArgs({required this.quote});
+  const YonkeConversationArgs({required this.quote, this.client});
 
   final YonkeQuote quote;
+  final QuoteClient? client;
 }
 
 class YonkeMessagesPage extends ConsumerStatefulWidget {
@@ -197,10 +200,9 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
       child: ListTile(
         key: Key('yonke-conversation-${item.quote.id}'),
         contentPadding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFEAF1FF),
-          foregroundColor: const Color(0xFF114EB0),
-          child: Text(item.clientLabel.substring(0, 1)),
+        leading: _ClientAvatar(
+          name: item.client?.name,
+          photoUrl: item.client?.photoUrl,
         ),
         title: Text(
           item.clientLabel,
@@ -248,7 +250,10 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
         onTap: () async {
           await context.push(
             AppRoutes.yonkeConversation(item.quote.id),
-            extra: YonkeConversationArgs(quote: item.quote),
+            extra: YonkeConversationArgs(
+              quote: item.quote,
+              client: item.client,
+            ),
           );
           if (mounted) await _load();
         },
@@ -350,6 +355,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
   final _messageController = TextEditingController();
   late final YonkeMessagesRepository _repository;
   List<YonkeQuoteMessage> _messages = const [];
+  QuoteClient? _client;
   bool _loading = true;
   bool _sending = false;
   Object? _error;
@@ -362,7 +368,9 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     super.initState();
     _repository =
         widget.repository ?? ref.read(yonkeMessagesRepositoryProvider);
+    _client = widget.args.client;
     _load();
+    if (_client == null) _loadClient();
     // SignalR avisa al instante; el sondeo queda como respaldo por si el hub
     // no acepta la conexión.
     _refreshTimer = Timer.periodic(
@@ -391,7 +399,10 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     try {
       final messages = await _repository.getConversation(widget.args.quote.id);
       if (!mounted || messages.length == _messages.length) return;
-      setState(() => _messages = messages);
+      setState(() {
+        _messages = messages;
+        _client = _contactIn(messages) ?? _client;
+      });
     } catch (_) {
       // La actualización automática no reemplaza el historial visible.
     }
@@ -407,6 +418,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       if (!mounted) return;
       setState(() {
         _messages = messages;
+        _client = _contactIn(messages) ?? _client;
         _loading = false;
       });
     } catch (error) {
@@ -417,6 +429,42 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
         });
       }
     }
+  }
+
+  /// El contacto más reciente que el cliente envió en el chat.
+  static QuoteClient? _contactIn(List<YonkeQuoteMessage> messages) => messages
+      .reversed
+      .map((message) => message.contact)
+      .firstWhere((contact) => contact != null, orElse: () => null);
+
+  Future<void> _loadClient() async {
+    try {
+      final client = await _repository.getClient(widget.args.quote.id);
+      if (mounted && client != null && _client == null) {
+        setState(() => _client = client);
+      }
+    } catch (_) {
+      // Sin datos del cliente se muestra "Cliente".
+    }
+  }
+
+  Future<void> _contact({required bool whatsapp}) async {
+    final digits = _validPhoneDigits(_client?.phone);
+    if (digits == null) return;
+    final uri = whatsapp
+        ? Uri.https('wa.me', '/$digits')
+        : Uri(scheme: 'tel', path: '+$digits');
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {
+      // Se avisa abajo.
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No se pudo abrir la aplicación de contacto.'),
+      ),
+    );
   }
 
   Future<void> _send() async {
@@ -462,7 +510,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Cliente'),
+          Text(_client?.name ?? 'Cliente'),
           Text(
             widget.args.quote.part,
             style: const TextStyle(fontSize: 12, color: Color(0xFF596276)),
@@ -481,6 +529,12 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       top: false,
       child: Column(
         children: [
+          _ClientHeader(
+            client: _client,
+            quote: widget.args.quote,
+            onCall: () => _contact(whatsapp: false),
+            onWhatsApp: () => _contact(whatsapp: true),
+          ),
           Expanded(child: _messagesBody()),
           _Composer(
             controller: _messageController,
@@ -519,6 +573,119 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       itemCount: _messages.length,
       itemBuilder: (context, index) =>
           _MessageBubble(message: _messages[index]),
+    );
+  }
+}
+
+/// Equivalente a la cabecera del yonke que ve el cliente en su chat.
+class _ClientHeader extends StatelessWidget {
+  const _ClientHeader({
+    required this.client,
+    required this.quote,
+    required this.onCall,
+    required this.onWhatsApp,
+  });
+
+  final QuoteClient? client;
+  final YonkeQuote quote;
+  final VoidCallback onCall;
+  final VoidCallback onWhatsApp;
+
+  @override
+  Widget build(BuildContext context) {
+    final phone = client?.phone;
+    final canContact = _validPhoneDigits(phone) != null;
+    final details = [
+      quote.folio,
+      if (quote.vehicle.isNotEmpty) quote.vehicle,
+    ].whereType<String>().join(' · ');
+    return Container(
+      key: const Key('yonke-conversation-client'),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE1E6EC)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          _ClientAvatar(name: client?.name, photoUrl: client?.photoUrl),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  client?.name ?? 'Cliente',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: YonkeColors.primaryNavy,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  phone ?? 'Teléfono no disponible',
+                  style: const TextStyle(
+                    color: Color(0xFF596276),
+                    fontSize: 13,
+                  ),
+                ),
+                if (details.isNotEmpty)
+                  Text(
+                    details,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF596276),
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (canContact) ...[
+            IconButton(
+              key: const Key('yonke-call-client'),
+              tooltip: 'Llamar al cliente',
+              onPressed: onCall,
+              icon: const Icon(Icons.phone_outlined, color: Color(0xFF114EB0)),
+            ),
+            IconButton(
+              key: const Key('yonke-whatsapp-client'),
+              tooltip: 'WhatsApp del cliente',
+              onPressed: onWhatsApp,
+              icon: const Icon(Icons.chat_outlined, color: Color(0xFF1B8F3A)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ClientAvatar extends StatelessWidget {
+  const _ClientAvatar({required this.name, required this.photoUrl});
+
+  final String? name;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = (name ?? '').trim();
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: const Color(0xFFEAF1FF),
+      foregroundColor: const Color(0xFF114EB0),
+      foregroundImage: photoUrl == null ? null : NetworkImage(photoUrl!),
+      onForegroundImageError: photoUrl == null ? null : (_, _) {},
+      child: Text(
+        initial.isEmpty ? 'C' : initial.substring(0, 1).toUpperCase(),
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
     );
   }
 }
@@ -671,4 +838,12 @@ String _time(DateTime value) {
   final hour = value.hour.toString().padLeft(2, '0');
   final minute = value.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
+}
+
+/// Solo números en formato internacional (+52...), igual que el contacto
+/// del yonke en la app del cliente.
+String? _validPhoneDigits(String? rawPhone) {
+  if (rawPhone == null || !rawPhone.trim().startsWith('+')) return null;
+  final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+  return digits.length >= 10 && digits.length <= 15 ? digits : null;
 }
