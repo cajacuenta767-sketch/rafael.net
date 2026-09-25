@@ -212,17 +212,17 @@ solicitud con lo capturado.
 
 ## Cliente nuevo
 
-Después del login (OTP o Google), si esa cuenta no tiene perfil completo en
-el teléfono, `ClientSessionGate` la lleva a `/cliente/registro`:
+Después del login (OTP o Google) la app decide a dónde ir: si esa cuenta no
+tiene perfil completo en el teléfono abre directo `/cliente/registro`; si ya
+se registró, el inicio. Mientras el API responde se muestra "Iniciando
+sesión…".
 
-- Nombre completo, celular, correo, estado y ciudad son obligatorios; la foto
-  es opcional (galería o cámara).
+- Pide solo lo que existe en la tabla `Clientes` del API: nombre completo,
+  celular y correo (obligatorios) y foto (opcional, galería o cámara).
 - Con Google llegan nombre, correo y foto de la cuenta; con OTP el celular
   verificado (bloqueado) y el nombre vacío: el número nunca se usa como
   nombre.
-- Estado y ciudad salen del catálogo `Utilerias`.
-- Un cliente que ya se registró va directo al inicio y ve sus datos en
-  "Mi perfil"; "Mis datos" usa el mismo formulario para editarlos.
+- "Mis datos" usa el mismo formulario para editarlos.
 
 El perfil se guarda en el teléfono por cuenta mientras el API no publique
 uno (ver `docs/BACKEND_ISSUES.md`).

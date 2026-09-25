@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
-import '../../catalogs/domain/location_options.dart';
 import '../data/client_profile_repository.dart';
 import '../domain/client_profile.dart';
 
@@ -18,9 +17,10 @@ const _page = Color(0xFFF8F9FA);
 
 /// Registro del perfil del cliente nuevo y edición de "Mis datos".
 ///
-/// En el registro los datos llegan prellenados con lo que entregó el login:
-/// nombre y correo de Google, o el teléfono verificado por OTP (que nunca se
-/// usa como nombre). La foto es opcional.
+/// Pide solo lo que existe en la tabla `Clientes` del API: nombre, celular,
+/// correo y foto (opcional). En el registro llegan prellenados con lo que
+/// entregó el login: nombre y correo de Google, o el teléfono verificado por
+/// OTP (que nunca se usa como nombre).
 class ClientOnboardingPage extends ConsumerStatefulWidget {
   const ClientOnboardingPage({
     super.key,
@@ -48,14 +48,8 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
   ClientProfile _draft = const ClientProfile();
   bool _phoneLocked = false;
   bool _emailLocked = false;
-  List<StateOption> _states = const [];
-  List<CityOption> _cities = const [];
-  int? _stateId;
-  int? _cityId;
   bool _loading = true;
-  bool _loadingCities = false;
   bool _saving = false;
-  String? _catalogError;
 
   /// Foto elegida en esta pantalla, aún sin guardar.
   XFile? _newPhoto;
@@ -90,78 +84,7 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
     // verificado por OTP y el correo de la cuenta de Google.
     _phoneLocked = !widget.editing && (draft.phone?.isNotEmpty ?? false);
     _emailLocked = !widget.editing && (draft.email?.isNotEmpty ?? false);
-    _stateId = draft.stateId;
-    _cityId = draft.cityId;
-    await _loadStates();
-  }
-
-  Future<void> _loadStates() async {
-    setState(() {
-      _loading = true;
-      _catalogError = null;
-    });
-    try {
-      final states = statesFromResponse(
-        await ref.read(catalogsApiProvider).getStates(),
-      );
-      if (states.isEmpty) throw StateError('Sin estados');
-      if (!mounted) return;
-      setState(() {
-        _states = states;
-        _loading = false;
-      });
-      final stateId = _stateId;
-      if (stateId != null && states.any((state) => state.id == stateId)) {
-        await _loadCities(stateId, keepCity: true);
-      } else {
-        _stateId = null;
-        _cityId = null;
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _catalogError =
-            'No se pudieron cargar los estados. Revisa tu conexión.';
-      });
-    }
-  }
-
-  Future<void> _loadCities(int stateId, {bool keepCity = false}) async {
-    setState(() {
-      _stateId = stateId;
-      if (!keepCity) _cityId = null;
-      _cities = const [];
-      _loadingCities = true;
-      _catalogError = null;
-    });
-    try {
-      final stateName = _stateName(stateId);
-      final cities = citiesFromResponse(
-        await ref.read(catalogsApiProvider).getCitiesByState(stateId),
-        fallbackStateName: stateName,
-      );
-      if (!mounted) return;
-      setState(() {
-        _cities = cities;
-        if (!cities.any((city) => city.id == _cityId)) _cityId = null;
-        _loadingCities = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loadingCities = false;
-        _catalogError =
-            'No se pudieron cargar las ciudades. Revisa tu conexión.';
-      });
-    }
-  }
-
-  String? _stateName(int? id) {
-    for (final state in _states) {
-      if (state.id == id) return state.name;
-    }
-    return null;
+    setState(() => _loading = false);
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -228,9 +151,6 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
   Future<void> _save() async {
     if (_saving) return;
     if (_formKey.currentState?.validate() != true) return;
-    final city = _cities.where((city) => city.id == _cityId).firstOrNull;
-    final stateId = _stateId;
-    if (city == null || stateId == null) return;
     setState(() => _saving = true);
     try {
       var photoPath = _removePhoto ? null : _draft.photoPath;
@@ -254,11 +174,12 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
           name: _name.text.trim(),
           phone: _phone.text.trim(),
           email: _email.text.trim().toLowerCase(),
-          city: city.fullName,
-          stateId: stateId,
-          stateName: _stateName(stateId),
-          cityId: city.id,
-          cityName: city.name,
+          // Datos de ciudad de versiones anteriores, si existían.
+          city: _draft.city,
+          stateId: _draft.stateId,
+          stateName: _draft.stateName,
+          cityId: _draft.cityId,
+          cityName: _draft.cityName,
           photoPath: photoPath,
           photoUrl: _removePhoto ? null : _draft.photoUrl,
         ),
@@ -293,7 +214,7 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
     ),
     body: SafeArea(
       top: false,
-      child: _loading && _states.isEmpty && _catalogError == null
+      child: _loading
           ? const Center(child: CircularProgressIndicator(color: _green))
           : Form(
               key: _formKey,
@@ -359,84 +280,6 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
                     ),
                     validator: _validateEmail,
                   ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<int>(
-                    key: const Key('profile-state-field'),
-                    initialValue: _stateId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Estado *',
-                      prefixIcon: Icon(Icons.map_outlined),
-                    ),
-                    items: [
-                      for (final state in _states)
-                        DropdownMenuItem(
-                          value: state.id,
-                          child: Text(state.name),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null && value != _stateId) {
-                        _loadCities(value);
-                      }
-                    },
-                    validator: (value) =>
-                        value == null ? 'Selecciona tu estado' : null,
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<int>(
-                    key: ValueKey('profile-city-field-$_stateId'),
-                    initialValue: _cityId,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Ciudad *',
-                      prefixIcon: const Icon(Icons.location_city_outlined),
-                      suffixIcon: _loadingCities
-                          ? const Padding(
-                              padding: EdgeInsets.all(14),
-                              child: SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-                    items: [
-                      for (final city in _cities)
-                        DropdownMenuItem(
-                          value: city.id,
-                          child: Text(city.name),
-                        ),
-                    ],
-                    onChanged: _stateId == null || _loadingCities
-                        ? null
-                        : (value) => setState(() => _cityId = value),
-                    validator: (value) =>
-                        value == null ? 'Selecciona tu ciudad' : null,
-                  ),
-                  if (_catalogError != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.cloud_off_outlined, color: _muted),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _catalogError!,
-                            style: const TextStyle(color: _muted),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _stateId == null
-                              ? _loadStates
-                              : () => _loadCities(_stateId!, keepCity: true),
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  ],
                   const SizedBox(height: 26),
                   FilledButton(
                     key: const Key('save-profile-data'),

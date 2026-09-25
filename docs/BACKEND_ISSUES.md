@@ -56,7 +56,7 @@ La columna **App** indica qué hace hoy la app mientras el API no cambie.
 
 ## Pedido para el API: perfil del cliente
 
-Hoy el perfil del cliente (nombre, teléfono, correo, estado, ciudad y foto)
+Hoy el perfil del cliente (nombre, teléfono, correo y foto)
 se guarda solo en el teléfono, por cuenta (`sub` del JWT), porque el API no
 tiene dónde guardarlo. Si el cliente reinstala la app o cambia de teléfono,
 se le vuelve a pedir el registro (prellenado con lo que entregue el login).
@@ -65,8 +65,8 @@ Para que el perfil viva en el servidor hace falta:
 
 | Endpoint | Uso |
 | --- | --- |
-| `GET /api/ClienteAuth/perfil` | Nombre, teléfono, correo, `ciudadId` (con estado) y `fotoPerfil` del cliente del token |
-| `PUT /api/ClienteAuth/perfil` | Guardar nombre, teléfono, correo y `ciudadId` |
+| `GET /api/ClienteAuth/perfil` | `Nombre`, `Telefono`, `Correo` y `FotoPerfil` del cliente del token (columnas que ya existen en `Clientes`) |
+| `PUT /api/ClienteAuth/perfil` | Guardar nombre, teléfono y correo |
 | `PUT /api/ClienteAuth/perfil/foto` (multipart) | Subir o quitar la foto |
 | `esNuevo` o `perfilCompleto` en `LoginClienteResponse` | Mostrar el registro solo la primera vez, en cualquier teléfono |
 
