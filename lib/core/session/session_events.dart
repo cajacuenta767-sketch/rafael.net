@@ -9,6 +9,19 @@ abstract final class SessionEvents {
   static Stream<void> get expired => _expired.stream;
 
   static void notifyExpired() => _expired.add(null);
+
+  static final _signedIn = StreamController<void>.broadcast();
+  static final _signedOut = StreamController<void>.broadcast();
+
+  /// Se guardó una sesión nueva (login de cliente o de yonke).
+  static Stream<void> get signedIn => _signedIn.stream;
+
+  /// Se borró la sesión (cierre de sesión, baja o 401).
+  static Stream<void> get signedOut => _signedOut.stream;
+
+  static void notifySignedIn() => _signedIn.add(null);
+
+  static void notifySignedOut() => _signedOut.add(null);
 }
 
 /// Sesión utilizable: hay token y, si el servidor informó expiración, aún no

@@ -25,13 +25,10 @@ en modelos de producción.
 La app ya consume estos endpoints con las interpretaciones siguientes. Si el
 backend confirma otra semántica, el ajuste es puntual en el parser indicado.
 
-- `DashboardSuscriptores/*` se consulta con el token de cada rol: el cliente
-  espera `Solicitud_Busqueda_DTO` en `mis-solicitudes` y sus cotizaciones en
-  `mis-cotizaciones`; el yonke espera registros `SolicitudYonkes` (con
-  `solicitudes` anidada) en `mis-solicitudes` y sus cotizaciones en
-  `mis-cotizaciones`. Si `mis-solicitudes` no trae el guid de la asignación,
-  la bandeja del yonke muestra "pendiente de conexión"
-  (`yonkeAssignedRequestsFromResponse`).
+- `DashboardSuscriptores/*` es solo del rol Cliente. La bandeja del yonke usa
+  `SolicitudYonkes/MisSolicitudes`; la lista de cotizaciones y la bandeja de
+  mensajes del yonke quedan pendientes de un endpoint propio
+  (ver `docs/BACKEND_ISSUES.md`).
 - `SolicitudCotizacionMensajes.tipoRemitenteId`: se asume `1` = cliente cuando
   no se puede comparar `usuarioId` con el usuario de la sesión
   (`quote_message.dart`). Confirmar el catálogo.

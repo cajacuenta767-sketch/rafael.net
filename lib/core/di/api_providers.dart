@@ -21,18 +21,22 @@ import '../../features/yonkes/data/client_yonkes_repository.dart';
 import '../../features/yonke_quotes/data/yonke_quotes_repository.dart';
 import '../../features/yonke_messages/data/yonke_messages_repository.dart';
 import '../../features/yonke_coverage/data/yonke_coverage_repository.dart';
-import '../../features/yonke_notifications/data/yonke_notifications_repository.dart';
 import '../../features/yonke_profile/data/yonke_profile_repository.dart';
 import '../../features/messages/data/client_messages_repository.dart';
 import '../../features/yonke_requests/data/yonke_request_detail_repository.dart';
 import '../../features/yonke_requests/data/yonke_requests_repository.dart';
 import '../network/api_client.dart';
+import '../push/push_service.dart';
+import '../realtime/realtime_service.dart';
 import '../network/development_api_client.dart';
 import '../network/dio_api_client.dart';
+import '../storage/notifying_token_store.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 
-final tokenStoreProvider = Provider<TokenStore>((ref) => SecureTokenStore());
+final tokenStoreProvider = Provider<TokenStore>(
+  (ref) => NotifyingTokenStore(SecureTokenStore()),
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokens = ref.watch(tokenStoreProvider);
@@ -129,10 +133,6 @@ final yonkeProfileRepositoryProvider = Provider<YonkeProfileRepository>(
     ref.watch(tokenStoreProvider),
   ),
 );
-final yonkeNotificationsRepositoryProvider =
-    Provider<YonkeNotificationsRepository>(
-      (ref) => ApiYonkeNotificationsRepository(ref.watch(yonkesApiProvider)),
-    );
 final clientMessagesRepositoryProvider = Provider<ClientMessagesRepository>(
   (ref) => ApiClientMessagesRepository(
     ref.watch(quotesApiProvider),
@@ -146,3 +146,20 @@ final partsSearchRepositoryProvider = Provider<PartsSearchRepository>(
 final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>(
   (ref) => SecureSearchHistoryRepository(),
 );
+
+final pushServiceProvider = Provider<PushService>((ref) {
+  final service = PushService(
+    platform: FirebasePushPlatform(),
+    tokens: ref.watch(tokenStoreProvider),
+    authApi: ref.watch(authApiProvider),
+    yonkesApi: ref.watch(yonkesApiProvider),
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+final realtimeServiceProvider = Provider<RealtimeService>((ref) {
+  final service = RealtimeService(ref.watch(tokenStoreProvider));
+  ref.onDispose(service.stop);
+  return service;
+});

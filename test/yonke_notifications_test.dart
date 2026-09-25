@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('con el guid del yonke informa que falta Firebase', (
+  testWidgets('sin configuración de Firebase lo informa sin simular avisos', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -21,7 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Firebase pendiente de configurar'), findsOneWidget);
+    expect(find.text('Avisos push no configurados'), findsOneWidget);
   });
 
   testWidgets('sin guid del yonke pide volver a iniciar sesión', (

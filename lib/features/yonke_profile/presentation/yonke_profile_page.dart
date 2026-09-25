@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../../core/storage/token_store.dart';
 import '../../../app/theme/yonke_theme.dart';
@@ -321,6 +322,16 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
       await ref.read(yonkesApiProvider).deactivate(yonkeId);
       await _tokenStore.clear();
       if (mounted) context.go(AppRoutes.start);
+    } on ApiException catch (error) {
+      if (mounted) {
+        // El API publicado reserva la baja al rol Soporte.
+        _showUnavailable(
+          error.statusCode == 401 || error.statusCode == 403
+              ? 'La baja de la cuenta la realiza el equipo de soporte de '
+                    'Refanet. Escríbenos y la procesamos.'
+              : error.message,
+        );
+      }
     } catch (_) {
       if (mounted) {
         _showUnavailable(
@@ -497,7 +508,6 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
           'nombre': _name.text.trim(),
           'responsable': _manager.text.trim(),
           'telefono': _phone.text.trim(),
-          'correo': _email.text.trim().toLowerCase(),
           'direccion': _address.text.trim(),
           'cp': int.tryParse(_postalCode.text.trim()),
           'ciudadId': widget.profile.cityId,
@@ -516,10 +526,16 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
       }
       if (!mounted) return;
       Navigator.pop(context, true);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudieron guardar los cambios.')),
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : 'No se pudieron guardar los cambios.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -574,7 +590,15 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
           _field(_name, 'Nombre del yonke', required: true),
           _field(_manager, 'Responsable', required: true),
           _field(_phone, 'Teléfono', keyboard: TextInputType.phone),
-          _field(_email, 'Correo', keyboard: TextInputType.emailAddress),
+          // `updateInfo` no recibe el correo: es el usuario de acceso y lo
+          // cambia soporte.
+          _field(
+            _email,
+            'Correo',
+            keyboard: TextInputType.emailAddress,
+            readOnly: true,
+            helper: 'Para cambiar el correo de acceso, contacta a soporte.',
+          ),
           _field(_address, 'Dirección'),
           _field(_postalCode, 'Código postal', keyboard: TextInputType.number),
           const SizedBox(height: 10),
@@ -606,12 +630,15 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
     String label, {
     bool required = false,
     TextInputType? keyboard,
+    bool readOnly = false,
+    String? helper,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
     child: TextFormField(
       controller: controller,
       keyboardType: keyboard,
-      decoration: InputDecoration(labelText: label),
+      readOnly: readOnly,
+      decoration: InputDecoration(labelText: label, helperText: helper),
       validator: required
           ? (value) => value?.trim().isEmpty == true
                 ? 'Este dato es obligatorio'
