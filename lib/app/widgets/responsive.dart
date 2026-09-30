@@ -90,21 +90,36 @@ class AppContent extends StatelessWidget {
   }
 }
 
-/// Envuelve una lista desplazable para que su contenido quede centrado y con
-/// ancho máximo, sin mover la barra de desplazamiento del borde de la pantalla.
+/// Relleno para una lista desplazable: su contenido queda centrado y con
+/// ancho máximo, sin mover la barra de desplazamiento del borde de la
+/// pantalla. Mientras el contenido quepa, el margen lateral es [minSide].
+///
+/// Pasa [width] cuando conozcas el ancho real (por ejemplo desde un
+/// `LayoutBuilder`); si no, se usa el ancho de la pantalla.
 EdgeInsets centeredListPadding(
   BuildContext context, {
   double maxWidth = ContentWidth.reading,
   double top = 16,
   double bottom = 24,
   double minSide = 16,
+  double? width,
 }) {
-  final width = MediaQuery.sizeOf(context).width;
-  final gutter = Breakpoints.gutter(width) > minSide
-      ? Breakpoints.gutter(width)
-      : minSide;
-  final side = width > maxWidth + gutter * 2 ? (width - maxWidth) / 2 : gutter;
+  final side = sidePadding(
+    width ?? MediaQuery.sizeOf(context).width,
+    maxWidth: maxWidth,
+    minSide: minSide,
+  );
   return EdgeInsets.fromLTRB(side, top, side, bottom);
+}
+
+/// Margen lateral para centrar [maxWidth] dentro de [width].
+double sidePadding(
+  double width, {
+  double maxWidth = ContentWidth.reading,
+  double minSide = 16,
+}) {
+  final centered = (width - maxWidth) / 2;
+  return centered > minSide ? centered : minSide;
 }
 
 /// Número de columnas de una cuadrícula de tarjetas según el ancho útil.

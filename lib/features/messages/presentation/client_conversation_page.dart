@@ -818,10 +818,8 @@ class _MessageBubble extends StatelessWidget {
         alignment: message.fromClient
             ? Alignment.centerRight
             : Alignment.centerLeft,
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width < 600 ? 310 : 480,
-          ),
+        child: LayoutBuilder(builder: (context, box) => Container(
+          constraints: BoxConstraints(maxWidth: box.maxWidth < 560 ? 310 : 480),
           padding: const EdgeInsets.fromLTRB(13, 10, 11, 7),
           decoration: BoxDecoration(
             color: message.fromClient ? const Color(0xFF67C83C) : Colors.white,
@@ -875,7 +873,7 @@ class _MessageBubble extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        )),
       ),
     ],
   );

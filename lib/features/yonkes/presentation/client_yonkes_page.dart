@@ -138,13 +138,17 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
     body: RefreshIndicator(
       color: _green,
       onRefresh: () => _load(reset: true),
-      child: CustomScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _width = constraints.maxWidth;
+          return CustomScrollView(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverPadding(
             padding: centeredListPadding(
               context,
+              width: _width,
               maxWidth: _directoryWidth(context),
               top: 8,
               bottom: 14,
@@ -214,6 +218,7 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
             SliverPadding(
               padding: centeredListPadding(
                 context,
+                width: _width,
                 maxWidth: _directoryWidth(context),
                 top: 0,
                 bottom: 10,
@@ -234,14 +239,19 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
             ),
           ..._content(),
         ],
+          );
+        },
       ),
     ),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: -1),
   ));
 
+  /// Ancho real de la lista, medido en cada construcción.
+  double _width = 0;
+
   /// Columnas del directorio según el ancho que le queda a la página.
   int _directoryColumns(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
+    final width = _width;
     final usable = width - Breakpoints.gutter(width) * 2;
     return gridColumns(
       usable > ContentWidth.wide ? ContentWidth.wide : usable,
@@ -300,6 +310,7 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
     );
     final padding = centeredListPadding(
       context,
+      width: _width,
       maxWidth: _directoryWidth(context),
       top: 0,
       bottom: 18,
