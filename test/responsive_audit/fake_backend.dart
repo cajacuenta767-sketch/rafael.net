@@ -40,6 +40,7 @@ class AuditScreen {
     required this.role,
     required this.route,
     this.extra,
+    this.storage = const {},
   });
 
   final String id;
@@ -47,6 +48,9 @@ class AuditScreen {
   final AuditRole role;
   final String route;
   final Object? Function()? extra;
+
+  /// Valores extra del almacenamiento seguro para esta pantalla.
+  final Map<String, String> storage;
 }
 
 // --- Identidades -------------------------------------------------------------
@@ -121,8 +125,9 @@ class _NoSessionTokenStore extends AuditTokenStore {
 
 /// Perfil del cliente y bandeja local del yonke, guardados como los guarda la
 /// app en el almacenamiento seguro. Se llama antes de cada captura.
-void auditPrepareGlobals() {
+void auditPrepareGlobals([Map<String, String> extra = const {}]) {
   FlutterSecureStorage.setMockInitialValues({
+    ...extra,
     'client.profile.$_clientUserId': jsonEncode({
       'id': _clientUserId,
       'name': 'María Fernanda López',
@@ -898,10 +903,17 @@ List<AuditScreen> auditScreens() => [
     route: '/',
   ),
   const AuditScreen(
+    id: 'cliente-login-aviso',
+    title: 'Login del cliente: aviso legal',
+    role: AuditRole.publico,
+    route: '/cliente/login',
+  ),
+  const AuditScreen(
     id: 'cliente-login',
     title: 'Login del cliente (SMS)',
     role: AuditRole.publico,
     route: '/cliente/login',
+    storage: {'client_legal_consent_version': '2026-08-26'},
   ),
   const AuditScreen(
     id: 'yonke-login',

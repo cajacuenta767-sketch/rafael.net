@@ -142,7 +142,7 @@ Future<Map<String, Object?>> _capture(
   // En las pruebas Flutter dibuja las sombras como un borde negro; se
   // activan para que las capturas se vean como en el teléfono.
   debugDisableShadows = false;
-  auditPrepareGlobals();
+  auditPrepareGlobals(screen.storage);
   final api = AuditApiClient(screen.role);
   final boundaryKey = GlobalKey();
   final record = <String, Object?>{
