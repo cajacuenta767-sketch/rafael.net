@@ -48,6 +48,9 @@ estado "pendiente" explícito en pantalla; ya no existe modo de prueba. La lista
 ## Control previo a cada publicación
 
 - Ejecutar análisis estático y todas las pruebas automáticas.
+- Correr la matriz responsive (`flutter test test/responsive`), revisar las
+  capturas de `build/screenshots` y el checklist manual en teléfono, tablet y
+  laptop de `docs/RESPONSIVE_TEST_PLAN.md`.
 - Generar una compilación Android release firmada y probarla en un dispositivo
   físico.
 - Generar un Archive de iOS y validarlo en Xcode.

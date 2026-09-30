@@ -187,9 +187,9 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
-        File(
-          r'C:\Users\PC\.gemini\antigravity\brain\8634c568-fc25-4f30-afbb-baf7c18b270e\yonke_messages_screenshot.png',
-        ).writeAsBytesSync(byteData.buffer.asUint8List());
+        File('build/screenshots/legado/yonke_messages_screenshot.png')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(byteData.buffer.asUint8List());
       }
     });
   });
@@ -229,9 +229,9 @@ void main() {
       final image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
-        File(
-          r'C:\Users\PC\.gemini\antigravity\brain\8634c568-fc25-4f30-afbb-baf7c18b270e\yonke_profile_screenshot.png',
-        ).writeAsBytesSync(byteData.buffer.asUint8List());
+        File('build/screenshots/legado/yonke_profile_screenshot.png')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(byteData.buffer.asUint8List());
       }
     });
   });

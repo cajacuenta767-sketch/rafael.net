@@ -34,3 +34,14 @@ jobs:
 
       - name: Pruebas
         run: flutter test
+
+      # Capturas por dispositivo de test/responsive/capturas_test.dart y de
+      # los tests de screenshot legado (build/screenshots/legado).
+      - name: Capturas responsivas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-responsivas
+          path: build/screenshots
+          if-no-files-found: warn
+          retention-days: 14

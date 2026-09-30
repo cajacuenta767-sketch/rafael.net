@@ -1,0 +1,5 @@
+tags:
+  capturas:
+    description: >-
+      Genera capturas por dispositivo en build/screenshots. Exclúyelas para
+      correr rápido: flutter test --exclude-tags capturas

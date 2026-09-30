@@ -186,6 +186,7 @@ crear los enlaces de los plugins durante `flutter pub get`.
 
 - [Arquitectura e integración API](docs/API_INTEGRATION.md)
 - [Pendientes del contrato backend](docs/BACKEND_CONTRACT_CHECKLIST.md)
+- [Plan de pruebas responsivas](docs/RESPONSIVE_TEST_PLAN.md)
 
 ## Publicación
 

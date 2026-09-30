@@ -77,7 +77,7 @@ void main() {
               as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 1);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      final output = File('build/yonke_home_screenshot.png');
+      final output = File('build/screenshots/legado/yonke_home_screenshot.png');
       await output.parent.create(recursive: true);
       await output.writeAsBytes(data!.buffer.asUint8List());
     });

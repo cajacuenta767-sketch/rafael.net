@@ -50,7 +50,9 @@ void main() {
               as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 1);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      final output = File('build/linked_client_home_screenshot.png');
+      final output = File(
+        'build/screenshots/legado/linked_client_home_screenshot.png',
+      );
       await output.parent.create(recursive: true);
       await output.writeAsBytes(bytes!.buffer.asUint8List());
     });
