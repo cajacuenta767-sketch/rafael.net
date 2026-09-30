@@ -1,0 +1,436 @@
+
+::group::✅ Passing tests
+✅ /home/runner/work/rafael.net/rafael.net/test/linked_client_home_screenshot_test.dart: renders client home with the requests from the API
+::endgroup::
+::group::✅ /home/runner/work/rafael.net/rafael.net/test/client_messages_test.dart: un 401 del chat muestra el error, nunca mensajes de ejemplo
+[realtime] Tiempo real no disponible, se usa sondeo: 400: 
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/rafael.net/rafael.net/test/client_messages_test.dart: chat conserva la composición visual de la referencia
+✅ /home/runner/work/rafael.net/rafael.net/test/client_messages_test.dart: bandeja del cliente reúne cotizaciones e historiales del API
+::endgroup::
+::group::✅ /home/runner/work/rafael.net/rafael.net/test/client_messages_test.dart: cliente ve la conversación real y envía un mensaje
+[realtime] Tiempo real no disponible, se usa sondeo: 400: 
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient 200 con success:false es un error de negocio
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient 200 sin sobre se devuelve tal cual
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient lee `mensaje` de Orden y Yonkes
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient el 302 hacia /Account/Login es un error de la acción
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient el límite diario devuelto como 500 tiene un mensaje claro
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: DioApiClient quita el prefijo "Error interno:"
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: envío de solicitud usa el GuidId real de mi-solicitud-reciente
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: envío de solicitud si la reciente es otra solicitud conserva el id devuelto
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: envío de solicitud un error al crear se informa sin simular éxito
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: envío de solicitud un error al enviar a yonkes ya no se oculta
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: detalle de solicitud sin GET Solicitudes/{guid} el cliente lo toma de mis-solicitudes
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: detalle de solicitud sin GET Solicitudes/{guid} si tampoco está en mis-solicitudes se informa el error
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: detalle de solicitud sin GET Solicitudes/{guid} el yonke lo arma con la bandeja y las fotos
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: yonke de la cotización se completa con CotizacionYonke y Yonkes
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: yonke de la cotización si el API falla conserva la cotización
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: cotizaciones del yonke registradas en el teléfono la cotización creada se recuerda y arma la bandeja
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve 401: usa las cotizaciones del teléfono
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve 302 de login: usa las cotizaciones del teléfono
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve 500: usa las cotizaciones del teléfono
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve 200 con success:false: usa las cotizaciones del teléfono
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve lista vacía: usa las cotizaciones del teléfono
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: bandeja del yonke cuando mis-cotizaciones no le sirve sin cotizaciones en el teléfono avisa en lugar de fallar
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: cotizaciones del cliente mis-cotizaciones se asume activa y no inventa yonkeId
+✅ /home/runner/work/rafael.net/rafael.net/test/api_integration_test.dart: cotizaciones del cliente el detalle lee `año` y respeta `activo`
+✅ /home/runner/work/rafael.net/rafael.net/test/client_rating_test.dart: cliente envía una calificación con comentario
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_remaining_screenshots_test.dart: capture YonkeMessagesPage screenshot
+::endgroup::
+::group::✅ /home/runner/work/rafael.net/rafael.net/test/yonke_messages_test.dart: la bandeja del yonke se arma con sus cotizaciones y abre una conversación
+[realtime] Tiempo real no disponible, se usa sondeo: 400: 
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_remaining_screenshots_test.dart: capture YonkeProfilePage screenshot
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows both application roles
+✅ /home/runner/work/rafael.net/rafael.net/test/client_quotes_page_test.dart: el cliente conserva y muestra las cotizaciones recibidas
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: opens the client login from the client role button
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: opens the yonke login from the yonke role button
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: registro de push el cliente usa ClienteAuth/registrar-dispositivo
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: registro de push el yonke usa YonkesDispositivos con su guid
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: registro de push sin sesión no registra
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: registro de push sin Firebase configurado lo informa sin llamar al API
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: registro de push guarda los avisos recibidos y entrega los tocados
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: NotifyingTokenStore avisa el inicio y el cierre de sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/push_realtime_test.dart: NuevoMensaje de SignalR indica la cotización
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: validates yonke email and password without sending
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows and hides the yonke password
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: does not invent a yonke session from an undocumented response
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: prevents duplicate yonke login requests while loading
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows a generic message for invalid yonke credentials
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows the yonke inbox with calculated summaries
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: searches yonke requests by part, vehicle or folio
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows a no-results state for unmatched yonke searches
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: filters yonke requests by status
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows the pending contract state when the inbox shape is unknown
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_profile_test.dart: yonke profile shows the API data and exposes its operations
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows an empty assigned requests state
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows an error and retry action for a failed yonke inbox
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_profile_test.dart: yonke sign out clears local credentials and returns to login
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_profile_test.dart: protected yonke content redirects when there is no session
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: marks a yonke request as viewed before opening its detail
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 320.0x640.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 320.0x640.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 320.0x640.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x720.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x720.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x720.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x800.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x800.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 360.0x800.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 375.0x667.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 375.0x667.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 375.0x667.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 390.0x844.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 390.0x844.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_yonkes_test.dart: interpreta la paginación, ubicación y calificaciones del API
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 390.0x844.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 412.0x915.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 412.0x915.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 412.0x915.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 430.0x932.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 430.0x932.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 430.0x932.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 600.0x960.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 600.0x960.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 600.0x960.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x1280.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x1280.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x1280.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x360.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x360.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 800.0x360.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 932.0x430.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 932.0x430.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke login is responsive at 932.0x430.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 320.0x640.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 320.0x640.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 320.0x640.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x720.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_yonkes_test.dart: explorador busca y conserva el diseño de referencia
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x720.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x720.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_yonkes_test.dart: perfil muestra información, cobertura y opiniones reales
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x800.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x800.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 360.0x800.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 375.0x667.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 375.0x667.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 375.0x667.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 390.0x844.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 390.0x844.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 390.0x844.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 412.0x915.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: requires a phone before requesting an OTP
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: normalizes a valid Mexican phone to E.164
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: validates and normalizes a Bolivian phone by its country
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: does not duplicate a pasted international prefix
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: does not invent a session while the API contract is pending
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 412.0x915.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 412.0x915.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 430.0x932.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 430.0x932.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 430.0x932.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 600.0x960.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 600.0x960.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 600.0x960.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x1280.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x1280.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x1280.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x360.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x360.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 800.0x360.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 932.0x430.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 932.0x430.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: starts empty and renders every login method
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke inbox is responsive at 932.0x430.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 320.0x640.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 320.0x640.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 320.0x640.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x720.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x720.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x720.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x800.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x800.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 360.0x800.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 375.0x667.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 375.0x667.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 375.0x667.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 390.0x844.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 390.0x844.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 390.0x844.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 412.0x915.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 412.0x915.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 412.0x915.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 430.0x932.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 430.0x932.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 430.0x932.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 600.0x960.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: opens the supplied legal documents from the login
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 600.0x960.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 600.0x960.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x1280.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x1280.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x1280.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x360.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x360.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 800.0x360.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 932.0x430.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 932.0x430.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: welcome is responsive at 932.0x430.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: builds endpoint paths without duplicating URL logic
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: parses the documented global response envelope
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: requires a part name before searching
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: requires both legal documents before requesting the OTP
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows and removes a recent search
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows retry state when search fails
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 320.0x640.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 320.0x640.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 320.0x640.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: legal dialog supports individual choices and rejection review
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 360.0x720.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 360.0x720.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: cannot dismiss legal consent with the system back button
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 360.0x720.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 390.0x844.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 390.0x844.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 390.0x844.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 412.0x915.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 412.0x915.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 412.0x915.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 600.0x960.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: opens a searchable country selector and selects Bolivia
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 600.0x960.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 600.0x960.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 800.0x360.0 and 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: requests the real OTP and shows the six digit interface
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 800.0x360.0 and 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: search is responsive at 800.0x360.0 and 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: parses the documented quote response fields
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: parses the documented yonke request detail and safe images
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows a complete request detail for the yonke
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: OTP boxes accept manual input and show every digit
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: confirms and records an unavailable yonke response
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: OTP boxes are writable before the API sends a code
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: pastes a separated OTP and verifies it once automatically
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: validates and submits every confirmed quote field
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke request detail is responsive at 320.0x640.0
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: automatic OTP verification disables duplicate submission
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke request detail is responsive at 390.0x844.0
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: a vertical drag cannot move the fixed login page
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke request detail is responsive at 800.0x360.0
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: parses a documented yonke quote nested in a dashboard list
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 320.0x640.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows the yonke sent quotes inbox
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 320.0x640.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 320.0x640.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: searches yonke quotes by folio and vehicle
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x720.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x720.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x720.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x800.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: filters yonke quotes by accepted status
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x800.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 360.0x800.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: allows editing a sent yonke quote
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 375.0x667.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: shows pending contract instead of inventing quote records
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 375.0x667.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 375.0x667.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke quotes inbox is responsive at 320.0x640.0
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 390.0x844.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke quotes inbox is responsive at 390.0x844.0
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 390.0x844.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/widget_test.dart: yonke quotes inbox is responsive at 800.0x360.0
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 390.0x844.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 412.0x915.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 412.0x915.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 412.0x915.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 430.0x932.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 430.0x932.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 430.0x932.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 600.0x960.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 600.0x960.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 600.0x960.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x1280.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x1280.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x1280.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x360.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x360.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 800.0x360.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 932.0x430.0 at 1.0 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 932.0x430.0 at 1.15 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: fixed login fits 932.0x430.0 at 1.3 text
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: keyboard overlay keeps the phone focused and layout mounted
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: keyboard keeps the phone and action visible without scrolling
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: OTP controls remain visible with the keyboard and never scroll
+✅ /home/runner/work/rafael.net/rafael.net/test/client_login_test.dart: OTP boxes lift with the keyboard and return when it closes
+✅ /home/runner/work/rafael.net/rafael.net/test/request_submission_test.dart: cliente envía una solicitud a yonkes con cobertura
+✅ /home/runner/work/rafael.net/rafael.net/test/request_submission_test.dart: explica en qué paso falló el envío
+::endgroup::
+::group::⏭️ Skipped tests
+⏭️ /home/runner/work/rafael.net/rafael.net/test/responsive_audit/responsive_audit_test.dart: auditoría responsive (define AUDIT_OUT para correrla) (skipped)
+Skip: Solo corre con AUDIT_OUT
+::endgroup::
+::group::✅ Passing tests
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser reads the token from the documented ApiResponseGlobal envelope
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser reads a token placed directly at the root
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser accepts data carrying the bare token string
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser accepts a bare token as the whole response
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser finds a token nested two levels deep
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser matches snake_case keys and absolute ISO expiry
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser falls back to the exp claim when no expiry key is present
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser tells an absolute epoch from a relative lifetime
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser rescues a token stored under an unexpected key
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser reports the received keys when no token arrives
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser treats an already expired session as unusable
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: SessionResponseParser survives shapes it cannot read
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: ClientOtpVerification.fromResponse builds a usable session from the envelope
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: ClientOtpVerification.fromResponse stays pending and keeps the keys when no token arrives
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: ClientOtpVerification.fromResponse refuses to reuse the Google idToken the app just sent
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: YonkeLoginResult.fromResponse keeps the yonke guid that profile and coverage need
+✅ /home/runner/work/rafael.net/rafael.net/test/session_payload_test.dart: YonkeLoginResult.fromResponse stays pending when the response has no token
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo un cliente de OTP es nuevo y su teléfono no es su nombre
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo un cliente de Google llega con nombre, correo y foto
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo con el perfil completo ya no pide el registro
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo dos cuentas en el mismo teléfono no comparten perfil
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo el perfil guardado con la clave anterior se adopta
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo sin sesión no pide registro
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: perfil del cliente en el dispositivo la foto se guarda en el dispositivo y se puede borrar
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: el login de Google expone nombre, correo y foto de la respuesta
+✅ /home/runner/work/rafael.net/rafael.net/test/client_bottom_navigation_test.dart: el botón central ofrece las dos acciones rápidas
+✅ /home/runner/work/rafael.net/rafael.net/test/client_bottom_navigation_test.dart: Nueva solicitud abre la ruta de creación
+✅ /home/runner/work/rafael.net/rafael.net/test/quote_client_test.dart: quoteClientFromResponse la respuesta publicada hoy no trae cliente
+✅ /home/runner/work/rafael.net/rafael.net/test/quote_client_test.dart: quoteClientFromResponse lee el objeto cliente de la solicitud
+✅ /home/runner/work/rafael.net/rafael.net/test/quote_client_test.dart: quoteClientFromResponse acepta campos planos y descarta el nombre de relleno
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: pantalla de registro OTP de un cliente nuevo abre directo el registro
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: pantalla de registro OTP de un cliente ya registrado va al inicio
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: pantalla de registro un cliente ya registrado entra directo al inicio
+✅ /home/runner/work/rafael.net/rafael.net/test/client_onboarding_test.dart: pantalla de registro un cliente nuevo completa el registro y llega al inicio
+✅ /home/runner/work/rafael.net/rafael.net/test/client_profile_test.dart: profile matches the menu and exposes functional modules
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: hasActiveSession sin token no hay sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: hasActiveSession token sin expiración informada sigue activo
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: hasActiveSession token vencido se borra
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: hasActiveSession token vigente sigue activo
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: 401 del servidor con token enviado cierra la sesión y avisa
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: 401 del servidor un login rechazado no borra nada
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: 401 del servidor otros errores no cierran la sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció un 302 hacia /Account/Login conserva la sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció 401 con invalid_token cierra la sesión sin comprobar
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció 401 de un endpoint pero el token sigue sirviendo
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció 401 confirmado por la comprobación cierra la sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció sin red para comprobar, la sesión se conserva
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció token vencido por exp cierra la sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció varios 401 simultáneos hacen una sola comprobación
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: la sesión no se cierra sin confirmar que el token venció exp del JWT se interpreta en segundos UTC
+✅ /home/runner/work/rafael.net/rafael.net/test/session_expiry_test.dart: las imágenes de la solicitud exponen su guid por URL
+✅ /home/runner/work/rafael.net/rafael.net/test/client_profile_test.dart: sign out clears secure session and removes profile history
+✅ /home/runner/work/rafael.net/rafael.net/test/client_profile_test.dart: protected client content redirects when session is absent
+✅ /home/runner/work/rafael.net/rafael.net/test/client_profile_test.dart: edita datos, notificaciones y direcciones localmente
+✅ /home/runner/work/rafael.net/rafael.net/test/client_profile_test.dart: perfil conserva la composición visual de referencia
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_notifications_test.dart: sin configuración de Firebase lo informa sin simular avisos
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_notifications_test.dart: sin guid del yonke pide volver a iniciar sesión
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_home_screenshot_test.dart: renders the complete yonke home dashboard
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_reputation_test.dart: calcula reputación desde las calificaciones documentadas por la API
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_reputation_test.dart: muestra la reputación que entrega el repositorio
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_register_screenshot_test.dart: renders YonkeRegisterPage and captures screenshot
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_register_screenshot_test.dart: renders YonkeLoginPage with cropped logo and register button
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_requests_screenshot_test.dart: capture YonkeRequestsPage screenshot
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/ClienteAuth/google existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/ClienteAuth/solicitar-otp existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/ClienteAuth/verificar-otp existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/ClienteAuth/registrar-dispositivo existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/CotizacionYonke existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/CotizacionYonke/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/CotizacionYonke/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/CotizacionYonke/MisCotizaciones/Total existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/DashboardSuscriptores/resumen existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/DashboardSuscriptores/mis-solicitudes existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/DashboardSuscriptores/mis-cotizaciones existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/DashboardSuscriptores/mi-solicitud-reciente existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Orden/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Orden/cotizacion/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/Orden existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_quotes_screenshot_test.dart: capture YonkeQuotesPage screenshot
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/Orden/guid/cancelar existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudCiudades/guid/ciudades existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/SolicitudCotizacionMensajes existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudCotizacionMensajes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/SolicitudCotizacionMensajes/guid/leer existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudCotizacionMensajes/guid/no-leidos existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/Solicitudes existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Solicitudes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: DELETE /api/Solicitudes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/SolicitudesImagenes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudesImagenes/solicitud/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: DELETE /api/SolicitudesImagenes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/SolicitudYonkes/guid/enviar existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/SolicitudYonkes/guid/vista existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudYonkes/MisSolicitudes existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/SolicitudYonkes/TotalSolicitudesNuevas existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Utilerias/entidades existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Utilerias/entidad/1/ciudades existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Utilerias/marcas existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Utilerias/modelos existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/YonkeAuth/login existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Yonkes/byPage existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/Yonkes/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/Yonkes/updateInfo/byGuidId/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/Yonkes/ActualizarLogo existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/YonkesCalificaciones existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/YonkesCalificaciones/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: GET /api/YonkesCoberturas/guid/guid existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: PUT /api/YonkesCoberturas existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/api_endpoints_openapi_test.dart: POST /api/YonkesDispositivos existe en el contrato
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: solicitudes acepta la paginación real data dentro de data
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: ciudades acepta solicitudHeader del API real
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: mis-cotizaciones acepta la proyección plana del API real
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Solicitud_Busqueda_DTO lee estatus y total de cotizaciones con sus nombres reales
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Solicitud_Busqueda_DTO acepta la entidad Solicitudes con marcas y modelos anidados
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Solicitud_Busqueda_DTO mi-solicitud-reciente acepta objeto o lista y vacío
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Solicitud_Busqueda_DTO el detalle toma urlImagen y las ciudades de la solicitud
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Bandeja del yonke (SolicitudYonkes) interpreta registros SolicitudYonkes con la solicitud anidada
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Bandeja del yonke (SolicitudYonkes) acepta una proyección plana con solicitudYonkeGuidId
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Bandeja del yonke (SolicitudYonkes) acepta una proyección plana con solo guidId como en la API real
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Bandeja del yonke (SolicitudYonkes) devuelve null cuando la forma no contiene identificadores válidos
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: SolicitudCotizacionMensajes ordena por fecha y distingue remitente por usuarioId
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: SolicitudCotizacionMensajes sin usuario conocido usa tipoRemitenteId
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Yonkes, coberturas y cotizaciones del yonke perfil desde Yonkes/{guidId} con la ciudad anidada
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Yonkes, coberturas y cotizaciones del yonke la cobertura ignora registros inactivos y lee entidades.entidad
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Yonkes, coberturas y cotizaciones del yonke la cotización del yonke lee marcas.marca y modelos.modelo
+✅ /home/runner/work/rafael.net/rafael.net/test/contract_parsers_test.dart: Yonkes, coberturas y cotizaciones del yonke ActualizarLogo envía GuidId y el archivo como LogoUrl
+✅ /home/runner/work/rafael.net/rafael.net/test/client_notifications_test.dart: un mensaje no leído abre el chat real
+✅ /home/runner/work/rafael.net/rafael.net/test/client_notifications_test.dart: una cotización sin mensaje abre su detalle
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: bandeja del yonke usa MisSolicitudes y pagina en la app
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: bandeja del yonke filtra la búsqueda localmente
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: bandeja del yonke no recurre al dashboard del cliente: propaga el error
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: bandeja del yonke una respuesta con otra forma es contrato pendiente
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: MisSolicitudes lee SolicitudYonke_List_DTO del Swagger publicado
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: MisSolicitudes sin cotizar y vista queda como vista
+✅ /home/runner/work/rafael.net/rafael.net/test/api_contract_v1_update_test.dart: total de cotizaciones lee Int32ApiResponseGlobal
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_coverage_test.dart: carga la cobertura real, permite cambiarla y la guarda
+✅ /home/runner/work/rafael.net/rafael.net/test/yonke_coverage_test.dart: sin guid del yonke no consulta ni guarda cobertura
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Detalle de solicitud une detalle, ciudades y cotización reales
+✅ /home/runner/work/rafael.net/rafael.net/test/client_order_test.dart: cliente confirma una cotización y crea una orden
+✅ /home/runner/work/rafael.net/rafael.net/test/client_order_test.dart: cliente consulta y cancela una orden
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Nueva solicitud replica la etapa Parte y avanza a Vehículo
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Ciudad de la solicitud (Utilerias) carga estados y ciudades del catálogo y continúa con la ciudad elegida
+✅ /home/runner/work/rafael.net/rafael.net/test/client_contact_test.dart: línea de contacto se agrega y se separa sin tocar el texto
+✅ /home/runner/work/rafael.net/rafael.net/test/client_contact_test.dart: línea de contacto un mensaje normal que empieza con "Contacto:" no se toca
+✅ /home/runner/work/rafael.net/rafael.net/test/client_contact_test.dart: línea de contacto sin teléfono no se comparte nada
+✅ /home/runner/work/rafael.net/rafael.net/test/client_contact_test.dart: el cliente comparte su contacto una vez y el yonke lo ve
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Ciudad de la solicitud (Utilerias) al cambiar de estado consulta las ciudades de ese estado
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Ciudad de la solicitud (Utilerias) ofrece reintentar cuando el catálogo de estados falla
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Búsqueda de refacciones (Utilerias marcas y modelos) usa marcas y modelos de la API en los filtros y los lleva a la solicitud
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Búsqueda de refacciones (Utilerias marcas y modelos) avisa cuando el catálogo de marcas no responde
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Cotizaciones del cliente (DashboardSuscriptores y CotizacionYonke) lista solo las cotizaciones de la solicitud consultada
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Cotizaciones del cliente (DashboardSuscriptores y CotizacionYonke) filtra por folio cuando el API omite solicitudGuidId
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Cotizaciones del cliente (DashboardSuscriptores y CotizacionYonke) muestra el detalle real y permite elegir la cotización si no hay orden
+✅ /home/runner/work/rafael.net/rafael.net/test/api_flows_test.dart: Cotizaciones del cliente (DashboardSuscriptores y CotizacionYonke) ofrece reintentar si la API de cotizaciones falla
+::endgroup::
+
+🎉 412 tests passed, 1 skipped.
+codigo_salida=0

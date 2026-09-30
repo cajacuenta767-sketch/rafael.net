@@ -1,0 +1,230 @@
+[
+  {
+    "id": "inicio",
+    "title": "Pantalla de bienvenida",
+    "role": "publico",
+    "route": "/"
+  },
+  {
+    "id": "cliente-login-aviso",
+    "title": "Login del cliente: aviso legal",
+    "role": "publico",
+    "route": "/cliente/login"
+  },
+  {
+    "id": "cliente-login",
+    "title": "Login del cliente (SMS)",
+    "role": "publico",
+    "route": "/cliente/login"
+  },
+  {
+    "id": "yonke-login",
+    "title": "Login del yonke",
+    "role": "publico",
+    "route": "/yonke/login"
+  },
+  {
+    "id": "yonke-registro",
+    "title": "Registro de yonke",
+    "role": "publico",
+    "route": "/yonke/registro"
+  },
+  {
+    "id": "cliente-inicio",
+    "title": "Inicio del cliente",
+    "role": "cliente",
+    "route": "/cliente"
+  },
+  {
+    "id": "cliente-registro",
+    "title": "Completar perfil (cliente nuevo)",
+    "role": "cliente",
+    "route": "/cliente/registro"
+  },
+  {
+    "id": "cliente-buscar",
+    "title": "Buscar autopartes",
+    "role": "cliente",
+    "route": "/cliente/buscar"
+  },
+  {
+    "id": "cliente-nueva-solicitud",
+    "title": "Nueva solicitud: pieza",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/nueva"
+  },
+  {
+    "id": "cliente-solicitud-fotos",
+    "title": "Nueva solicitud: fotografías",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/fotografias"
+  },
+  {
+    "id": "cliente-solicitud-ciudad",
+    "title": "Nueva solicitud: ciudad",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/ciudad"
+  },
+  {
+    "id": "cliente-solicitud-revision",
+    "title": "Nueva solicitud: revisión",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/revision"
+  },
+  {
+    "id": "cliente-mis-solicitudes",
+    "title": "Mis solicitudes",
+    "role": "cliente",
+    "route": "/cliente/solicitudes"
+  },
+  {
+    "id": "cliente-detalle-solicitud",
+    "title": "Detalle de solicitud",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/detalle/sol-001"
+  },
+  {
+    "id": "cliente-cotizaciones-solicitud",
+    "title": "Cotizaciones de una solicitud",
+    "role": "cliente",
+    "route": "/cliente/solicitudes/detalle/sol-001/cotizaciones"
+  },
+  {
+    "id": "cliente-cotizaciones",
+    "title": "Cotizaciones recibidas",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones"
+  },
+  {
+    "id": "cliente-detalle-cotizacion",
+    "title": "Detalle de cotización",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones/cot-001"
+  },
+  {
+    "id": "cliente-chat",
+    "title": "Chat con el yonke",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones/cot-001/mensajes"
+  },
+  {
+    "id": "cliente-confirmar-orden",
+    "title": "Confirmar orden",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones/cot-001/orden"
+  },
+  {
+    "id": "cliente-orden-exito",
+    "title": "Orden creada",
+    "role": "cliente",
+    "route": "/cliente/ordenes/exito"
+  },
+  {
+    "id": "cliente-seguimiento-orden",
+    "title": "Seguimiento de orden",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones/cot-005/orden/seguimiento"
+  },
+  {
+    "id": "cliente-calificar",
+    "title": "Calificar al yonke",
+    "role": "cliente",
+    "route": "/cliente/cotizaciones/cot-005/calificacion"
+  },
+  {
+    "id": "cliente-mensajes",
+    "title": "Mensajes del cliente",
+    "role": "cliente",
+    "route": "/cliente/mensajes"
+  },
+  {
+    "id": "cliente-notificaciones",
+    "title": "Notificaciones del cliente",
+    "role": "cliente",
+    "route": "/cliente/notificaciones"
+  },
+  {
+    "id": "cliente-yonkes",
+    "title": "Directorio de yonkes",
+    "role": "cliente",
+    "route": "/cliente/yonkes"
+  },
+  {
+    "id": "cliente-perfil-yonke",
+    "title": "Perfil de un yonke",
+    "role": "cliente",
+    "route": "/cliente/yonkes/yonke-003"
+  },
+  {
+    "id": "cliente-perfil",
+    "title": "Perfil del cliente",
+    "role": "cliente",
+    "route": "/cliente/perfil"
+  },
+  {
+    "id": "yonke-inicio",
+    "title": "Inicio del yonke",
+    "role": "yonke",
+    "route": "/yonke"
+  },
+  {
+    "id": "yonke-solicitudes",
+    "title": "Bandeja de solicitudes",
+    "role": "yonke",
+    "route": "/yonke/solicitudes"
+  },
+  {
+    "id": "yonke-detalle-solicitud",
+    "title": "Detalle de solicitud (yonke)",
+    "role": "yonke",
+    "route": "/yonke/solicitudes/sy-002-001"
+  },
+  {
+    "id": "yonke-cotizar",
+    "title": "Enviar cotización",
+    "role": "yonke",
+    "route": "/yonke/solicitudes/sy-002-001/cotizar"
+  },
+  {
+    "id": "yonke-cotizaciones",
+    "title": "Mis cotizaciones (yonke)",
+    "role": "yonke",
+    "route": "/yonke/cotizaciones"
+  },
+  {
+    "id": "yonke-detalle-cotizacion",
+    "title": "Detalle de cotización (yonke)",
+    "role": "yonke",
+    "route": "/yonke/cotizaciones/cot-004"
+  },
+  {
+    "id": "yonke-mensajes",
+    "title": "Mensajes del yonke",
+    "role": "yonke",
+    "route": "/yonke/mensajes"
+  },
+  {
+    "id": "yonke-chat",
+    "title": "Chat con el cliente",
+    "role": "yonke",
+    "route": "/yonke/mensajes/cot-001"
+  },
+  {
+    "id": "yonke-notificaciones",
+    "title": "Notificaciones del yonke",
+    "role": "yonke",
+    "route": "/yonke/notificaciones"
+  },
+  {
+    "id": "yonke-perfil",
+    "title": "Perfil del yonke",
+    "role": "yonke",
+    "route": "/yonke/perfil"
+  },
+  {
+    "id": "yonke-cobertura",
+    "title": "Zona de cobertura",
+    "role": "yonke",
+    "route": "/yonke/cobertura"
+  }
+]
