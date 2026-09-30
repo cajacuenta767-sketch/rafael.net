@@ -31,30 +31,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'devices.dart';
 import 'fake_backend.dart';
 
-final _outDir = Platform.environment['AUDIT_OUT'];
-final _onlyScreens = Platform.environment['AUDIT_SCREENS']
-    ?.split(',')
-    .map((s) => s.trim())
-    .where((s) => s.isNotEmpty)
-    .toSet();
-final _onlyDevices = Platform.environment['AUDIT_DEVICES']
-    ?.split(',')
-    .map((s) => s.trim())
-    .where((s) => s.isNotEmpty)
-    .toSet();
+final String? _outDir = Platform.environment['AUDIT_OUT'];
+final Set<String>? _onlyScreens = _idList('AUDIT_SCREENS');
+final Set<String>? _onlyDevices = _idList('AUDIT_DEVICES');
+
+Set<String>? _idList(String name) {
+  final ids = (Platform.environment[name] ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toSet();
+  return ids.isEmpty ? null : ids;
+}
 
 /// Dispositivo en el que además se revisan las guías de accesibilidad.
 const _referenceDevice = 'iphone-15';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  if (_outDir == null || _outDir.isEmpty) {
+  final outDir = _outDir;
+  final onlyScreens = _onlyScreens;
+  final onlyDevices = _onlyDevices;
+  if (outDir == null || outDir.isEmpty) {
     test('auditoría responsive (define AUDIT_OUT para correrla)', () {},
         skip: 'Solo corre con AUDIT_OUT');
     return;
   }
 
-  final out = Directory(_outDir);
+  final out = Directory(outDir);
   final images = Directory('${out.path}/capturas')..createSync(recursive: true);
   final results = File('${out.path}/resultados.jsonl');
   if (results.existsSync()) results.deleteSync();
@@ -85,10 +89,10 @@ void main() {
   });
 
   for (final screen in auditScreens()) {
-    if (_onlyScreens != null && !_onlyScreens.contains(screen.id)) continue;
+    if (onlyScreens != null && !onlyScreens.contains(screen.id)) continue;
     testWidgets('${screen.id}: ${screen.title}', (tester) async {
       for (final device in auditDevices) {
-        if (_onlyDevices != null && !_onlyDevices.contains(device.id)) {
+        if (onlyDevices != null && !onlyDevices.contains(device.id)) {
           continue;
         }
         final record = await _capture(tester, screen, device, images);
