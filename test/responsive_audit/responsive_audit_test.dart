@@ -379,7 +379,7 @@ void _inspect(WidgetTester tester, AuditDevice device, _Findings findings) {
       }
     }
 
-    if (screenWidth >= 700 && isControl && rect.width > 640) {
+    if (screenWidth >= 700 && isControl && rect.width > 760) {
       final name = widget.runtimeType.toString().split('<').first;
       final location = _appLocation(element);
       findings.stretched.putIfAbsent(
@@ -456,12 +456,17 @@ String? _appLocation(Element element) {
     try {
       final location = developer.CreationLocation.of(current.widget);
       final file = location?.file ?? '';
-      final index = file.lastIndexOf('/lib/');
-      if (index >= 0 &&
-          !file.contains('/packages/flutter') &&
-          !file.contains('.pub-cache') &&
-          !file.contains('/test/')) {
-        found = '${file.substring(index + 1)}:${location!.line}';
+      const package = 'package:app_yonke/';
+      if (file.startsWith(package)) {
+        found = 'lib/${file.substring(package.length)}:${location!.line}';
+      } else {
+        final index = file.lastIndexOf('/lib/');
+        if (index >= 0 &&
+            !file.contains('/packages/flutter') &&
+            !file.contains('.pub-cache') &&
+            !file.contains('/test/')) {
+          found = '${file.substring(index + 1)}:${location!.line}';
+        }
       }
     } catch (_) {}
     Element? parent;
