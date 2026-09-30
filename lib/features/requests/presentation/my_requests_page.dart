@@ -259,30 +259,50 @@ class _RequestSummaryCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 10),
+                      // Cantidad y estado bajan a otra línea si no caben,
+                      // en vez de partir las palabras.
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.local_offer_outlined,
-                            size: 18,
-                            color: statusColor,
-                          ),
-                          const SizedBox(width: 5),
                           Expanded(
-                            child: Text(
-                              '${request.quoteCount} cotizaciones',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.circle, size: 8, color: statusColor),
-                          const SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              request.status,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: statusColor),
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.local_offer_outlined,
+                                      size: 18,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      '${request.quoteCount} cotizaciones',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.circle,
+                                      size: 8,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      request.status,
+                                      style: TextStyle(color: statusColor),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                           if (onCancel != null && request.isInProgress) ...[
@@ -292,8 +312,8 @@ class _RequestSummaryCard extends StatelessWidget {
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
                               icon: const Icon(
                                 Icons.delete_outline,

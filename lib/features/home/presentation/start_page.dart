@@ -262,6 +262,36 @@ class _Benefits extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Con letra muy grande en celular, los tres beneficios van uno debajo de
+    // otro para que las palabras no se partan.
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.5 &&
+        MediaQuery.sizeOf(context).width < 600) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BenefitRow(
+            icon: Icons.search,
+            title: 'Encuentra',
+            color: Color(0xFF139321),
+            description: 'Busca autopartes de forma rápida y sencilla.',
+          ),
+          SizedBox(height: 10),
+          _BenefitRow(
+            icon: Icons.sell_outlined,
+            title: 'Cotiza',
+            color: Color(0xFF0A4199),
+            description: 'Compara precios y condiciones de diferentes yonkes.',
+          ),
+          SizedBox(height: 10),
+          _BenefitRow(
+            icon: Icons.handshake_outlined,
+            title: 'Ahorra',
+            color: Color(0xFF139321),
+            description: 'Elige la mejor opción y ahorra en tus compras.',
+          ),
+        ],
+      );
+    }
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -303,6 +333,56 @@ class _Benefits extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withAlpha(22),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 24, color: color),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              description,
+              style: const TextStyle(color: Color(0xFF4F5968), fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _Benefit extends StatelessWidget {

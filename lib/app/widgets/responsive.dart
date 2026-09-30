@@ -470,3 +470,101 @@ class FlowPanel extends StatelessWidget {
     );
   }
 }
+
+/// Título con una etiqueta de estado a la derecha. Con letra grande la
+/// etiqueta pasa arriba del título para que este use todo el ancho y no se
+/// partan las palabras.
+class TitleWithBadge extends StatelessWidget {
+  const TitleWithBadge({super.key, required this.title, required this.badge});
+
+  final Widget title;
+  final Widget badge;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (Breakpoints.largeText(context) || constraints.maxWidth < 300) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [badge, const SizedBox(height: 8), title],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: title),
+          const SizedBox(width: 10),
+          badge,
+        ],
+      );
+    },
+  );
+}
+
+/// Fila de dato: etiqueta a la izquierda y valor a la derecha. Con letra
+/// grande la etiqueta va arriba del valor para que ninguno se corte.
+class LabelValueRow extends StatelessWidget {
+  const LabelValueRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.labelWidth = 108,
+    this.valueWeight = FontWeight.w600,
+    this.bottom = 9,
+    this.valueAlignEnd = false,
+  });
+
+  final String label;
+  final String value;
+  final double labelWidth;
+  final FontWeight valueWeight;
+  final double bottom;
+
+  /// Valor alineado a la derecha (resúmenes de orden).
+  final bool valueAlignEnd;
+
+  static const _labelStyle = TextStyle(color: Color(0xFF596276));
+
+  @override
+  Widget build(BuildContext context) {
+    final valueStyle = TextStyle(fontWeight: valueWeight);
+    if (Breakpoints.largeText(context)) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: bottom + 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: _labelStyle),
+            const SizedBox(height: 2),
+            Text(value, style: valueStyle),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: valueAlignEnd
+            ? [
+                Expanded(child: Text(label, style: _labelStyle)),
+                const SizedBox(width: 14),
+                Flexible(
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: valueStyle,
+                  ),
+                ),
+              ]
+            : [
+                SizedBox(
+                  width: labelWidth,
+                  child: Text(label, style: _labelStyle),
+                ),
+                Expanded(child: Text(value, style: valueStyle)),
+              ],
+      ),
+    );
+  }
+}
