@@ -139,6 +139,9 @@ Future<Map<String, Object?>> _capture(
   );
   tester.platformDispatcher.textScaleFactorTestValue = device.textScale;
 
+  // En las pruebas Flutter dibuja las sombras como un borde negro; se
+  // activan para que las capturas se vean como en el teléfono.
+  debugDisableShadows = false;
   auditPrepareGlobals();
   final api = AuditApiClient(screen.role);
   final boundaryKey = GlobalKey();
@@ -165,6 +168,7 @@ Future<Map<String, Object?>> _capture(
     await _settle(tester);
 
     finalRoute = appRouter.routerDelegate.currentConfiguration.uri.toString();
+    record['hasTextFields'] = find.byType(EditableText).evaluate().isNotEmpty;
     _inspect(tester, device, findings);
 
     final base = '${screen.id}__${device.id}';
@@ -215,6 +219,7 @@ Future<Map<String, Object?>> _capture(
       await tester.pump(const Duration(seconds: 1));
     } catch (_) {}
     FlutterError.onError = originalOnError;
+    debugDisableShadows = true;
     tester.view.reset();
     tester.platformDispatcher.clearTextScaleFactorTestValue();
   }
