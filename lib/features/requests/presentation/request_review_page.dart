@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/request_submission_repository.dart';
@@ -71,8 +72,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
       body: SafeArea(
         top: false,
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+          child: FlowPanel(
             child: Column(
               children: [
                 Expanded(

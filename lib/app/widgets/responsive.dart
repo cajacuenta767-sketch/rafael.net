@@ -426,3 +426,47 @@ class AdaptiveCardList extends StatelessWidget {
     },
   );
 }
+
+/// Contenedor de los pasos de un flujo (nueva solicitud, fotos, ciudad,
+/// revisión). En celular ocupa toda la pantalla como siempre; en tablets,
+/// laptops y TV queda como un panel centrado de alto limitado, para que el
+/// botón de continuar quede junto al contenido y no al fondo de la pantalla.
+class FlowPanel extends StatelessWidget {
+  const FlowPanel({super.key, required this.child, this.maxWidth = 560});
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final panel = size.width >= Breakpoints.medium && size.height >= 760;
+    if (!panel) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      );
+    }
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth + 32, maxHeight: 860),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFE3E7ED)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0F16233A),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
