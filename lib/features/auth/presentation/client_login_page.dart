@@ -108,8 +108,12 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             child: LayoutBuilder(
               builder: (context, box) {
                 final scale = MediaQuery.textScalerOf(context).scale(1);
+                // Horizontal compacto solo en pantallas bajas (celular
+                // acostado, TV); en laptop y tablet el login va centrado.
                 final landscape =
-                    box.maxWidth > box.maxHeight && box.maxWidth >= 650;
+                    box.maxWidth > box.maxHeight &&
+                    box.maxWidth >= 650 &&
+                    box.maxHeight < 600;
                 final dense =
                     box.maxHeight < 680 ||
                     box.maxWidth < 340 ||

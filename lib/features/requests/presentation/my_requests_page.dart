@@ -137,7 +137,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
+            constraints: const BoxConstraints(maxWidth: double.infinity),
             child: _buildBody(context),
           ),
         ),

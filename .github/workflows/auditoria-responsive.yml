@@ -63,6 +63,7 @@ jobs:
           echo "codigo_salida=$?" >> salida/analisis.txt
           flutter test --no-pub > salida/pruebas.txt 2>&1
           echo "codigo_salida=$?" >> salida/pruebas.txt
+          if [ -d test/failures ]; then mkdir -p salida/fallas && cp test/failures/*.png salida/fallas/ || true; fi
           tail -n 5 salida/analisis.txt salida/pruebas.txt
 
       - name: Correr la auditoría

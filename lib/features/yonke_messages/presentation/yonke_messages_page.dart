@@ -637,7 +637,7 @@ class _ClientHeader extends StatelessWidget {
               children: [
                 Text(
                   client?.name ?? 'Cliente',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: YonkeColors.primaryNavy,
@@ -656,7 +656,7 @@ class _ClientHeader extends StatelessWidget {
                 if (details.isNotEmpty)
                   Text(
                     details,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF596276),

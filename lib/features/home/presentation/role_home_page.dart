@@ -41,7 +41,7 @@ class _ClientHomePage extends StatelessWidget {
                       : Breakpoints.gutter(width) < 22
                       ? 22.0
                       : Breakpoints.gutter(width);
-                  final twoColumns = width - gutter * 2 >= 720;
+                  final twoColumns = width - gutter * 2 >= 860;
                   return SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(gutter, 10, gutter, 24),
                     child: Center(
