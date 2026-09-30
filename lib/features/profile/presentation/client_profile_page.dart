@@ -65,7 +65,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: 4, child: Scaffold(
     backgroundColor: _page,
     appBar: AppBar(
       backgroundColor: _page,
@@ -83,7 +83,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
     ),
     body: SafeArea(top: false, child: _buildBody()),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: 4),
-  );
+  ));
 
   Widget _buildBody() {
     if (_controller.loading) {

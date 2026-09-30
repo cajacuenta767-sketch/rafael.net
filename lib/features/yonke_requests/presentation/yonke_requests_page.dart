@@ -234,7 +234,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return YonkeNavigationFrame(selected: YonkeNavigationSection.requests, child: Scaffold(
       backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
         backgroundColor: YonkeColors.primaryNavy,
@@ -403,7 +403,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         onRefresh: () => _load(refresh: true),
         selected: YonkeNavigationSection.requests,
       ),
-    );
+    ));
   }
 
   Widget _buildHeaderTabs() => Row(

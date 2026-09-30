@@ -35,7 +35,7 @@ class _ClientNotificationsPageState
   void _reload() => setState(() => _items = _repository.getInbox());
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: -1, child: Scaffold(
     backgroundColor: const Color(0xFFF8F9FA),
     appBar: AppBar(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -126,7 +126,7 @@ class _ClientNotificationsPageState
       },
     ),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: -1),
-  );
+  ));
 
   Future<void> _open(ClientMessagePreview item) async {
     if (item.unreadCount > 0 && item.historyAvailable) {

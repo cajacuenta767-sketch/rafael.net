@@ -117,7 +117,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ClientNavigationFrame(currentIndex: 1, child: Scaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFCFCFC),
@@ -142,7 +142,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         ),
       ),
       bottomNavigationBar: const ClientBottomNavigation(currentIndex: 1),
-    );
+    ));
   }
 
   Widget _buildBody(BuildContext context) {

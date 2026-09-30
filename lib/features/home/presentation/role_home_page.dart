@@ -26,7 +26,7 @@ class _ClientHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final smallScreen = MediaQuery.sizeOf(context).width < 380;
-    return Scaffold(
+    return ClientNavigationFrame(currentIndex: 0, child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
         child: Column(
@@ -51,7 +51,7 @@ class _ClientHomePage extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

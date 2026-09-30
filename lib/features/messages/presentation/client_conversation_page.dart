@@ -69,7 +69,7 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: 3, child: Scaffold(
     backgroundColor: _page,
     appBar: AppBar(
       automaticallyImplyLeading: false,
@@ -114,7 +114,7 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
       ),
     ),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: 3),
-  );
+  ));
 
   List<Widget> _content() {
     if (_loading) {

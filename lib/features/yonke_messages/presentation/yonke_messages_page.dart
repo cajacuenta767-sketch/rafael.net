@@ -79,7 +79,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.messages, child: Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -140,7 +140,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
       selected: YonkeNavigationSection.messages,
       onRefresh: _load,
     ),
-  );
+  ));
 
   List<Widget> _content() {
     if (_loading) {

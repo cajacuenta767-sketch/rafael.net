@@ -57,7 +57,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.profile, child: Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -80,7 +80,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
       selected: YonkeNavigationSection.profile,
       onRefresh: _controller.load,
     ),
-  );
+  ));
 
   Widget _body() {
     if (_controller.loading) {

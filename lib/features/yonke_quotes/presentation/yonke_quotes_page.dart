@@ -224,7 +224,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.quotes, child: Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -354,7 +354,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       selected: YonkeNavigationSection.quotes,
       onRefresh: () => _load(refresh: true),
     ),
-  );
+  ));
 
   List<Widget> _buildContent() {
     if (_loading) {

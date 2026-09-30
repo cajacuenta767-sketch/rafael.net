@@ -123,7 +123,7 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: -1, child: Scaffold(
     backgroundColor: _page,
     appBar: AppBar(
       backgroundColor: _page,
@@ -224,7 +224,7 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
       ),
     ),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: -1),
-  );
+  ));
 
   List<Widget> _content() {
     if (_loading) {

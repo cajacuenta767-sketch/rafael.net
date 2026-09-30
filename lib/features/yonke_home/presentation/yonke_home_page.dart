@@ -81,7 +81,7 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.home, child: Scaffold(
     backgroundColor: YonkeColors.background,
     body: SafeArea(
       bottom: false,
@@ -152,7 +152,7 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
       selected: YonkeNavigationSection.home,
       onRefresh: _refresh,
     ),
-  );
+  ));
 }
 
 class YonkeHomeData {

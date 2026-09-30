@@ -55,6 +55,16 @@ jobs:
           flutter precache --universal || true
           ls "$root/bin/cache/artifacts/material_fonts" || true
 
+      - name: Análisis y pruebas del proyecto
+        run: |
+          mkdir -p salida
+          set +e
+          flutter analyze --no-fatal-infos > salida/analisis.txt 2>&1
+          echo "codigo_salida=$?" >> salida/analisis.txt
+          flutter test --no-pub > salida/pruebas.txt 2>&1
+          echo "codigo_salida=$?" >> salida/pruebas.txt
+          tail -n 5 salida/analisis.txt salida/pruebas.txt
+
       - name: Correr la auditoría
         env:
           AUDIT_OUT: ${{ github.workspace }}/salida

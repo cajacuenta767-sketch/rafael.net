@@ -55,7 +55,7 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: -1, child: Scaffold(
     backgroundColor: const Color(0xFFF8F9FA),
     appBar: AppBar(
       centerTitle: true,
@@ -73,7 +73,7 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
     ),
     body: RefreshIndicator(onRefresh: _load, child: _body()),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: -1),
-  );
+  ));
 
   Widget _body() {
     if (_loading) {
