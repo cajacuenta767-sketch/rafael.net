@@ -15,6 +15,7 @@ class AuditDevice {
     required this.height,
     required this.pixelRatio,
     this.textScale = 1.0,
+    this.keyboardHeight = 0,
     this.note,
   });
 
@@ -25,6 +26,9 @@ class AuditDevice {
   final double height;
   final double pixelRatio;
   final double textScale;
+
+  /// Alto del teclado en pantalla (dp). 0 = cerrado.
+  final double keyboardHeight;
   final String? note;
 }
 
@@ -105,6 +109,16 @@ const auditDevices = <AuditDevice>[
     pixelRatio: 3,
     textScale: 2,
     note: 'Máximo de Android 14 y de iOS sin tamaños extra.',
+  ),
+  AuditDevice(
+    id: 'cel-teclado',
+    name: 'iPhone SE con el teclado abierto',
+    category: DeviceCategory.celular,
+    width: 375,
+    height: 667,
+    pixelRatio: 2,
+    keyboardHeight: 260,
+    note: 'Formularios mientras se escribe: el teclado ocupa 260 dp.',
   ),
   AuditDevice(
     id: 'cel-horizontal',

@@ -18,6 +18,7 @@
 // - llamadas al API sin respuesta simulada.
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -76,6 +77,7 @@ void main() {
             'height': d.height,
             'pixelRatio': d.pixelRatio,
             'textScale': d.textScale,
+            'keyboardHeight': d.keyboardHeight,
             'note': d.note,
           },
       ]),
@@ -124,6 +126,9 @@ Future<Map<String, Object?>> _capture(
   tester.view.devicePixelRatio = device.pixelRatio;
   tester.view.padding = FakeViewPadding.zero;
   tester.view.viewPadding = FakeViewPadding.zero;
+  tester.view.viewInsets = FakeViewPadding(
+    bottom: device.keyboardHeight * device.pixelRatio,
+  );
   tester.platformDispatcher.textScaleFactorTestValue = device.textScale;
 
   auditPrepareGlobals();
@@ -252,7 +257,16 @@ class _Findings {
     } catch (_) {
       info = '';
     }
-    final location = _location.firstMatch(info)?.group(0);
+    String? location = _location.firstMatch(info)?.group(0);
+    try {
+      for (final node in details.informationCollector?.call() ??
+          const <DiagnosticsNode>[]) {
+        final value = node.value;
+        if (value is DebugCreator) {
+          location ??= _appLocation(value.element);
+        }
+      }
+    } catch (_) {}
     final overflow = _overflowPattern.firstMatch(message);
     if (overflow != null) {
       final key = '${location ?? message}|${overflow.group(2)}';
@@ -269,7 +283,11 @@ class _Findings {
       }
       return;
     }
-    final text = location == null ? message : '$message ($location)';
+    final stack = details.stack == null
+        ? ''
+        : '\n${details.stack.toString().split('\n').where((l) => l.contains('package:app_yonke') || l.contains('lib/')).take(4).join('\n')}';
+    final text =
+        '${location == null ? message : '$message ($location)'}$stack';
     final isLayout =
         message.contains('RenderBox was not laid out') ||
         message.contains('constraints') ||
@@ -403,16 +421,35 @@ bool _insideHorizontalScroll(Element element) {
   return inside;
 }
 
-String? _creationLocation(Element element) {
-  try {
-    final nodes = debugTransformDebugCreator([
-      DiagnosticsDebugCreator(DebugCreator(element)),
-    ]);
-    final text = nodes.map((n) => n.toStringDeep()).join('\n');
-    return _Findings._location.firstMatch(text)?.group(0);
-  } catch (_) {
-    return null;
+String? _creationLocation(Element element) => _appLocation(element);
+
+/// Archivo y línea del código de la app que creó el widget (o su ancestro
+/// más cercano creado en lib/).
+String? _appLocation(Element element) {
+  String? found;
+  Element? current = element;
+  var depth = 0;
+  while (current != null && depth < 40 && found == null) {
+    try {
+      final location = developer.CreationLocation.of(current.widget);
+      final file = location?.file ?? '';
+      final index = file.lastIndexOf('/lib/');
+      if (index >= 0 &&
+          !file.contains('/packages/flutter') &&
+          !file.contains('.pub-cache') &&
+          !file.contains('/test/')) {
+        found = '${file.substring(index + 1)}:${location!.line}';
+      }
+    } catch (_) {}
+    Element? parent;
+    current.visitAncestorElements((a) {
+      parent = a;
+      return false;
+    });
+    current = parent;
+    depth++;
   }
+  return found;
 }
 
 String? _firstText(Element element) {

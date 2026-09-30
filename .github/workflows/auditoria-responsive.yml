@@ -1,6 +1,6 @@
 name: Auditoría responsive
 
-# Abre cada pantalla de la app en 23 tamaños de pantalla (celulares,
+# Abre cada pantalla de la app en 24 tamaños de pantalla (celulares,
 # plegables, tablets, laptops, monitores y televisores), guarda capturas y un
 # reporte de desbordamientos. Los resultados se publican en la rama
 # `auditoria-resultados` para no mezclar imágenes con el código.
