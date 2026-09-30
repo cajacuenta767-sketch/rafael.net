@@ -90,9 +90,12 @@ void main() {
     );
   });
 
-  for (final screen in auditScreens()) {
-    if (onlyScreens != null && !onlyScreens.contains(screen.id)) continue;
-    testWidgets('${screen.id}: ${screen.title}', (tester) async {
+  // Una sola prueba para todas las pantallas: la app guarda en caché
+  // (estática) futuros de llamadas al API, y un futuro creado en la zona de
+  // otra prueba nunca se completa en la siguiente.
+  testWidgets('capturas de todas las pantallas', (tester) async {
+    for (final screen in auditScreens()) {
+      if (onlyScreens != null && !onlyScreens.contains(screen.id)) continue;
       for (final device in auditDevices) {
         if (onlyDevices != null && !onlyDevices.contains(device.id)) {
           continue;
@@ -104,8 +107,8 @@ void main() {
           flush: true,
         );
       }
-    }, timeout: const Timeout(Duration(minutes: 20)));
-  }
+    }
+  }, timeout: const Timeout(Duration(minutes: 60)));
 }
 
 Future<Map<String, Object?>> _capture(
@@ -169,6 +172,8 @@ Future<Map<String, Object?>> _capture(
 
     finalRoute = appRouter.routerDelegate.currentConfiguration.uri.toString();
     record['hasTextFields'] = find.byType(EditableText).evaluate().isNotEmpty;
+    record['stillLoading'] =
+        find.byType(CircularProgressIndicator).evaluate().isNotEmpty;
     _inspect(tester, device, findings);
 
     final base = '${screen.id}__${device.id}';
