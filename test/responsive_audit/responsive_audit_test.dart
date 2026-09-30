@@ -115,9 +115,17 @@ Future<Map<String, Object?>> _capture(
   Directory images,
 ) async {
   final started = DateTime.now();
-  final errors = <FlutterErrorDetails>[];
+  // Los errores se procesan al momento, mientras el widget que los causó
+  // sigue montado, para poder ubicar su archivo y línea.
+  final findings = _Findings();
   final originalOnError = FlutterError.onError;
-  FlutterError.onError = errors.add;
+  FlutterError.onError = (details) {
+    try {
+      findings.addError(details);
+    } catch (error) {
+      findings.runtimeErrors.add('No se pudo leer un error: $error');
+    }
+  };
 
   tester.view.physicalSize = Size(
     device.width * device.pixelRatio,
@@ -142,7 +150,6 @@ Future<Map<String, Object?>> _capture(
     'device': device.id,
   };
 
-  final findings = _Findings();
   String? topImage;
   String? bottomImage;
   var scrollable = 0.0;
@@ -210,10 +217,6 @@ Future<Map<String, Object?>> _capture(
     FlutterError.onError = originalOnError;
     tester.view.reset();
     tester.platformDispatcher.clearTextScaleFactorTestValue();
-  }
-
-  for (final details in errors) {
-    findings.addError(details);
   }
 
   record.addAll({
