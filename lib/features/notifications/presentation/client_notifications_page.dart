@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../../messages/data/client_messages_repository.dart';
@@ -74,7 +75,12 @@ class _ClientNotificationsPageState
           color: const Color(0xFF41B928),
           onRefresh: () async => _reload(),
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: centeredListPadding(
+              context,
+              top: 12,
+              bottom: 24,
+              minSide: 20,
+            ),
             itemCount: items.length + 1,
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (_, index) {

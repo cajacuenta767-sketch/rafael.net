@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
@@ -170,10 +171,11 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
     return RefreshIndicator(
       onRefresh: _loadRequests,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+      child: AdaptiveCardList(
+        minSide: 24,
+        top: 18,
+        bottom: 24,
         itemCount: _requests.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) => _RequestSummaryCard(
           request: _requests[index],
           onCancel: () => _cancelRequest(_requests[index]),
@@ -275,9 +277,13 @@ class _RequestSummaryCard extends StatelessWidget {
                           ),
                           Icon(Icons.circle, size: 8, color: statusColor),
                           const SizedBox(width: 5),
-                          Text(
-                            request.status,
-                            style: TextStyle(color: statusColor),
+                          Flexible(
+                            child: Text(
+                              request.status,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: statusColor),
+                            ),
                           ),
                           if (onCancel != null && request.isInProgress) ...[
                             const SizedBox(width: 8),

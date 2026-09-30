@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/storage/token_store.dart';
 import '../../auth/presentation/legal_document_page.dart';
@@ -95,7 +96,13 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
 
     final profile = _controller.snapshot!.profile;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+      padding: centeredListPadding(
+        context,
+        maxWidth: ContentWidth.form,
+        top: 8,
+        bottom: 28,
+        minSide: 18,
+      ),
       children: [
         _AccountCard(profile: profile, onTap: () => _openDetails(profile)),
         const SizedBox(height: 10),
@@ -400,7 +407,13 @@ class _ClientAddressesPageState extends State<ClientAddressesPage> {
     body: _addresses == null
         ? const Center(child: CircularProgressIndicator(color: _green))
         : ListView(
-            padding: const EdgeInsets.all(20),
+            padding: centeredListPadding(
+              context,
+              maxWidth: ContentWidth.form,
+              top: 20,
+              bottom: 20,
+              minSide: 20,
+            ),
             children: [
               const _LocalNotice(),
               const SizedBox(height: 16),
@@ -613,7 +626,12 @@ class ClientHelpPage extends StatelessWidget {
     backgroundColor: _page,
     appBar: AppBar(title: const Text('Ayuda y soporte'), centerTitle: true),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: centeredListPadding(
+        context,
+        top: 20,
+        bottom: 20,
+        minSide: 20,
+      ),
       children: [
         const _HelpCard(
           title: '¿Cómo solicito una autoparte?',

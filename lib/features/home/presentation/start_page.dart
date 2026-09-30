@@ -40,7 +40,10 @@ class StartPage extends StatelessWidget {
 
                 // Con escalas habituales la pantalla es fija. El desplazamiento
                 // solo se activa como protección para accesibilidad excepcional.
-                if (textScale <= 1.3) return content;
+                // También en alturas bajas (pantalla dividida, ventanas chicas).
+                if (textScale <= 1.3 && constraints.maxHeight >= 520) {
+                  return content;
+                }
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.zero,

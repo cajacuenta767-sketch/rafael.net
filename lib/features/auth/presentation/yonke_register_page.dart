@@ -813,12 +813,14 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
             children: [
               Icon(icon, color: YonkeColors.primaryNavy, size: 20),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: YonkeColors.primaryNavy,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: YonkeColors.primaryNavy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ],

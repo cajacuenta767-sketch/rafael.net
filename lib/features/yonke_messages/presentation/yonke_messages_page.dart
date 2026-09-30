@@ -11,6 +11,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/realtime/realtime_service.dart';
 import '../../yonke_quotes/domain/yonke_quote.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_messages_repository.dart';
 import '../domain/quote_client.dart';
@@ -512,7 +513,6 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     appBar: AppBar(
       backgroundColor: const Color(0xFFFAFBFD),
       surfaceTintColor: const Color(0xFFFAFBFD),
-      titleSpacing: 0,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -535,17 +535,25 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       top: false,
       child: Column(
         children: [
-          _ClientHeader(
-            client: _client,
-            quote: widget.args.quote,
-            onCall: () => _contact(whatsapp: false),
-            onWhatsApp: () => _contact(whatsapp: true),
+          AppContent(
+            maxWidth: ContentWidth.chat,
+            padding: false,
+            child: _ClientHeader(
+              client: _client,
+              quote: widget.args.quote,
+              onCall: () => _contact(whatsapp: false),
+              onWhatsApp: () => _contact(whatsapp: true),
+            ),
           ),
           Expanded(child: _messagesBody()),
-          _Composer(
-            controller: _messageController,
-            sending: _sending,
-            onSend: _send,
+          AppContent(
+            maxWidth: ContentWidth.chat,
+            padding: false,
+            child: _Composer(
+              controller: _messageController,
+              sending: _sending,
+              onSend: _send,
+            ),
           ),
         ],
       ),
@@ -575,7 +583,12 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      padding: centeredListPadding(
+        context,
+        maxWidth: ContentWidth.chat,
+        top: 16,
+        bottom: 20,
+      ),
       itemCount: _messages.length,
       itemBuilder: (context, index) =>
           _MessageBubble(message: _messages[index]),
@@ -767,7 +780,9 @@ class _MessageBubble extends StatelessWidget {
         ? Alignment.centerLeft
         : Alignment.centerRight,
     child: Container(
-      constraints: const BoxConstraints(maxWidth: 330),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width < 600 ? 330 : 480,
+      ),
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
       decoration: BoxDecoration(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../data/client_yonkes_repository.dart';
@@ -142,7 +143,13 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+            padding: centeredListPadding(
+              context,
+              maxWidth: _directoryWidth(context),
+              top: 8,
+              bottom: 14,
+              minSide: 18,
+            ),
             sliver: SliverToBoxAdapter(
               child: Row(
                 children: [
@@ -205,7 +212,13 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
           ),
           if (_city != null)
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+              padding: centeredListPadding(
+                context,
+                maxWidth: _directoryWidth(context),
+                top: 0,
+                bottom: 10,
+                minSide: 18,
+              ),
               sliver: SliverToBoxAdapter(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -225,6 +238,19 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
     ),
     bottomNavigationBar: const ClientBottomNavigation(currentIndex: -1),
   ));
+
+  /// Columnas del directorio según el ancho que le queda a la página.
+  int _directoryColumns(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final usable = width - Breakpoints.gutter(width) * 2;
+    return gridColumns(
+      usable > ContentWidth.wide ? ContentWidth.wide : usable,
+      minTileWidth: 380,
+    );
+  }
+
+  double _directoryWidth(BuildContext context) =>
+      _directoryColumns(context) == 1 ? ContentWidth.reading : ContentWidth.wide;
 
   List<Widget> _content() {
     if (_loading) {
@@ -264,20 +290,78 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
         ),
       ];
     }
-    return [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-        sliver: SliverList.separated(
-          itemCount: _items.length,
-          itemBuilder: (context, index) => _YonkeRow(
-            yonke: _items[index],
-            onOpen: () => context.push(
-              AppRoutes.clientYonkeProfile(_items[index].id),
-              extra: _items[index],
+    final columns = _directoryColumns(context);
+    Widget row(int index) => _YonkeRow(
+      yonke: _items[index],
+      onOpen: () => context.push(
+        AppRoutes.clientYonkeProfile(_items[index].id),
+        extra: _items[index],
+      ),
+    );
+    final padding = centeredListPadding(
+      context,
+      maxWidth: _directoryWidth(context),
+      top: 0,
+      bottom: 18,
+      minSide: 18,
+    );
+    if (columns == 1) {
+      return [
+        SliverPadding(
+          padding: padding,
+          sliver: SliverList.separated(
+            itemCount: _items.length,
+            itemBuilder: (context, index) => row(index),
+            separatorBuilder: (_, _) =>
+                const Divider(height: 19, color: Color(0xFFE9ECEF)),
+          ),
+        ),
+        if (_loadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: Center(child: CircularProgressIndicator(color: _green)),
             ),
           ),
-          separatorBuilder: (_, _) =>
-              const Divider(height: 19, color: Color(0xFFE9ECEF)),
+      ];
+    }
+    // En pantallas anchas cada yonke es una tarjeta, en 2 o 3 columnas.
+    final rows = (_items.length / columns).ceil();
+    return [
+      SliverPadding(
+        padding: padding,
+        sliver: SliverList.builder(
+          itemCount: rows,
+          itemBuilder: (context, r) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = r * columns; i < r * columns + columns; i++) ...[
+                    if (i > r * columns) const SizedBox(width: 14),
+                    Expanded(
+                      child: i < _items.length
+                          ? DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFE9ECEF),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Center(child: row(i)),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       if (_loadingMore)
@@ -345,6 +429,7 @@ class _ClientYonkeProfilePageState
         ),
         actions: [
           IconButton(
+            tooltip: 'Actualizar',
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -353,7 +438,12 @@ class _ClientYonkeProfilePageState
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _green))
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+              padding: centeredListPadding(
+                context,
+                top: 12,
+                bottom: 30,
+                minSide: 20,
+              ),
               children: [
                 Center(child: _YonkeLogo(yonke: yonke, radius: 45)),
                 const SizedBox(height: 12),
@@ -462,7 +552,7 @@ class _YonkeRow extends StatelessWidget {
           children: [
             Text(
               yonke.name,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: _navy,

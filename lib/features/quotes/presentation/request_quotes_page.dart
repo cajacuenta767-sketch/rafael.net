@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/client_quote.dart';
@@ -116,7 +117,7 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
+            constraints: const BoxConstraints(maxWidth: double.infinity),
             child: _buildBody(context),
           ),
         ),
@@ -155,20 +156,21 @@ class _RequestQuotesPageState extends ConsumerState<RequestQuotesPage> {
 
     return RefreshIndicator(
       onRefresh: _loadQuotes,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-        itemCount: quotes.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
+      child: AdaptiveCardList(
+        minSide: 24,
+        top: 18,
+        header: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _QuotesHeader(
+            requestTitle: widget.requestTitle,
+            count: quotes.length,
+            sort: _sort,
+            onSortChanged: (value) => setState(() => _sort = value),
+          ),
+        ),
+        itemCount: quotes.length,
         itemBuilder: (context, index) {
-          if (index == 0) {
-            return _QuotesHeader(
-              requestTitle: widget.requestTitle,
-              count: quotes.length,
-              sort: _sort,
-              onSortChanged: (value) => setState(() => _sort = value),
-            );
-          }
-          final quote = quotes[index - 1];
+          final quote = quotes[index];
           return _QuoteCard(
             quote: quote,
             bestPrice:

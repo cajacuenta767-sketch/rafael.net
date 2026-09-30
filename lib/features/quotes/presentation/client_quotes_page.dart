@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../domain/client_quote.dart';
@@ -101,11 +102,9 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
         action: _load,
       );
     }
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+    return AdaptiveCardList(
+      minSide: 20,
       itemCount: _quotes.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final quote = _quotes[index];
         return Card(
@@ -232,7 +231,13 @@ class _State extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     physics: const AlwaysScrollableScrollPhysics(),
-    padding: const EdgeInsets.all(32),
+    padding: centeredListPadding(
+      context,
+      maxWidth: 520,
+      top: 32,
+      bottom: 32,
+      minSide: 32,
+    ),
     children: [
       const SizedBox(height: 110),
       Icon(icon, size: 58, color: const Color(0xFF269627)),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/realtime/realtime_service.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
@@ -93,7 +94,12 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        padding: centeredListPadding(
+          context,
+          top: 12,
+          bottom: 28,
+          minSide: 20,
+        ),
         children: [
           const Text(
             'Conversaciones',
@@ -459,7 +465,12 @@ class _ClientConversationPageState
                 controller: _scrollController,
                 slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    padding: centeredListPadding(
+                      context,
+                      maxWidth: ContentWidth.chat,
+                      top: 12,
+                      bottom: 8,
+                    ),
                     sliver: SliverList.list(
                       children: [
                         _YonkeHeader(quote: quote),
@@ -473,11 +484,15 @@ class _ClientConversationPageState
                 ],
               ),
             ),
-            _MessageComposer(
-              controller: _messageController,
-              sending: _sending,
-              onAttach: _explainAttachments,
-              onSend: _send,
+            AppContent(
+              maxWidth: ContentWidth.chat,
+              padding: false,
+              child: _MessageComposer(
+                controller: _messageController,
+                sending: _sending,
+                onAttach: _explainAttachments,
+                onSend: _send,
+              ),
             ),
           ],
         ),
@@ -526,7 +541,12 @@ class _ClientConversationPageState
     }
     return [
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        padding: centeredListPadding(
+          context,
+          maxWidth: ContentWidth.chat,
+          top: 0,
+          bottom: 18,
+        ),
         sliver: SliverList.separated(
           itemCount: _messages.length,
           itemBuilder: (context, index) => _MessageBubble(
@@ -799,7 +819,9 @@ class _MessageBubble extends StatelessWidget {
             ? Alignment.centerRight
             : Alignment.centerLeft,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 310),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width < 600 ? 310 : 480,
+          ),
           padding: const EdgeInsets.fromLTRB(13, 10, 11, 7),
           decoration: BoxDecoration(
             color: message.fromClient ? const Color(0xFF67C83C) : Colors.white,

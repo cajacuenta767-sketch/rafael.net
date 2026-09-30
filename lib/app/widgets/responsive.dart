@@ -310,3 +310,104 @@ class SideNavigationItem extends StatelessWidget {
     );
   }
 }
+
+/// Lista de tarjetas que en celular es una columna y en pantallas anchas se
+/// reparte en 2 o 3 columnas de igual alto. Construye las filas a medida que
+/// se desplaza, como un `ListView.builder`.
+class AdaptiveCardList extends StatelessWidget {
+  const AdaptiveCardList({
+    super.key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.header,
+    this.footer,
+    this.minTileWidth = 360,
+    this.maxColumns = 3,
+    this.maxWidth = ContentWidth.wide,
+    this.singleColumnMaxWidth = ContentWidth.reading,
+    this.spacing = 12,
+    this.top = 16,
+    this.bottom = 28,
+    this.minSide = 16,
+    this.physics = const AlwaysScrollableScrollPhysics(),
+    this.controller,
+  });
+
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+
+  /// Contenido fijo arriba de la lista (títulos, filtros), del mismo ancho.
+  final Widget? header;
+  final Widget? footer;
+  final double minTileWidth;
+  final int maxColumns;
+  final double maxWidth;
+  final double singleColumnMaxWidth;
+  final double spacing;
+  final double top;
+  final double bottom;
+  final double minSide;
+  final ScrollPhysics? physics;
+  final ScrollController? controller;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final full = constraints.maxWidth;
+      final gutter = Breakpoints.gutter(full) > minSide
+          ? Breakpoints.gutter(full)
+          : minSide;
+      final usable = (full - gutter * 2).clamp(0.0, maxWidth);
+      final columns = gridColumns(
+        usable,
+        minTileWidth: minTileWidth,
+        max: maxColumns,
+      );
+      final contentWidth = columns == 1
+          ? usable.clamp(0.0, singleColumnMaxWidth)
+          : usable;
+      final side = (full - contentWidth) / 2;
+      final rowCount = (itemCount / columns).ceil();
+      final extra = (header == null ? 0 : 1) + (footer == null ? 0 : 1);
+      return ListView.builder(
+        controller: controller,
+        physics: physics,
+        padding: EdgeInsets.fromLTRB(side, top, side, bottom),
+        itemCount: rowCount + extra,
+        itemBuilder: (context, index) {
+          if (header != null) {
+            if (index == 0) return header!;
+            index -= 1;
+          }
+          if (index >= rowCount) return footer ?? const SizedBox.shrink();
+          final start = index * columns;
+          final gap = index == rowCount - 1 ? 0.0 : spacing;
+          if (columns == 1) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: gap),
+              child: itemBuilder(context, start),
+            );
+          }
+          return Padding(
+            padding: EdgeInsets.only(bottom: gap),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = start; i < start + columns; i++) ...[
+                    if (i > start) SizedBox(width: spacing),
+                    Expanded(
+                      child: i < itemCount
+                          ? itemBuilder(context, i)
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}

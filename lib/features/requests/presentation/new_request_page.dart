@@ -468,12 +468,14 @@ class _PartStepState extends State<_PartStep> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Categorías populares',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              const Expanded(
+                child: Text(
+                  'Categorías populares',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               GestureDetector(
