@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
@@ -117,7 +118,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ClientNavigationFrame(currentIndex: 1, child: Scaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFCFCFC),
@@ -136,13 +137,13 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
+            constraints: const BoxConstraints(maxWidth: double.infinity),
             child: _buildBody(context),
           ),
         ),
       ),
       bottomNavigationBar: const ClientBottomNavigation(currentIndex: 1),
-    );
+    ));
   }
 
   Widget _buildBody(BuildContext context) {
@@ -170,10 +171,11 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
     return RefreshIndicator(
       onRefresh: _loadRequests,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+      child: AdaptiveCardList(
+        minSide: 24,
+        top: 18,
+        bottom: 24,
         itemCount: _requests.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) => _RequestSummaryCard(
           request: _requests[index],
           onCancel: () => _cancelRequest(_requests[index]),
@@ -257,27 +259,51 @@ class _RequestSummaryCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 10),
+                      // Cantidad y estado bajan a otra línea si no caben,
+                      // en vez de partir las palabras.
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.local_offer_outlined,
-                            size: 18,
-                            color: statusColor,
-                          ),
-                          const SizedBox(width: 5),
                           Expanded(
-                            child: Text(
-                              '${request.quoteCount} cotizaciones',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.local_offer_outlined,
+                                      size: 18,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      '${request.quoteCount} cotizaciones',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.circle,
+                                      size: 8,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      request.status,
+                                      style: TextStyle(color: statusColor),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                          Icon(Icons.circle, size: 8, color: statusColor),
-                          const SizedBox(width: 5),
-                          Text(
-                            request.status,
-                            style: TextStyle(color: statusColor),
                           ),
                           if (onCancel != null && request.isInProgress) ...[
                             const SizedBox(width: 8),
@@ -286,8 +312,8 @@ class _RequestSummaryCard extends StatelessWidget {
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
                               icon: const Icon(
                                 Icons.delete_outline,

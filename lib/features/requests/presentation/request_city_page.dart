@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/request_draft.dart';
 import '../../catalogs/domain/location_options.dart';
@@ -125,8 +126,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
           child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
+            child: FlowPanel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -226,8 +226,10 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
             onTap: () => setState(() => _selectedCityId = city.id),
             borderRadius: BorderRadius.circular(12),
             child: Ink(
-              height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
               decoration: BoxDecoration(
                 border: Border.all(
                   color: isSelected
@@ -237,7 +239,9 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
                 children: [
                   Expanded(
                     child: Text(
@@ -250,6 +254,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
                   ),
                   _SelectionCircle(selected: isSelected),
                 ],
+              ),
               ),
             ),
           ),

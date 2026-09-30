@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_quotes_repository.dart';
 import '../domain/yonke_quote.dart';
@@ -224,7 +225,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.quotes, child: Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -254,7 +255,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       top: false,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: ContentWidth.wide),
           child: RefreshIndicator(
             onRefresh: () => _load(refresh: true),
             child: ListView(
@@ -278,7 +279,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
                   style: TextStyle(color: Color(0xFF596276)),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                Align(alignment: Alignment.centerLeft, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: TextField(
                   key: const Key('yonke-quotes-search'),
                   controller: _searchController,
                   textInputAction: TextInputAction.search,
@@ -314,7 +315,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
                       ),
                     ),
                   ),
-                ),
+                ))),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -354,7 +355,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       selected: YonkeNavigationSection.quotes,
       onRefresh: () => _load(refresh: true),
     ),
-  );
+  ));
 
   List<Widget> _buildContent() {
     if (_loading) {
@@ -427,18 +428,22 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
           title: 'No hay cotizaciones en esta sección',
           message: 'Las cotizaciones aparecerán aquí cuando cambien de estado.',
         ),
-      ...visible.map(
-        (quote) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _QuoteCard(
-            quote: quote,
-            onTap: () => context.push(
-              AppRoutes.yonkeQuoteDetail(quote.id),
-              extra: quote,
-            ),
-          ),
-        ),
+      // En pantallas anchas las cotizaciones van en 2 o 3 columnas.
+      ResponsiveWrapGrid(
+        minTileWidth: 360,
+        children: visible
+            .map(
+              (quote) => _QuoteCard(
+                quote: quote,
+                onTap: () => context.push(
+                  AppRoutes.yonkeQuoteDetail(quote.id),
+                  extra: quote,
+                ),
+              ),
+            )
+            .toList(),
       ),
+      const SizedBox(height: 12),
       if (_hasMore)
         OutlinedButton(
           onPressed: _loadingMore ? null : () => _load(refresh: false),

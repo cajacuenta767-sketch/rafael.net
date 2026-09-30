@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/client_profile_repository.dart';
 import '../domain/client_profile.dart';
@@ -219,7 +220,13 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
           : Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                padding: centeredListPadding(
+                  context,
+                  maxWidth: ContentWidth.form,
+                  top: 8,
+                  bottom: 28,
+                  minSide: 20,
+                ),
                 children: [
                   if (!widget.editing) ...[
                     const Text(

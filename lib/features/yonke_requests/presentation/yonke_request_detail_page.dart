@@ -6,6 +6,7 @@ import '../../../core/network/api_exception.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_request_detail_repository.dart';
 import '../domain/yonke_request_detail.dart';
@@ -215,11 +216,8 @@ class _YonkeRequestDetailPageState
           28,
         ),
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+          TitleWithBadge(
+            title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -236,10 +234,7 @@ class _YonkeRequestDetailPageState
                     ],
                   ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              _StatusChip(status: detail.status),
-            ],
+            badge: _StatusChip(status: detail.status),
           ),
           const SizedBox(height: 16),
           _SectionCard(
@@ -494,24 +489,8 @@ class _InfoRow extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 9),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 106,
-          child: Text(label, style: const TextStyle(color: Color(0xFF596276))),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      LabelValueRow(label: label, value: value, labelWidth: 106);
 }
 
 class _StatusChip extends StatelessWidget {

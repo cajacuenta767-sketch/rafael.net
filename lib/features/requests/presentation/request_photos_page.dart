@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../domain/request_draft.dart';
 
 class RequestPhotosPage extends StatefulWidget {
@@ -107,8 +108,7 @@ class _RequestPhotosPageState extends State<RequestPhotosPage> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
           child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
+            child: FlowPanel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

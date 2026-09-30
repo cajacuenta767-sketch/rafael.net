@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../domain/request_draft.dart';
 
@@ -240,8 +241,7 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
     body: SafeArea(
       top: false,
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
+        child: FlowPanel(
           child: Column(
             children: [
               _RequestProgress(currentStep: _step),
@@ -468,12 +468,14 @@ class _PartStepState extends State<_PartStep> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Categorías populares',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              const Expanded(
+                child: Text(
+                  'Categorías populares',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               GestureDetector(

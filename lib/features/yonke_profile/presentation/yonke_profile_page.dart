@@ -12,6 +12,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../../core/storage/token_store.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_profile_repository.dart';
 import '../domain/yonke_profile.dart';
@@ -57,7 +58,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.profile, child: Scaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -80,7 +81,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
       selected: YonkeNavigationSection.profile,
       onRefresh: _controller.load,
     ),
-  );
+  ));
 
   Widget _body() {
     if (_controller.loading) {
@@ -654,23 +655,11 @@ class _DataRow extends StatelessWidget {
   final String? value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 104,
-          child: Text(label, style: const TextStyle(color: Color(0xFF596276))),
-        ),
-        Expanded(
-          child: Text(
-            value == null || value!.isEmpty ? 'Sin información' : value!,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => LabelValueRow(
+    label: label,
+    value: value == null || value!.isEmpty ? 'Sin información' : value!,
+    labelWidth: 104,
+    bottom: 8,
   );
 }
 

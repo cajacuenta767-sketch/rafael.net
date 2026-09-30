@@ -3,8 +3,155 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/responsive.dart';
 
 enum YonkeNavigationSection { home, requests, quotes, messages, profile }
+
+/// Muestra [child] con la barra lateral del yonke en pantallas anchas
+/// (tablet horizontal, laptop, monitor, TV). En celulares y tablets en
+/// vertical devuelve [child] tal cual y la página usa la barra inferior.
+class YonkeNavigationFrame extends StatelessWidget {
+  const YonkeNavigationFrame({
+    super.key,
+    required this.selected,
+    required this.child,
+  });
+
+  final YonkeNavigationSection selected;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Breakpoints.useSideNavigation(context)) return child;
+    final extended = MediaQuery.sizeOf(context).width >= Breakpoints.large;
+    return SideNavigationLayout(
+      railWidth: extended ? 232 : 104,
+      rail: _YonkeSideNavigation(selected: selected, extended: extended),
+      child: child,
+    );
+  }
+}
+
+class _YonkeSideNavigation extends StatelessWidget {
+  const _YonkeSideNavigation({required this.selected, required this.extended});
+
+  final YonkeNavigationSection selected;
+  final bool extended;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget item(
+      YonkeNavigationSection section,
+      IconData icon,
+      String label,
+      String route,
+    ) => SideNavigationItem(
+      icon: icon,
+      label: label,
+      selected: selected == section,
+      extended: extended,
+      selectedColor: const Color(0xFF65D34E),
+      color: const Color(0xFFD5DCE8),
+      onTap: selected == section ? null : () => context.go(route),
+    );
+    return Material(
+      color: YonkeColors.primaryNavy,
+      child: SafeArea(
+        right: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 18),
+                child: Semantics(
+                  button: true,
+                  label: 'Cotizar una solicitud',
+                  excludeSemantics: true,
+                  child: Material(
+                    color: Colors.white,
+                    shape: extended
+                        ? RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          )
+                        : const CircleBorder(),
+                    child: InkWell(
+                      customBorder: extended
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            )
+                          : const CircleBorder(),
+                      onTap: () => context.go(AppRoutes.yonkeRequests),
+                      child: SizedBox(
+                        height: 56,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.add,
+                              color: YonkeColors.primaryNavy,
+                              size: 30,
+                            ),
+                            if (extended) ...[
+                              const SizedBox(width: 8),
+                              const Flexible(
+                                child: Text(
+                                  'Cotizar',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: YonkeColors.primaryNavy,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              item(
+                YonkeNavigationSection.home,
+                Icons.home_outlined,
+                'Inicio',
+                AppRoutes.yonkeHome,
+              ),
+              item(
+                YonkeNavigationSection.requests,
+                Icons.inbox_outlined,
+                'Solicitudes',
+                AppRoutes.yonkeRequests,
+              ),
+              item(
+                YonkeNavigationSection.quotes,
+                Icons.request_quote_outlined,
+                'Cotizaciones',
+                AppRoutes.yonkeQuotes,
+              ),
+              item(
+                YonkeNavigationSection.messages,
+                Icons.chat_bubble_outline,
+                'Mensajes',
+                AppRoutes.yonkeMessages,
+              ),
+              item(
+                YonkeNavigationSection.profile,
+                Icons.storefront_outlined,
+                'Perfil',
+                AppRoutes.yonkeProfile,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class YonkeBottomNavigation extends StatelessWidget {
   const YonkeBottomNavigation({
@@ -17,7 +164,13 @@ class YonkeBottomNavigation extends StatelessWidget {
   final YonkeNavigationSection selected;
 
   @override
-  Widget build(BuildContext context) => Material(
+  Widget build(BuildContext context) {
+    // Con la barra lateral visible la inferior no se muestra.
+    if (SideNavigationScope.active(context)) return const SizedBox.shrink();
+    return _buildBar(context);
+  }
+
+  Widget _buildBar(BuildContext context) => Material(
     color: YonkeColors.primaryNavy,
     child: SafeArea(
       top: false,

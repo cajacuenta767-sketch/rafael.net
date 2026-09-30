@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../requests/domain/client_request.dart';
 import 'client_bottom_navigation.dart';
@@ -24,54 +25,64 @@ class _ClientHomePage extends StatelessWidget {
   const _ClientHomePage();
 
   @override
-  Widget build(BuildContext context) {
-    final smallScreen = MediaQuery.sizeOf(context).width < 380;
-    return Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(
+    currentIndex: 0,
+    child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  smallScreen ? 18 : 22,
-                  10,
-                  smallScreen ? 18 : 22,
-                  20,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: const _HomeContent(),
-                  ),
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final gutter = width < 380
+                      ? 18.0
+                      : Breakpoints.gutter(width) < 22
+                      ? 22.0
+                      : Breakpoints.gutter(width);
+                  final twoColumns = width - gutter * 2 >= 860;
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(gutter, 10, gutter, 24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: twoColumns ? ContentWidth.wide : 560,
+                        ),
+                        child: _HomeContent(twoColumns: twoColumns),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             const ClientBottomNavigation(currentIndex: 0),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent();
+  const _HomeContent({required this.twoColumns});
+
+  /// Tablet, laptop, monitor y TV: resumen a la izquierda y solicitudes
+  /// recientes a la derecha.
+  final bool twoColumns;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const _HomeHeader(),
-      const SizedBox(height: 12),
-      const _WelcomeArtwork(),
+  Widget build(BuildContext context) {
+    final summary = <Widget>[
+      _WelcomeArtwork(tall: twoColumns),
       const SizedBox(height: 14),
       _CreateRequestBanner(
         onTap: () => context.push(AppRoutes.clientNewRequest),
       ),
       const SizedBox(height: 14),
       const _HomeShortcutCards(),
-      const SizedBox(height: 22),
+    ];
+    final recent = <Widget>[
       _SectionTitle(
         title: 'Solicitudes recientes',
         action: 'Ver todas',
@@ -79,8 +90,47 @@ class _HomeContent extends StatelessWidget {
       ),
       const SizedBox(height: 4),
       const _RecentRequestCard(),
-    ],
-  );
+    ];
+    if (!twoColumns) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _HomeHeader(),
+          const SizedBox(height: 12),
+          ...summary,
+          const SizedBox(height: 22),
+          ...recent,
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _HomeHeader(),
+        const SizedBox(height: 18),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: summary,
+              ),
+            ),
+            const SizedBox(width: 28),
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: recent,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _HomeHeader extends StatelessWidget {
@@ -90,11 +140,15 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Semantics(
+      Flexible(
+        child: Semantics(
         label: 'REFANET',
         image: true,
         child: ExcludeSemantics(
-          child: Row(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
@@ -137,7 +191,9 @@ class _HomeHeader extends StatelessWidget {
               ),
             ],
           ),
+          ),
         ),
+      ),
       ),
       IconButton(
         tooltip: 'Notificaciones',
@@ -153,56 +209,75 @@ class _HomeHeader extends StatelessWidget {
 }
 
 class _WelcomeArtwork extends StatelessWidget {
-  const _WelcomeArtwork();
+  const _WelcomeArtwork({this.tall = false});
+
+  /// Más alto en pantallas anchas, donde la tarjeta también es más ancha.
+  final bool tall;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 164,
-    width: double.infinity,
-    color: Colors.white,
-    child: Stack(
-      clipBehavior: Clip.hardEdge,
-      children: [
-        Positioned.fill(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: FractionallySizedBox(
-              widthFactor: .64,
-              heightFactor: 1,
-              child: Image.asset(
-                'assets/images/home_hero_car_v2.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.centerRight,
-                filterQuality: FilterQuality.high,
+  Widget build(BuildContext context) {
+    final largeText = Breakpoints.largeText(context);
+    return Container(
+      height: tall ? 210 : (largeText ? 196 : 164),
+      width: double.infinity,
+      color: Colors.white,
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FractionallySizedBox(
+                widthFactor: .64,
+                heightFactor: 1,
+                child: Image.asset(
+                  'assets/images/home_hero_car_v2.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(
-          left: 2,
-          top: 44,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hola, cliente',
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 3),
-              const SizedBox(
-                width: 160,
-                child: Text(
-                  '¿Qué autoparte necesitas hoy?',
-                  style: TextStyle(color: _muted, fontSize: 13, height: 1.25),
+          // El saludo ocupa el lado izquierdo y se reduce si la letra del
+          // teléfono es muy grande, en lugar de salirse de la tarjeta.
+          Positioned(
+            left: 2,
+            top: 12,
+            bottom: 12,
+            width: 175,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 170,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hola, cliente',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      '¿Qué autoparte necesitas hoy?',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 13,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _CreateRequestBanner extends StatelessWidget {
@@ -216,7 +291,6 @@ class _CreateRequestBanner extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(13),
       child: Ink(
-        height: 84,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(13),
           gradient: const LinearGradient(colors: [_green, _greenDark]),
@@ -228,38 +302,46 @@ class _CreateRequestBanner extends StatelessWidget {
             ),
           ],
         ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 19),
-          child: Row(
-            children: [
-              Icon(Icons.add, color: Colors.white, size: 34),
-              SizedBox(width: 14),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nueva solicitud',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 84),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 19, vertical: 14),
+            child: Row(
+              children: [
+                Icon(Icons.add, color: Colors.white, size: 34),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Nueva solicitud',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Publica la autoparte que buscas',
+                        style: TextStyle(
+                          color: Color(0xE6FFFFFF),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Publica la autoparte que buscas',
-                    style: TextStyle(color: Color(0xE6FFFFFF), fontSize: 12),
-                  ),
-                ],
-              ),
-              Spacer(),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
-                size: 17,
-              ),
-            ],
+                ),
+                SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white,
+                  size: 17,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -289,7 +371,7 @@ class _ShortcutCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(13),
       child: Container(
-        height: 156,
+        constraints: const BoxConstraints(minHeight: 156),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(13),
@@ -303,10 +385,11 @@ class _ShortcutCard extends StatelessWidget {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: _greenDark, size: 31),
-            const Spacer(),
+            const SizedBox(height: 22),
             Text(
               title,
               style: const TextStyle(
@@ -394,29 +477,45 @@ class _HomeShortcutCardsState extends ConsumerState<_HomeShortcutCards> {
   }
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: _ShortcutCard(
-          icon: Icons.assignment_outlined,
-          title: 'Mis solicitudes',
-          subtitle: 'Ver mis solicitudes',
-          value: _requestCount,
-          onTap: () => context.go(AppRoutes.clientRequests),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _ShortcutCard(
-          icon: Icons.sell_outlined,
-          title: 'Cotizaciones',
-          subtitle: 'Cotizaciones recibidas',
-          value: _quoteCount,
-          onTap: () => context.go(AppRoutes.clientQuotes),
-        ),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final requests = _ShortcutCard(
+      icon: Icons.assignment_outlined,
+      title: 'Mis solicitudes',
+      subtitle: 'Ver mis solicitudes',
+      value: _requestCount,
+      onTap: () => context.go(AppRoutes.clientRequests),
+    );
+    final quotes = _ShortcutCard(
+      icon: Icons.sell_outlined,
+      title: 'Cotizaciones',
+      subtitle: 'Cotizaciones recibidas',
+      value: _quoteCount,
+      onTap: () => context.go(AppRoutes.clientQuotes),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Con letra grande en un celular, una tarjeta debajo de otra.
+        final stacked =
+            Breakpoints.largeText(context) && constraints.maxWidth < 480;
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [requests, const SizedBox(height: 12), quotes],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: requests),
+              const SizedBox(width: 12),
+              Expanded(child: quotes),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 int _recordCount(dynamic response) {
@@ -459,10 +558,12 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium
-            ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+      Expanded(
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(color: _navy, fontWeight: FontWeight.w800),
+        ),
       ),
       TextButton(
         onPressed: onAction,

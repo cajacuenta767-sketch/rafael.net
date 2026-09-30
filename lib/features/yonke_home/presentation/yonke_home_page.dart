@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../yonke_requests/domain/yonke_request_summary.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
@@ -81,7 +82,7 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => YonkeNavigationFrame(selected: YonkeNavigationSection.home, child: Scaffold(
     backgroundColor: YonkeColors.background,
     body: SafeArea(
       bottom: false,
@@ -97,49 +98,97 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
               slivers: [
                 SliverToBoxAdapter(child: _Hero(data: data)),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
-                  sliver: SliverList.list(
-                    children: [
-                      _Metrics(data: data),
-                      const SizedBox(height: 25),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Solicitudes recientes',
-                              style: TextStyle(
-                                color: YonkeColors.textPrimary,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 19,
+                  padding: centeredListPadding(
+                    context,
+                    maxWidth: ContentWidth.wide,
+                    top: 18,
+                    bottom: 26,
+                    minSide: 20,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 720;
+                        final recent = <Widget>[
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Solicitudes recientes',
+                                  style: TextStyle(
+                                    color: YonkeColors.textPrimary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 19,
+                                  ),
+                                ),
                               ),
+                              TextButton(
+                                onPressed: () =>
+                                    context.go(AppRoutes.yonkeRequests),
+                                child: const Text('Ver todas'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 42),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: YonkeColors.accentGreen,
+                                ),
+                              ),
+                            )
+                          else if (data.requests.isEmpty)
+                            const _EmptyRequests()
+                          else
+                            ...data.requests
+                                .take(wide ? 5 : 3)
+                                .map((item) => _RecentRequest(item: item)),
+                        ];
+                        if (!wide) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _Metrics(data: data),
+                              const SizedBox(height: 25),
+                              ...recent,
+                              const SizedBox(height: 18),
+                              const _SalesBanner(),
+                            ],
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _Metrics(data: data),
+                            const SizedBox(height: 28),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: recent,
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                const Expanded(
+                                  flex: 2,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 52),
+                                    child: _SalesBanner(),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          TextButton(
-                            onPressed: () =>
-                                context.go(AppRoutes.yonkeRequests),
-                            child: const Text('Ver todas'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      if (snapshot.connectionState == ConnectionState.waiting)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 42),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: YonkeColors.accentGreen,
-                            ),
-                          ),
-                        )
-                      else if (data.requests.isEmpty)
-                        const _EmptyRequests()
-                      else
-                        ...data.requests
-                            .take(3)
-                            .map((item) => _RecentRequest(item: item)),
-                      const SizedBox(height: 18),
-                      const _SalesBanner(),
-                    ],
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -152,7 +201,7 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
       selected: YonkeNavigationSection.home,
       onRefresh: _refresh,
     ),
-  );
+  ));
 }
 
 class YonkeHomeData {
@@ -184,7 +233,13 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(20, 18, 20, 31),
+    padding: centeredListPadding(
+      context,
+      maxWidth: ContentWidth.wide,
+      top: 18,
+      bottom: 31,
+      minSide: 20,
+    ),
     decoration: const BoxDecoration(
       color: YonkeColors.primaryNavy,
       borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
@@ -233,39 +288,62 @@ class _Metrics extends StatelessWidget {
   final YonkeHomeData data;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: _MetricCard(
-          label: 'Solicitudes\nnuevas',
-          value: data.newRequests,
-          icon: Icons.inbox_outlined,
-          color: const Color(0xFF536274),
-          onTap: () => context.go(AppRoutes.yonkeRequests),
-        ),
+  Widget build(BuildContext context) {
+    final cards = [
+      _MetricCard(
+        label: 'Solicitudes\nnuevas',
+        value: data.newRequests,
+        icon: Icons.inbox_outlined,
+        color: const Color(0xFF536274),
+        onTap: () => context.go(AppRoutes.yonkeRequests),
       ),
-      const SizedBox(width: 9),
-      Expanded(
-        child: _MetricCard(
-          label: 'Cotizaciones\nenviadas',
-          value: data.quoteCount,
-          icon: Icons.request_quote_outlined,
-          color: YonkeColors.accentGreen,
-          onTap: () => context.go(AppRoutes.yonkeQuotes),
-        ),
+      _MetricCard(
+        label: 'Cotizaciones\nenviadas',
+        value: data.quoteCount,
+        icon: Icons.request_quote_outlined,
+        color: YonkeColors.accentGreen,
+        onTap: () => context.go(AppRoutes.yonkeQuotes),
       ),
-      const SizedBox(width: 9),
-      Expanded(
-        child: _MetricCard(
-          label: 'Mensajes\nsin leer',
-          value: data.unreadMessages,
-          icon: Icons.chat_bubble_outline,
-          color: const Color(0xFF2B72D6),
-          onTap: () => context.go(AppRoutes.yonkeMessages),
-        ),
+      _MetricCard(
+        label: 'Mensajes\nsin leer',
+        value: data.unreadMessages,
+        icon: Icons.chat_bubble_outline,
+        color: const Color(0xFF2B72D6),
+        onTap: () => context.go(AppRoutes.yonkeMessages),
       ),
-    ],
-  );
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // En celulares muy angostos o con letra grande, una debajo de otra.
+        final stacked =
+            constraints.maxWidth < 340 ||
+            (Breakpoints.largeText(context) && constraints.maxWidth < 560);
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(height: 9),
+                cards[i],
+              ],
+            ],
+          );
+        }
+        final gap = constraints.maxWidth >= 720 ? 16.0 : 9.0;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) SizedBox(width: gap),
+                Expanded(child: cards[i]),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _MetricCard extends StatelessWidget {
@@ -290,7 +368,7 @@ class _MetricCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        height: 134,
+        constraints: const BoxConstraints(minHeight: 134),
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -304,6 +382,7 @@ class _MetricCard extends StatelessWidget {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -314,16 +393,23 @@ class _MetricCard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Text(
-                  '$value',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '$value',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 const Spacer(),
                 CircleAvatar(
                   radius: 16,

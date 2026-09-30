@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_requests_repository.dart';
 import '../domain/yonke_request_summary.dart';
@@ -234,7 +235,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return YonkeNavigationFrame(selected: YonkeNavigationSection.requests, child: Scaffold(
       backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
         backgroundColor: YonkeColors.primaryNavy,
@@ -268,7 +269,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(maxWidth: ContentWidth.wide),
             child: RefreshIndicator(
               onRefresh: () => _load(refresh: true),
               child: ListView(
@@ -283,7 +284,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
                   28,
                 ),
                 children: [
-                  TextField(
+                  Align(alignment: Alignment.centerLeft, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: TextField(
                     key: const Key('yonke-requests-search'),
                     controller: _searchController,
                     maxLength: 80,
@@ -335,7 +336,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
                               ),
                       ),
                     ),
-                  ),
+                  ))),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -403,7 +404,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         onRefresh: () => _load(refresh: true),
         selected: YonkeNavigationSection.requests,
       ),
-    );
+    ));
   }
 
   Widget _buildHeaderTabs() => Row(
@@ -497,7 +498,11 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         ),
       ),
       const SizedBox(height: 12),
-      ..._requests.map(
+      // En pantallas anchas las solicitudes se acomodan en 2 o 3 columnas.
+      ResponsiveWrapGrid(
+        minTileWidth: 360,
+        children: _requests
+            .map(
         (request) => Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Column(
@@ -520,6 +525,8 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
             ],
           ),
         ),
+            )
+            .toList(),
       ),
     ];
   }

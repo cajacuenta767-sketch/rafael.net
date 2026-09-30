@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/responsive.dart';
 import '../../../core/di/api_providers.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../ratings/presentation/client_rating_page.dart';
@@ -315,24 +316,12 @@ class _SummaryRow extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 7),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(label, style: const TextStyle(color: Color(0xFF596276))),
-        ),
-        const SizedBox(width: 14),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => LabelValueRow(
+    label: label,
+    value: value,
+    valueWeight: FontWeight.w700,
+    bottom: 14,
+    valueAlignEnd: true,
   );
 }
 

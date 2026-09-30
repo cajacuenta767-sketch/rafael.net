@@ -115,14 +115,19 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
         style: TextStyle(color: Color(0xFF596276)),
       ),
       const SizedBox(height: 24),
-      Row(
+      // Las 5 estrellas siempre caben: se achican en pantallas angostas.
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final iconSize = ((constraints.maxWidth / 5) - 18).clamp(28.0, 42.0);
+          return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(5, (index) {
           final value = index + 1;
           return IconButton(
             key: Key('client-rating-$value'),
             tooltip: '$value de 5',
-            iconSize: 42,
+            iconSize: iconSize,
+            padding: const EdgeInsets.all(6),
             color: value <= _rating
                 ? const Color(0xFFF5AA16)
                 : const Color(0xFFD1D5DB),
@@ -130,6 +135,8 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
             icon: Icon(value <= _rating ? Icons.star : Icons.star_border),
           );
         }),
+          );
+        },
       ),
       const SizedBox(height: 8),
       Text(

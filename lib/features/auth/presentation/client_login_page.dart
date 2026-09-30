@@ -108,8 +108,12 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             child: LayoutBuilder(
               builder: (context, box) {
                 final scale = MediaQuery.textScalerOf(context).scale(1);
+                // Horizontal compacto solo en pantallas bajas (celular
+                // acostado, TV); en laptop y tablet el login va centrado.
                 final landscape =
-                    box.maxWidth > box.maxHeight && box.maxWidth >= 650;
+                    box.maxWidth > box.maxHeight &&
+                    box.maxWidth >= 650 &&
+                    box.maxHeight < 600;
                 final dense =
                     box.maxHeight < 680 ||
                     box.maxWidth < 340 ||
@@ -359,17 +363,29 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                 elevation: 12,
                 borderRadius: BorderRadius.circular(24),
                 clipBehavior: Clip.antiAlias,
+                // Los botones quedan fijos al pie; solo los textos se
+                // desplazan si no caben (horizontal o letra grande).
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: 520,
-                    maxHeight: MediaQuery.sizeOf(context).height * .56,
+                    maxHeight:
+                        MediaQuery.sizeOf(context).height *
+                        (MediaQuery.orientationOf(context) ==
+                                Orientation.landscape
+                            ? .94
+                            : .8),
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
                         Text(
                           'Antes de continuar',
                           style: Theme.of(context).textTheme.titleLarge
@@ -422,8 +438,13 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                             'assets/legal/privacy.txt',
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                        child: Row(
                           children: [
                             Expanded(
                               child: TextButton(
@@ -487,8 +508,8 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),

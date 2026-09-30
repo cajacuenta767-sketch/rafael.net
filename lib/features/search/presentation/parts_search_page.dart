@@ -209,7 +209,7 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ClientNavigationFrame(currentIndex: -1, child: Scaffold(
     backgroundColor: const Color(0xFFFCFCFC),
     appBar: AppBar(
       automaticallyImplyLeading: false,
@@ -331,7 +331,7 @@ class _PartsSearchPageState extends ConsumerState<PartsSearchPage> {
         ],
       ),
     ),
-  );
+  ));
 
   Widget _buildContent(BuildContext context) {
     switch (_status) {
