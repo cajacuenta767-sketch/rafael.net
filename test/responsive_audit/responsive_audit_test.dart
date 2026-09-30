@@ -249,7 +249,7 @@ class _Findings {
   final runtimeErrors = <String>{};
   final truncated = <String>{};
   final offscreen = <String, Map<String, Object?>>{};
-  final stretched = <String, double>{};
+  final stretched = <String, Map<String, Object?>>{};
   final longLines = <String, double>{};
   double? minFont;
   String? minFontText;
@@ -323,9 +323,7 @@ class _Findings {
     'truncated': truncated.take(12).toList(),
     'truncatedCount': truncated.length,
     'offscreen': offscreen.values.take(8).toList(),
-    'stretched': [
-      for (final e in stretched.entries) {'widget': e.key, 'width': e.value},
-    ],
+    'stretched': stretched.values.take(10).toList(),
     'longLines': [
       for (final e in longLines.entries.take(6))
         {'text': e.key, 'width': e.value},
@@ -346,7 +344,13 @@ void _inspect(WidgetTester tester, AuditDevice device, _Findings findings) {
   )) {
     final render = element.renderObject;
     if (render is! RenderBox || !render.attached || !render.hasSize) continue;
-    if (element is! RenderObjectElement) continue;
+    final widget = element.widget;
+    final isControl =
+        widget is ButtonStyleButton ||
+        widget is InputDecorator ||
+        widget is ListTile ||
+        widget is Card;
+    if (element is! RenderObjectElement && !isControl) continue;
 
     Rect rect;
     try {
@@ -375,15 +379,21 @@ void _inspect(WidgetTester tester, AuditDevice device, _Findings findings) {
       }
     }
 
-    final widget = element.widget;
-    if (screenWidth >= 700 &&
-        (widget is ButtonStyleButton || widget is InputDecorator) &&
-        rect.width > 640) {
+    if (screenWidth >= 700 && isControl && rect.width > 640) {
       final name = widget.runtimeType.toString().split('<').first;
-      final current = findings.stretched[name] ?? 0;
-      if (rect.width > current) findings.stretched[name] = rect.width.roundToDouble();
+      final location = _appLocation(element);
+      findings.stretched.putIfAbsent(
+        '$name@$location',
+        () => {
+          'widget': name,
+          'width': rect.width.roundToDouble(),
+          'location': location,
+          'text': _firstText(element),
+        },
+      );
     }
 
+    if (element is! RenderObjectElement) continue;
     final outRight = rect.right - screenWidth;
     final outLeft = -rect.left;
     if ((outRight > 2 || outLeft > 2) && rect.width > 1 && rect.height > 1) {
