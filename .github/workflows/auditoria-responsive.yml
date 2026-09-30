@@ -59,7 +59,7 @@ jobs:
         env:
           AUDIT_OUT: ${{ github.workspace }}/salida
           AUDIT_SCREENS: ${{ github.event.inputs.pantallas }}
-          AUDIT_DEVICES: ${{ github.event.inputs.dispositivos || 'iphone-15,ipad-air,monitor-fhd' }}
+          AUDIT_DEVICES: ${{ github.event.inputs.dispositivos }}
         run: |
           mkdir -p salida
           flutter --version > salida/flutter-version.txt
