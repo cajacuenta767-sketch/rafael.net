@@ -1,0 +1,95 @@
+name: Auditoría responsive
+
+# Abre cada pantalla de la app en 23 tamaños de pantalla (celulares,
+# plegables, tablets, laptops, monitores y televisores), guarda capturas y un
+# reporte de desbordamientos. Los resultados se publican en la rama
+# `auditoria-resultados` para no mezclar imágenes con el código.
+
+on:
+  push:
+    branches: [auditoria-responsive]
+    paths:
+      - 'lib/**'
+      - 'test/responsive_audit/**'
+      - 'pubspec.*'
+      - '.github/workflows/auditoria-responsive.yml'
+  workflow_dispatch:
+    inputs:
+      pantallas:
+        description: 'IDs de pantallas separados por coma (vacío = todas)'
+        required: false
+        default: ''
+      dispositivos:
+        description: 'IDs de dispositivos separados por coma (vacío = todos)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auditoria-responsive
+  cancel-in-progress: true
+
+jobs:
+  auditoria:
+    name: Capturas y reporte
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Ruta del SDK para las fuentes
+        run: |
+          root="$(dirname "$(dirname "$(readlink -f "$(which flutter)")")")"
+          echo "AUDIT_FLUTTER_ROOT=$root" >> "$GITHUB_ENV"
+          flutter precache --universal || true
+          ls "$root/bin/cache/artifacts/material_fonts" || true
+
+      - name: Correr la auditoría
+        env:
+          AUDIT_OUT: ${{ github.workspace }}/salida
+          AUDIT_SCREENS: ${{ github.event.inputs.pantallas }}
+          AUDIT_DEVICES: ${{ github.event.inputs.dispositivos || 'iphone-15,ipad-air,monitor-fhd' }}
+        run: |
+          mkdir -p salida
+          flutter --version > salida/flutter-version.txt
+          set +e
+          flutter test test/responsive_audit --reporter expanded --no-pub \
+            > salida/registro.txt 2>&1
+          echo "codigo_salida=$?" >> salida/registro.txt
+          tail -n 60 salida/registro.txt
+
+      - name: Comprimir capturas
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 - <<'EOF'
+          import pathlib
+          from PIL import Image
+          for png in pathlib.Path('salida/capturas').glob('*.png'):
+              img = Image.open(png).convert('RGB')
+              img.save(png.with_suffix('.jpg'), quality=82, optimize=True)
+              png.unlink()
+          EOF
+          sed -i 's/\.png"/.jpg"/g' salida/resultados.jsonl || true
+          du -sh salida
+
+      - name: Publicar en la rama auditoria-resultados
+        run: |
+          cd salida
+          git init -q -b auditoria-resultados
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "Resultados de ${GITHUB_SHA} ($(date -u +%Y-%m-%dT%H:%MZ))" > LEEME.txt
+          git add -A
+          git commit -q -m "Auditoría responsive de ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" auditoria-resultados
