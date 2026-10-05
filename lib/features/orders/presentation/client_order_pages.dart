@@ -1,9 +1,12 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
@@ -66,11 +69,13 @@ class _ClientOrderConfirmationPageState
         AppRoutes.clientOrderSuccess,
         extra: ClientOrderSuccessArgs(quote: widget.args.quote, result: result),
       );
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo crear la orden. Inténtalo nuevamente.'),
+          SnackBar(
+            content: Text(
+              error is ApiException ? error.message : 'No pudimos confirmar la orden. Consulta tus órdenes antes de volver a enviarla.',
+            ),
           ),
         );
       }
@@ -82,7 +87,7 @@ class _ClientOrderConfirmationPageState
   @override
   Widget build(BuildContext context) {
     final quote = widget.args.quote;
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFCFCFC),
@@ -179,7 +184,7 @@ class ClientOrderSuccessPage extends StatelessWidget {
   final ClientOrderSuccessArgs args;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFCFCFC),
     appBar: AppBar(
       automaticallyImplyLeading: false,
@@ -449,12 +454,12 @@ class _ClientOrderTrackingPageState
           const SnackBar(content: Text('La cancelación fue enviada.')),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'No se pudo cancelar la orden. Inténtalo nuevamente.',
+              error is ApiException ? error.message : 'No pudimos confirmar la cancelación. Actualiza la orden antes de reintentar.',
             ),
           ),
         );
@@ -465,7 +470,7 @@ class _ClientOrderTrackingPageState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFCFCFC),
     appBar: AppBar(
       backgroundColor: const Color(0xFFFCFCFC),

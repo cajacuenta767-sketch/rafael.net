@@ -1,4 +1,5 @@
 import '../../../core/network/api_exception.dart';
+import '../../../core/realtime/read_receipt_tracking.dart';
 import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
@@ -25,8 +26,10 @@ abstract interface class YonkeMessagesRepository {
 /// La API no publica una bandeja global de mensajes: se construye a partir
 /// de las cotizaciones del yonke (`DashboardSuscriptores/mis-cotizaciones`)
 /// y la conversación de cada una (`SolicitudCotizacionMensajes/{id}`).
-class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
-  const ApiYonkeMessagesRepository(
+class ApiYonkeMessagesRepository
+    with ReadReceiptTracking
+    implements YonkeMessagesRepository {
+  ApiYonkeMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
     this._tokenStore, [
@@ -125,11 +128,10 @@ class ApiYonkeMessagesRepository implements YonkeMessagesRepository {
           ),
         )
         .toList(growable: false);
-    try {
-      await _quotesApi.markMessagesRead(quoteId);
-    } catch (_) {
-      // El marcado de lectura no bloquea la conversación.
-    }
+    await synchronizeReadReceipt(
+      quoteId,
+      () => _quotesApi.markMessagesRead(quoteId),
+    );
     return messages;
   }
 

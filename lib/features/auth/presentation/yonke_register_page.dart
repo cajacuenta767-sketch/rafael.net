@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../../app/theme/yonke_theme.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 class YonkeRegisterPage extends ConsumerStatefulWidget {
@@ -185,8 +188,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
       logoBytesToSend = _logoBytes!;
       logoFileNameToSend = _logoFileName ?? 'logo.png';
     } else {
-      final byteData =
-          await rootBundle.load('assets/images/refanet_yonke_icon.png');
+      final byteData = await rootBundle.load(
+        'assets/images/refanet_yonke_icon.png',
+      );
       logoBytesToSend = byteData.buffer.asUint8List();
       logoFileNameToSend = 'refanet_yonke_logo.png';
     }
@@ -198,10 +202,9 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
     );
 
     try {
-      await ref.read(yonkesApiProvider).register(
-            fields: fields,
-            files: [logoFile],
-          );
+      await ref
+          .read(yonkesApiProvider)
+          .register(fields: fields, files: [logoFile]);
       if (!mounted) return;
       _showSuccessDialog();
     } on ApiException catch (error) {
@@ -270,7 +273,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !_loading,
-    child: Scaffold(
+    child: ResponsiveScaffold(
       backgroundColor: YonkeColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -359,14 +362,14 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 42,
-                                        backgroundColor:
-                                            const Color(0xFFEDF2F9),
+                                        backgroundColor: const Color(
+                                          0xFFEDF2F9,
+                                        ),
                                         backgroundImage: _logoBytes != null
                                             ? MemoryImage(_logoBytes!)
                                             : const AssetImage(
-                                                    'assets/images/refanet_yonke_icon.png',
-                                                  )
-                                                as ImageProvider,
+                                                'assets/images/refanet_yonke_icon.png',
+                                              ) as ImageProvider,
                                       ),
                                       Positioned(
                                         bottom: 0,
@@ -513,7 +516,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                             onFieldSubmitted: (_) => _cpFocus.requestFocus(),
                           ),
                           const SizedBox(height: 16),
-                          Row(
+                          AdaptiveInline(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
@@ -717,7 +720,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                                   .withValues(alpha: 0.3),
                             ),
                           ),
-                          child: Row(
+                          child: AdaptiveInline(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Icon(
@@ -750,7 +753,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
                           ),
                         ),
                         child: _loading
-                            ? const Row(
+                            ? const AdaptiveInline(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox.square(
@@ -809,7 +812,7 @@ class _YonkeRegisterPageState extends ConsumerState<YonkeRegisterPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          AdaptiveInline(
             children: [
               Icon(icon, color: YonkeColors.primaryNavy, size: 20),
               const SizedBox(width: 8),

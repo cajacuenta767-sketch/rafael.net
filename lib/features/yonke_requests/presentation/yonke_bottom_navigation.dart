@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/adaptive_navigation.dart';
 import '../../../app/theme/yonke_theme.dart';
 
 enum YonkeNavigationSection { home, requests, quotes, messages, profile }
 
-class YonkeBottomNavigation extends StatelessWidget {
+class YonkeBottomNavigation extends StatelessWidget
+    implements AdaptiveNavigation {
   const YonkeBottomNavigation({
     super.key,
     required this.onRefresh,
@@ -17,12 +19,49 @@ class YonkeBottomNavigation extends StatelessWidget {
   final YonkeNavigationSection selected;
 
   @override
+  Widget buildSideNavigation(BuildContext context) => SideNavigation(
+    background: YonkeColors.primaryNavy,
+    labels: const [
+      'Inicio',
+      'Solicitudes',
+      'Cotizaciones +',
+      'Mensajes',
+      'Perfil',
+    ],
+    icons: const [
+      Icons.home_outlined,
+      Icons.inbox_outlined,
+      Icons.add_circle_outline,
+      Icons.chat_bubble_outline,
+      Icons.storefront_outlined,
+    ],
+    selectedIndex: selected.index,
+    onSelect: (index) {
+      if (index == 2) {
+        _showQuoteActions(context);
+        return;
+      }
+      final route = [
+        AppRoutes.yonkeHome,
+        AppRoutes.yonkeRequests,
+        AppRoutes.yonkeQuotes,
+        AppRoutes.yonkeMessages,
+        AppRoutes.yonkeProfile,
+      ][index];
+      context.go(route);
+    },
+  );
+
+  @override
   Widget build(BuildContext context) => Material(
     color: YonkeColors.primaryNavy,
     child: SafeArea(
       top: false,
       child: SizedBox(
-        height: 78,
+        height:
+            78 +
+            (MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0) - 1) *
+                32,
         child: Row(
           children: [
             _YonkeNavItem(
@@ -102,62 +141,67 @@ class YonkeBottomNavigation extends StatelessWidget {
   void _showQuoteActions(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: Colors.white,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Centro de cotizaciones',
-                style: TextStyle(
-                  color: YonkeColors.primaryNavy,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFFEAF6EA),
-                  child: Icon(
-                    Icons.request_quote_outlined,
-                    color: Color(0xFF28A745),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Centro de cotizaciones',
+                  style: TextStyle(
+                    color: YonkeColors.primaryNavy,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                title: const Text('Mis cotizaciones'),
-                subtitle: const Text('Consulta las enviadas y aceptadas'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  context.go(AppRoutes.yonkeQuotes);
-                },
-              ),
-              ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFFEDF2F8),
-                  child: Icon(Icons.add_task, color: YonkeColors.primaryNavy),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEAF6EA),
+                    child: Icon(
+                      Icons.request_quote_outlined,
+                      color: Color(0xFF28A745),
+                    ),
+                  ),
+                  title: const Text('Mis cotizaciones'),
+                  subtitle: const Text('Consulta las enviadas y aceptadas'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    context.go(AppRoutes.yonkeQuotes);
+                  },
                 ),
-                title: const Text('Cotizar una solicitud'),
-                subtitle: const Text('Elige primero la pieza que responderás'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  context.go(AppRoutes.yonkeRequests);
-                },
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  onRefresh();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Actualizar esta pantalla'),
-              ),
-            ],
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEDF2F8),
+                    child: Icon(Icons.add_task, color: YonkeColors.primaryNavy),
+                  ),
+                  title: const Text('Cotizar una solicitud'),
+                  subtitle: const Text(
+                    'Elige primero la pieza que responderás',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    context.go(AppRoutes.yonkeRequests);
+                  },
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    onRefresh();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualizar esta pantalla'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -198,19 +242,35 @@ class _YonkeNavItem extends StatelessWidget {
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: selected
-                        ? const Color(0xFF65D34E)
-                        : const Color(0xFFD5DCE8),
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                  ),
-                ),
-              ),
+              child: MediaQuery.textScalerOf(context).scale(1) > 1
+                  ? Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? const Color(0xFF65D34E)
+                            : const Color(0xFFD5DCE8),
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w500,
+                      ),
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: selected
+                              ? const Color(0xFF65D34E)
+                              : const Color(0xFFD5DCE8),
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

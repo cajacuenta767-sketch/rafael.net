@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -94,7 +96,7 @@ class _RequestPhotosPageState extends State<RequestPhotosPage> {
   @override
   Widget build(BuildContext context) {
     final photos = widget.draft.photos;
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

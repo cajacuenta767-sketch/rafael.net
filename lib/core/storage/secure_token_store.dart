@@ -36,19 +36,29 @@ class SecureTokenStore implements TokenStore {
     DateTime? expiresAt,
     String? yonkeGuidId,
   }) async {
-    await _storage.write(key: _accessTokenKey, value: accessToken);
-
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    if (accessToken.trim().isEmpty) {
+      throw ArgumentError.value(accessToken, 'accessToken', 'Token vacío');
     }
-    if (expiresAt != null) {
-      await _storage.write(
-        key: _expiresAtKey,
-        value: expiresAt.toUtc().toIso8601String(),
-      );
-    }
-    if (yonkeGuidId != null && yonkeGuidId.isNotEmpty) {
-      await _storage.write(key: _yonkeGuidIdKey, value: yonkeGuidId);
+    // El token se publica al final: una escritura interrumpida no debe
+    // dejar una sesión nueva con metadatos de otra identidad.
+    await clear();
+    try {
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _storage.write(key: _refreshTokenKey, value: refreshToken);
+      }
+      if (expiresAt != null) {
+        await _storage.write(
+          key: _expiresAtKey,
+          value: expiresAt.toUtc().toIso8601String(),
+        );
+      }
+      if (yonkeGuidId != null && yonkeGuidId.isNotEmpty) {
+        await _storage.write(key: _yonkeGuidIdKey, value: yonkeGuidId);
+      }
+      await _storage.write(key: _accessTokenKey, value: accessToken);
+    } catch (_) {
+      await clear();
+      rethrow;
     }
   }
 

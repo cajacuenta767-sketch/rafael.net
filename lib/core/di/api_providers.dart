@@ -182,7 +182,10 @@ final quoteYonkeResolverProvider = Provider<QuoteYonkeResolver>(
 );
 
 final quoteClientResolverProvider = Provider<QuoteClientResolver>(
-  (ref) => QuoteClientResolver(ref.watch(quotesApiProvider)),
+  (ref) => QuoteClientResolver(
+    ref.watch(quotesApiProvider),
+    ref.watch(apiClientProvider),
+  ),
 );
 
 final yonkeQuoteRegistryProvider = Provider<YonkeQuoteRegistry>(

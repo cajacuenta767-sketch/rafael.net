@@ -41,6 +41,32 @@ class ClientRequestSummary {
 
   bool get isInProgress =>
       !closed && status.toLowerCase().trim() != 'cancelada';
+
+  ClientRequestSummary copyWith({
+    String? id,
+    String? part,
+    String? status,
+    int? quoteCount,
+    String? brand,
+    String? model,
+    int? year,
+    String? folio,
+    DateTime? createdAt,
+    bool? closed,
+    String? imageUrl,
+  }) => ClientRequestSummary(
+    id: id ?? this.id,
+    part: part ?? this.part,
+    status: status ?? this.status,
+    quoteCount: quoteCount ?? this.quoteCount,
+    brand: brand ?? this.brand,
+    model: model ?? this.model,
+    year: year ?? this.year,
+    folio: folio ?? this.folio,
+    createdAt: createdAt ?? this.createdAt,
+    closed: closed ?? this.closed,
+    imageUrl: imageUrl ?? this.imageUrl,
+  );
 }
 
 class ClientRequestDetail {
@@ -119,7 +145,10 @@ ClientRequestSummary? clientRequestSummaryFromJson(Map<dynamic, dynamic> json) {
     createdAt: DateTime.tryParse(json['fechaCreacion']?.toString() ?? '')
         ?.toLocal(),
     closed: closed,
-    imageUrl: _firstImage(images),
+    imageUrl:
+        _text(json['imagenUrl']) ??
+        _text(json['imageUrl']) ??
+        _firstImage(images),
   );
 }
 
@@ -232,4 +261,49 @@ String? _firstImage(dynamic images) {
 String? _text(dynamic value) {
   final text = value?.toString().trim();
   return text == null || text.isEmpty ? null : text;
+}
+
+class RequestRecipient {
+  const RequestRecipient({
+    required this.id,
+    required this.yonkeId,
+    required this.yonkeName,
+    this.logoUrl,
+    this.telephone,
+    this.status = 'Enviada',
+    this.viewed = false,
+    this.sentAt,
+  });
+
+  final String id;
+  final String yonkeId;
+  final String yonkeName;
+  final String? logoUrl;
+  final String? telephone;
+  final String status;
+  final bool viewed;
+  final DateTime? sentAt;
+}
+
+List<RequestRecipient> requestRecipientsFromResponse(dynamic response) {
+  final records = _records(response);
+  return records
+      .whereType<Map>()
+      .map((record) {
+        final rawLogo = _text(record['logo'] ?? record['logoUrl']);
+        final logo = rawLogo != null && _isSafeImageUrl(rawLogo)
+            ? rawLogo
+            : null;
+        return RequestRecipient(
+          id: _text(record['solicitudYonkeGuidId'] ?? record['guidId']) ?? '',
+          yonkeId: _text(record['yonkeGuidId']) ?? '',
+          yonkeName: _text(record['nombreYonke']) ?? 'Yonke',
+          logoUrl: logo,
+          telephone: _text(record['telefono']),
+          status: _text(record['estatus']) ?? 'Enviada',
+          viewed: record['vista'] == true,
+          sentAt: DateTime.tryParse(record['fechaEnvio']?.toString() ?? ''),
+        );
+      })
+      .toList(growable: false);
 }

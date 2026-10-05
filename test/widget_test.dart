@@ -469,15 +469,20 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
-          expect(find.byType(SingleChildScrollView), findsNothing);
+          expect(find.byType(SingleChildScrollView), findsWidgets);
           expect(find.bySemanticsLabel('Página 1 de 3'), findsNothing);
           expect(find.text('Soy cliente'), findsOneWidget);
           expect(find.text('Soy Yonke'), findsOneWidget);
 
-          final clientRect = tester.getRect(find.text('Soy cliente'));
-          final yonkeRect = tester.getRect(find.text('Soy Yonke'));
-          expect(clientRect.top, greaterThanOrEqualTo(0));
-          expect(yonkeRect.bottom, lessThanOrEqualTo(size.height));
+          // Small windows may scroll. Verify each role remains reachable,
+          // rather than requiring all decoration and buttons at once.
+          for (final label in ['Soy cliente', 'Soy Yonke']) {
+            await tester.ensureVisible(find.text(label));
+            await tester.pumpAndSettle();
+            final rect = tester.getRect(find.text(label));
+            expect(rect.top, greaterThanOrEqualTo(0));
+            expect(rect.bottom, lessThanOrEqualTo(size.height));
+          }
 
           if (size.height >= size.width) {
             final buttonRect = tester.getRect(find.byType(InkWell).first);
@@ -777,7 +782,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.dragUntilVisible(
       find.byKey(const Key('submit-quote-button')),
-      find.byType(SingleChildScrollView),
+      find.byType(SingleChildScrollView).last,
       const Offset(0, -400),
     );
     await tester.tap(find.byKey(const Key('submit-quote-button')));
@@ -792,7 +797,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.dragUntilVisible(
       find.byKey(const Key('submit-quote-button')),
-      find.byType(SingleChildScrollView),
+      find.byType(SingleChildScrollView).last,
       const Offset(0, -400),
     );
     await tester.tap(find.byKey(const Key('submit-quote-button')));
@@ -1068,6 +1073,9 @@ class _PendingYonkeAuthRepository implements YonkeAuthRepository {
     calls++;
     return const YonkeLoginResult(sessionContractPending: true);
   }
+
+  @override
+  Future<String> requestPasswordReset(String email) async => 'OK';
 }
 
 class _BlockingYonkeAuthRepository implements YonkeAuthRepository {
@@ -1086,6 +1094,10 @@ class _BlockingYonkeAuthRepository implements YonkeAuthRepository {
   void complete() {
     _completer.complete(const YonkeLoginResult(sessionContractPending: true));
   }
+
+  @override
+  Future<String> requestPasswordReset(String email) =>
+      _completer.future.then((_) => 'OK');
 }
 
 class _FailingYonkeAuthRepository implements YonkeAuthRepository {
@@ -1098,6 +1110,9 @@ class _FailingYonkeAuthRepository implements YonkeAuthRepository {
     required String email,
     required String password,
   }) => Future.error(error);
+
+  @override
+  Future<String> requestPasswordReset(String email) => Future.error(error);
 }
 
 class _EmptyYonkeRequestsRepository implements YonkeRequestsRepository {
@@ -1113,6 +1128,9 @@ class _EmptyYonkeRequestsRepository implements YonkeRequestsRepository {
 
   @override
   Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async => null;
 }
 
 class _TrackingYonkeRequestsRepository implements YonkeRequestsRepository {
@@ -1142,6 +1160,9 @@ class _TrackingYonkeRequestsRepository implements YonkeRequestsRepository {
   Future<void> markAsViewed(String requestYonkeId) async {
     markedIds.add(requestYonkeId);
   }
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async => null;
 }
 
 class _ErrorYonkeRequestsRepository implements YonkeRequestsRepository {
@@ -1157,6 +1178,10 @@ class _ErrorYonkeRequestsRepository implements YonkeRequestsRepository {
 
   @override
   Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() =>
+      Future.error(StateError('test error'));
 }
 
 class _TrackingYonkeRequestDetailRepository
@@ -1304,6 +1329,10 @@ class _SampleYonkeRequestsRepository implements YonkeRequestsRepository {
 
   @override
   Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async =>
+      _sampleYonkeRequests.isNotEmpty ? _sampleYonkeRequests.first : null;
 }
 
 class _PendingYonkeRequestsRepository implements YonkeRequestsRepository {
@@ -1319,6 +1348,10 @@ class _PendingYonkeRequestsRepository implements YonkeRequestsRepository {
 
   @override
   Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() =>
+      Future.error(const AssignedRequestsEndpointPendingException());
 }
 
 class _SampleYonkeRequestDetailRepository

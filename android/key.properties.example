@@ -1,0 +1,7 @@
+# Copiar a android/key.properties y completar fuera de Git.
+# Usar la clave de distribución existente si la aplicación ya está publicada.
+storePassword=REPLACE_LOCALLY
+keyPassword=REPLACE_LOCALLY
+keyAlias=upload
+# Windows: usar barras / o escapar las barras invertidas.
+storeFile=C:/PRIVATE_PATH/upload-keystore.jks

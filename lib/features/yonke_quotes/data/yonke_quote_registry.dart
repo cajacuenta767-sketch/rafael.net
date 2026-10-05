@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../../core/network/api_exception.dart';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/storage/token_store.dart';
@@ -72,22 +74,30 @@ String? createdQuoteId(Object? response) {
 }
 
 /// Cotizaciones registradas en el teléfono, consultadas en el API. Las que ya
-/// no existen o fallan se omiten; `null` si no hay ninguna registrada.
+/// no existen (404) se omiten; otros errores se propagan. Es una recuperación
+/// local, no sustituye un listado completo del servidor.
 Future<List<YonkeQuote>?> knownYonkeQuotes(
   YonkeQuoteRegistry registry,
   QuotesApi quotesApi, {
-  int limit = 30,
+  int limit = 200,
 }) async {
   final ids = await registry.ids();
   if (ids.isEmpty) return null;
-  final quotes = await Future.wait(
-    ids.take(limit).map((id) async {
-      try {
-        return yonkeQuoteFromResponse(await quotesApi.getById(id));
-      } catch (_) {
-        return null;
-      }
-    }),
-  );
-  return quotes.whereType<YonkeQuote>().toList(growable: false);
+  final quotes = <YonkeQuote>[];
+  final selected = ids.take(limit).toList();
+  // Limitar concurrencia evita lanzar cientos de solicitudes de golpe.
+  for (var start = 0; start < selected.length; start += 8) {
+    final batch = await Future.wait(
+      selected.skip(start).take(8).map((id) async {
+        try {
+          return yonkeQuoteFromResponse(await quotesApi.getById(id));
+        } on ApiException catch (error) {
+          if (error.statusCode == 404) return null;
+          rethrow;
+        }
+      }),
+    );
+    quotes.addAll(batch.whereType<YonkeQuote>());
+  }
+  return quotes;
 }

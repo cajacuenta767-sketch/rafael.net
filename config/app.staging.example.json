@@ -1,0 +1,12 @@
+{
+  "APP_ENV": "staging",
+  "API_BASE_URL": "https://REPLACE_WITH_AUTHORIZED_STAGING_HOST",
+  "GOOGLE_SERVER_CLIENT_ID": "",
+  "SIGNALR_HUB_PATH": "/hubs/notificaciones",
+  "ENABLE_NETWORK_LOGS": "false",
+  "FIREBASE_API_KEY": "",
+  "FIREBASE_APP_ID": "",
+  "FIREBASE_SENDER_ID": "",
+  "FIREBASE_PROJECT_ID": "",
+  "FIREBASE_IOS_BUNDLE_ID": "com.refanet.app"
+}

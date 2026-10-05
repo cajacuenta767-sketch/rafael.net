@@ -40,9 +40,8 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     // Mientras tanto se usan las cotizaciones registradas en el teléfono.
     List<YonkeQuote>? allItems;
     try {
-      allItems = yonkeQuotesPageFromResponse(
-        await _dashboardApi.getMyQuotes(),
-      )?.items;
+      allItems = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
+          ?.items;
     } on ApiException catch (error) {
       if (error.statusCode != 403 && error.statusCode != 404) rethrow;
     }

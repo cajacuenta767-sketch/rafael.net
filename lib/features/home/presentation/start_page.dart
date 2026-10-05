@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,7 +18,7 @@ class StartPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
 
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFEFEFF),
       body: Stack(
         children: [
@@ -38,19 +40,7 @@ class StartPage extends StatelessWidget {
                         textScale: textScale,
                       );
 
-                // Con escalas habituales la pantalla es fija. El desplazamiento
-                // solo se activa como protección para accesibilidad excepcional.
-                if (textScale <= 1.3) return content;
-
-                return SingleChildScrollView(
-                  padding: EdgeInsets.zero,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: content,
-                  ),
-                );
+                return content;
               },
             ),
           ),
@@ -94,24 +84,29 @@ class _PortraitLayout extends StatelessWidget {
     );
     final topBottomPadding = dense ? 6.0 : 12.0;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 920),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            topBottomPadding,
-            horizontalPadding,
-            topBottomPadding,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _Logo(height: logoHeight),
-              _WelcomeCopy(compact: compact, compressed: compressed),
-              _Benefits(compact: compact, compressed: compressed),
-              _RoleButtons(compact: compact, compressed: compressed),
-            ],
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 560, minHeight: height),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              topBottomPadding,
+              horizontalPadding,
+              topBottomPadding,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _Logo(height: logoHeight),
+                const SizedBox(height: 16),
+                _WelcomeCopy(compact: compact, compressed: compressed),
+                const SizedBox(height: 16),
+                _Benefits(compact: compact, compressed: compressed),
+                const SizedBox(height: 16),
+                _RoleButtons(compact: compact, compressed: compressed),
+              ],
+            ),
           ),
         ),
       ),
@@ -140,29 +135,33 @@ class _LandscapeLayout extends StatelessWidget {
             children: [
               Expanded(
                 flex: 9,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _Logo(height: logoHeight),
-                    const SizedBox(height: 4),
-                    _WelcomeCopy(compact: true, compressed: compressed),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _Logo(height: logoHeight),
+                      const SizedBox(height: 4),
+                      _WelcomeCopy(compact: true, compressed: compressed),
+                    ],
+                  ),
                 ),
               ),
               SizedBox(width: width < 700 ? 12 : 28),
               Expanded(
                 flex: 11,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _Benefits(compact: true, compressed: compressed),
-                    SizedBox(height: compressed ? 5 : 9),
-                    _RoleButtons(
-                      compact: true,
-                      landscape: true,
-                      compressed: compressed,
-                    ),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _Benefits(compact: true, compressed: compressed),
+                      SizedBox(height: compressed ? 5 : 9),
+                      _RoleButtons(
+                        compact: true,
+                        landscape: true,
+                        compressed: compressed,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

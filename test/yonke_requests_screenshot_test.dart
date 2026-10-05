@@ -81,6 +81,9 @@ class _ScreenshotRequestsRepo implements YonkeRequestsRepository {
 
   @override
   Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async => null;
 }
 
 void main() {

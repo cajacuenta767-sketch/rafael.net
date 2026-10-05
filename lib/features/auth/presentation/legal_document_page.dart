@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +14,7 @@ class LegalDocumentPage extends StatelessWidget {
   final String assetPath;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     appBar: AppBar(title: Text(title)),
     body: SafeArea(
       child: FutureBuilder<String>(

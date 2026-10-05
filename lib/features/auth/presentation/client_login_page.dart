@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -32,13 +34,9 @@ double _responsiveSize(
   double regular,
   double expanded,
 ) {
-  if (dense) return compact;
-  if (MediaQuery.textScalerOf(context).scale(1) > 1) return regular;
-  final factor = ((MediaQuery.sizeOf(context).height - 700) / 220).clamp(
-    0.0,
-    1.0,
-  );
-  return regular + (expanded - regular) * factor;
+  // Compact windows reduce decoration/spacing, not the usable form size.
+  // User text scaling remains independent of the window's height.
+  return dense ? regular : expanded;
 }
 
 class ClientLoginPage extends ConsumerStatefulWidget {
@@ -98,9 +96,10 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ResponsiveScaffold(
+      maxContentWidth: 1200,
       backgroundColor: const Color(0xFFFCFCFD),
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           const Positioned.fill(child: _AuthBackground()),
@@ -108,14 +107,9 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
             child: LayoutBuilder(
               builder: (context, box) {
                 final scale = MediaQuery.textScalerOf(context).scale(1);
-                final landscape =
-                    box.maxWidth > box.maxHeight && box.maxWidth >= 650;
-                final dense =
-                    box.maxHeight < 680 ||
-                    box.maxWidth < 340 ||
-                    (scale > 1 && box.maxHeight < 900) ||
-                    scale >= 1.2;
-                return landscape
+                final landscape = box.maxWidth >= 1000 && scale < 1.5;
+                final dense = box.maxWidth < 600 || box.maxHeight < 680;
+                final content = landscape
                     ? _landscape(box, dense)
                     : _portrait(
                         box,
@@ -123,6 +117,14 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
                         MediaQuery.viewInsetsOf(context).bottom > 0 &&
                             _otpFocus.hasFocus,
                       );
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight),
+                    child: content,
+                  ),
+                );
               },
             ),
           ),
@@ -154,7 +156,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   }
 
   Widget _portrait(BoxConstraints box, bool dense, bool liftForOtpKeyboard) {
-    final side = box.maxWidth < 360 ? 6.0 : 10.0;
+    final side = box.maxWidth < 360 ? 16.0 : 24.0;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: side),
       child: Transform.translate(
@@ -165,7 +167,7 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
         child: Align(
           alignment: Alignment.center,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
+            constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -182,19 +184,19 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
 
   Widget _landscape(BoxConstraints box, bool dense) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Row(
         children: [
-          Expanded(flex: 4, child: _LoginHeader(dense: true)),
-          const SizedBox(width: 12),
+          const Expanded(flex: 5, child: _LoginHeader(dense: false)),
+          const SizedBox(width: 48),
           Expanded(
             flex: 6,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 680),
-                  child: _card(dense: true, landscape: true),
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: _card(dense: false, landscape: false),
                 ),
               ],
             ),
@@ -654,7 +656,9 @@ class _LoginHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logoHeight = _responsiveSize(context, dense, 40, 100, 180);
+    final logoHeight = MediaQuery.sizeOf(context).height < 500
+        ? 64.0
+        : _responsiveSize(context, dense, 100, 140, 220);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -680,7 +684,7 @@ class _LoginHeader extends StatelessWidget {
           TextSpan(
             style: TextStyle(
               color: _navy,
-              fontSize: _responsiveSize(context, dense, 18, 22, 25),
+              fontSize: _responsiveSize(context, dense, 22, 26, 34),
               fontWeight: FontWeight.w800,
               height: 1.05,
             ),
@@ -700,7 +704,7 @@ class _LoginHeader extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _body,
-            fontSize: _responsiveSize(context, dense, 10, 12, 14),
+            fontSize: _responsiveSize(context, dense, 14, 15, 17),
             height: 1.1,
           ),
         ),
@@ -764,7 +768,7 @@ class _LoginCard extends StatelessWidget {
     return Container(
       key: const Key('client_login_card'),
       width: double.infinity,
-      padding: EdgeInsets.all(_responsiveSize(context, dense, 7, 10, 18)),
+      padding: EdgeInsets.all(_responsiveSize(context, dense, 16, 16, 24)),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(249),
         borderRadius: BorderRadius.circular(
@@ -808,7 +812,7 @@ class _LoginCard extends StatelessWidget {
                 'Código de 6 dígitos',
                 style: TextStyle(
                   color: _navy,
-                  fontSize: _responsiveSize(context, dense, 11, 13, 15),
+                  fontSize: _responsiveSize(context, dense, 14, 14, 16),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -838,7 +842,7 @@ class _LoginCard extends StatelessWidget {
               : 'Te enviaremos un código de verificación por SMS.',
           style: TextStyle(
             color: _body,
-            fontSize: _responsiveSize(context, dense, 9, 10, 12),
+            fontSize: _responsiveSize(context, dense, 13, 13, 14),
             height: 1.05,
           ),
         ),
@@ -862,7 +866,7 @@ class _LoginCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: _responsiveSize(context, dense, 24, 29, 36),
+          height: _responsiveSize(context, dense, 44, 44, 48),
           child: TextButton(
             onPressed: verification && controller.canResend
                 ? () => controller.resendCode()
@@ -876,7 +880,7 @@ class _LoginCard extends StatelessWidget {
                   ? 'Reenviar código (${_timer(controller.resendSeconds)})'
                   : 'Reenviar código',
               style: TextStyle(
-                fontSize: _responsiveSize(context, dense, 10, 12, 13),
+                fontSize: _responsiveSize(context, dense, 14, 14, 14),
               ),
             ),
           ),
@@ -923,7 +927,7 @@ class _LoginCard extends StatelessWidget {
               padding: EdgeInsets.zero,
               minimumSize: Size(
                 48,
-                _responsiveSize(context, dense, 26, 32, 40),
+                _responsiveSize(context, dense, 48, 48, 48),
               ),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -931,7 +935,7 @@ class _LoginCard extends StatelessWidget {
             label: Text(
               'Regresar',
               style: TextStyle(
-                fontSize: _responsiveSize(context, dense, 11, 13, 15),
+                fontSize: _responsiveSize(context, dense, 14, 14, 15),
               ),
             ),
           ),
@@ -971,7 +975,7 @@ class _CardTitle extends StatelessWidget {
               'INGRESO PARA CLIENTES',
               style: TextStyle(
                 color: _green,
-                fontSize: _responsiveSize(context, dense, 12, 15, 18),
+                fontSize: _responsiveSize(context, dense, 16, 18, 20),
                 fontWeight: FontWeight.w800,
                 height: 1.05,
               ),
@@ -981,7 +985,7 @@ class _CardTitle extends StatelessWidget {
               'Ingresa tu número de celular para iniciar sesión',
               style: TextStyle(
                 color: _body,
-                fontSize: _responsiveSize(context, dense, 9, 10, 12),
+                fontSize: _responsiveSize(context, dense, 13, 13, 14),
                 height: 1.05,
               ),
             ),
@@ -1018,7 +1022,7 @@ class _PhoneField extends StatelessWidget {
     keyboardType: TextInputType.phone,
     textInputAction: TextInputAction.done,
     autofillHints: const [AutofillHints.telephoneNumberNational],
-    style: TextStyle(fontSize: _responsiveSize(context, dense, 13, 14, 17)),
+    style: const TextStyle(fontSize: 16),
     inputFormatters: [
       FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
       LengthLimitingTextInputFormatter(16),
@@ -1049,7 +1053,7 @@ class _PhoneField extends StatelessWidget {
         fontSize: _responsiveSize(context, dense, 11, 12, 14),
       ),
       errorText: errorText,
-      errorStyle: TextStyle(fontSize: dense ? 9 : 10, height: 1),
+      errorStyle: const TextStyle(fontSize: 13, height: 1.2),
       errorMaxLines: 2,
       prefixIconConstraints: BoxConstraints(
         minWidth: _responsiveSize(context, dense, 91, 103, 118),
@@ -1187,7 +1191,7 @@ class _OtpInputState extends State<_OtpInput> {
     child: GestureDetector(
       onLongPress: widget.enabled ? _pasteCode : null,
       child: SizedBox(
-        height: _responsiveSize(context, widget.dense, 32, 40, 52),
+        height: _responsiveSize(context, widget.dense, 52, 52, 56),
         child: Stack(
           children: [
             Row(
@@ -1314,7 +1318,7 @@ class _PrimaryButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         minimumSize: Size(
           double.infinity,
-          _responsiveSize(context, dense, 34, 42, 52),
+          _responsiveSize(context, dense, 52, 52, 56),
         ),
         padding: EdgeInsets.symmetric(
           horizontal: 8,
@@ -1389,7 +1393,7 @@ class _SocialButton extends StatelessWidget {
       foregroundColor: const Color(0xFF16181D),
       minimumSize: Size(
         double.infinity,
-        _responsiveSize(context, dense, 30, 38, 48),
+        _responsiveSize(context, dense, 52, 52, 52),
       ),
       padding: EdgeInsets.symmetric(
         horizontal: _responsiveSize(context, dense, 9, 12, 16),
@@ -1410,7 +1414,7 @@ class _SocialButton extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: _responsiveSize(context, dense, 12, 13, 15),
+              fontSize: _responsiveSize(context, dense, 15, 15, 16),
             ),
           ),
         ),

@@ -1,4 +1,5 @@
 import '../../../core/storage/token_store.dart';
+import '../../../core/realtime/read_receipt_tracking.dart';
 import '../../auth/domain/current_user.dart';
 import '../../dashboard/data/dashboard_api.dart';
 import '../../quotes/data/quote_yonke_resolver.dart';
@@ -27,7 +28,9 @@ abstract interface class ClientMessagesRepository {
 /// Al escribir, agrega el contacto del perfil (nombre, teléfono y foto de
 /// Google) si el yonke todavía no lo tiene en esa conversación, para que lo
 /// vea sin que el cliente haga nada más (ver `client_contact.dart`).
-class ApiClientMessagesRepository implements ClientMessagesRepository {
+class ApiClientMessagesRepository
+    with ReadReceiptTracking
+    implements ClientMessagesRepository {
   ApiClientMessagesRepository(
     this._quotesApi,
     this._dashboardApi,
@@ -131,11 +134,10 @@ class ApiClientMessagesRepository implements ClientMessagesRepository {
           ),
         )
         .toList(growable: false);
-    try {
-      await _quotesApi.markMessagesRead(quoteId);
-    } catch (_) {
-      // La lectura ya se mostró; el marcado se reintenta en la próxima visita.
-    }
+    await synchronizeReadReceipt(
+      quoteId,
+      () => _quotesApi.markMessagesRead(quoteId),
+    );
     return messages;
   }
 

@@ -55,13 +55,41 @@ QuoteClient? quoteClientFromResponse(dynamic response) {
   return client.isEmpty ? null : client;
 }
 
+String? extractClientIdFromQuoteResponse(dynamic response) {
+  final data = response is Map ? response['data'] ?? response : null;
+  if (data is! Map) return null;
+  final assignment = data['solicitudYonkes'];
+  final request = assignment is Map ? assignment['solicitudes'] : null;
+
+  for (final holder in [data, assignment, request]) {
+    if (holder is Map) {
+      final id = _text(
+        holder['clienteGuidId'] ??
+            holder['usuarioId'] ??
+            holder['clienteId'] ??
+            holder['clienteIdGuid'],
+      );
+      if (id != null && id.isNotEmpty) return id;
+      final cliente = holder['cliente'] ?? holder['clientes'];
+      if (cliente is Map) {
+        final cid = _text(cliente['guidId'] ?? cliente['id']);
+        if (cid != null && cid.isNotEmpty) return cid;
+      }
+    }
+  }
+  return null;
+}
+
 String? _text(dynamic value) {
   final text = value?.toString().trim();
   return text == null || text.isEmpty ? null : text;
 }
 
 String? _safeImage(String? url) {
-  final uri = Uri.tryParse(url ?? '');
+  if (url == null) return null;
+  if (url.startsWith('asset://assets/')) return url;
+  if (url.startsWith('data:image/') && url.contains(';base64,')) return url;
+  final uri = Uri.tryParse(url);
   return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
       ? url
       : null;

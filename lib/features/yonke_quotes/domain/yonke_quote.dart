@@ -1,3 +1,5 @@
+import '../../quotes/domain/quote_payment_status.dart';
+
 enum YonkeQuoteStatus { sent, viewed, accepted, rejected, closed, unknown }
 
 extension YonkeQuoteStatusLabel on YonkeQuoteStatus {
@@ -35,6 +37,7 @@ class YonkeQuote {
     this.comments,
     this.deliveryDays,
     this.shippingCost,
+    this.paymentStatus = QuotePaymentStatus.pending,
   });
 
   final String id;
@@ -59,6 +62,9 @@ class YonkeQuote {
   final String? comments;
   final int? deliveryDays;
   final double? shippingCost;
+  final QuotePaymentStatus paymentStatus;
+
+  bool get isPaid => paymentStatus == QuotePaymentStatus.paid;
 
   String get vehicle => [
     brand,
@@ -189,6 +195,9 @@ YonkeQuote? yonkeQuoteFromJson(Map<dynamic, dynamic> json) {
     comments: _text(json['comentarios']),
     deliveryDays: (json['tiempoEntregaDias'] as num?)?.toInt(),
     shippingCost: (json['costoEnvio'] as num?)?.toDouble(),
+    paymentStatus: QuotePaymentStatus.fromValue(
+      json['estadoPago'] ?? json['EstadoPago'],
+    ),
   );
 }
 

@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,17 +33,31 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
     super.initState();
     _repository =
         widget.repository ?? ref.read(yonkeReputationRepositoryProvider);
-    _load();
+    if (widget.yonkeId.isNotEmpty) {
+      _load();
+    } else {
+      // No request can run without an identifier. Do not leave a permanent
+      // spinner when an incomplete quotation enters the viewport.
+      _loading = false;
+      _error = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(YonkeReputationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.yonkeId != oldWidget.yonkeId) {
+      if (widget.yonkeId.isNotEmpty) {
+        _load();
+      } else {
+        _loading = false;
+        _error = true;
+      }
+    }
   }
 
   Future<void> _load() async {
-    if (widget.yonkeId.isEmpty) {
-      setState(() {
-        _loading = false;
-        _error = true;
-      });
-      return;
-    }
+    if (widget.yonkeId.isEmpty) return;
     setState(() {
       _loading = true;
       _error = false;
@@ -76,6 +92,11 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
   );
 
   Widget _content(BuildContext context) {
+    if (widget.yonkeId.isEmpty) {
+      return const Text(
+        'Reputación no disponible: falta identificar al yonke.',
+      );
+    }
     if (_loading) {
       return const SizedBox(
         height: 54,
@@ -83,7 +104,7 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
       );
     }
     if (_error) {
-      return Row(
+      return AdaptiveInline(
         children: [
           const Icon(Icons.star_outline, color: Color(0xFF596276)),
           const SizedBox(width: 10),
@@ -94,7 +115,7 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
     }
     final reputation = _reputation!;
     if (reputation.count == 0) {
-      return const Row(
+      return const AdaptiveInline(
         children: [
           Icon(Icons.star_outline, color: Color(0xFF596276)),
           SizedBox(width: 10),
@@ -105,7 +126,7 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        AdaptiveInline(
           children: [
             const Icon(Icons.star_rounded, color: Color(0xFFF5AA16)),
             const SizedBox(width: 6),

@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,7 @@ class RequestDetailPage extends ConsumerStatefulWidget {
 class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
   ClientRequestDetail? _detail;
   List<ClientQuote> _quotes = const [];
+  List<RequestRecipient> _recipients = const [];
   bool _loading = true;
   bool _cancelling = false;
   bool _deletingPhoto = false;
@@ -55,12 +58,14 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
         _optional(requests.getImages(widget.requestId)),
         _optional(requests.getCities(widget.requestId)),
         _optional(ref.read(dashboardApiProvider).getMyQuotes()),
+        _optional(requests.getRecipients(widget.requestId)),
       ]);
       final detail = clientRequestDetailFromResponses(
         requestResponse: results[0],
         imagesResponse: results[1],
         citiesResponse: results[2],
       );
+      final recipients = requestRecipientsFromResponse(results[4]);
       if (!mounted) return;
 
       final quotes = detail == null
@@ -83,6 +88,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
       setState(() {
         _detail = detail;
         _quotes = quotes;
+        _recipients = recipients;
         _loading = false;
       });
     } catch (error) {
@@ -237,7 +243,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: Colors.white,
     appBar: AppBar(
       backgroundColor: Colors.white,
@@ -271,7 +277,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
             if (_detail != null && !_detail!.summary.closed)
               const PopupMenuItem(
                 value: 'cancel',
-                child: Row(
+                child: AdaptiveInline(
                   children: [
                     Icon(
                       Icons.delete_outline,
@@ -342,7 +348,7 @@ class _RequestDetailPageState extends ConsumerState<RequestDetailPage> {
                   canDelete: (url) => detail.imageIds.containsKey(url),
                 ),
                 const SizedBox(height: 20),
-                const _DispatchSection(),
+                _DispatchSection(recipients: _recipients),
                 const SizedBox(height: 20),
                 _QuotesSection(
                   quotes: _quotes,
@@ -371,7 +377,7 @@ class _RequestMeta extends StatelessWidget {
   final ClientRequestDetail detail;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => AdaptiveInline(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       _StatusChip(status: detail.summary.status),
@@ -400,11 +406,24 @@ class _RequestSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = detail.imageUrls.firstOrNull;
-    return Row(
+    return AdaptiveInline(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _RequestImage(url: imageUrl, size: 86),
+        Container(
+          width: 86,
+          height: 86,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF6E5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.directions_car_filled_outlined,
+              color: _greenDark,
+              size: 42,
+            ),
+          ),
+        ),
         const SizedBox(width: 13),
         Expanded(
           child: Column(
@@ -448,7 +467,7 @@ class _RequestSummary extends StatelessWidget {
               ],
               if (detail.cities.isNotEmpty) ...[
                 const SizedBox(height: 7),
-                Row(
+                AdaptiveInline(
                   children: [
                     const Icon(
                       Icons.location_on_outlined,
@@ -498,13 +517,14 @@ class _PhotosSection extends StatelessWidget {
       const SizedBox(height: 9),
       if (imageUrls.isEmpty)
         Container(
-          height: 64,
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFF7F9F7),
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: _line),
           ),
-          child: const Row(
+          child: const AdaptiveInline(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.photo_outlined, color: _muted, size: 21),
@@ -563,37 +583,140 @@ class _PhotosSection extends StatelessWidget {
 }
 
 class _DispatchSection extends StatelessWidget {
-  const _DispatchSection();
+  const _DispatchSection({required this.recipients});
+  final List<RequestRecipient> recipients;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const _SectionHeader(title: 'Enviada a yonkes con cobertura', action: ''),
-      const SizedBox(height: 9),
-      Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF6FBF3),
-          borderRadius: BorderRadius.circular(13),
-        ),
-        child: const Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(0xFFE2F4D9),
-              child: Icon(Icons.send_outlined, color: _greenDark, size: 19),
-            ),
-            SizedBox(width: 11),
-            Expanded(
-              child: Text(
-                'La lista de destinatarios no está disponible en el API.',
-                style: TextStyle(color: Color(0xFF56605A), fontSize: 10.5),
-              ),
-            ),
-          ],
-        ),
+      _SectionHeader(
+        title: recipients.isEmpty
+            ? 'Enviada a yonkes con cobertura'
+            : 'Enviada a yonkes con cobertura (${recipients.length})',
+        action: '',
       ),
+      const SizedBox(height: 9),
+      if (recipients.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF6FBF3),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: const AdaptiveInline(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xFFE2F4D9),
+                child: Icon(Icons.send_outlined, color: _greenDark, size: 19),
+              ),
+              SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  'Pendiente de envío a yonkes con cobertura.',
+                  style: TextStyle(color: Color(0xFF56605A), fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        )
+      else
+        Column(
+          children: recipients
+              .map(
+                (r) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE4E7EB)),
+                  ),
+                  child: AdaptiveInline(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFFF0F4F8),
+                        backgroundImage:
+                            r.logoUrl != null && r.logoUrl!.isNotEmpty
+                            ? NetworkImage(r.logoUrl!)
+                            : null,
+                        child: r.logoUrl == null || r.logoUrl!.isEmpty
+                            ? const Icon(
+                                Icons.storefront_outlined,
+                                color: _navy,
+                                size: 20,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.yonkeName,
+                              style: const TextStyle(
+                                color: _navy,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (r.telephone != null && r.telephone!.isNotEmpty)
+                              Text(
+                                r.telephone!,
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: r.viewed
+                              ? const Color(0xFFEBF3FC)
+                              : const Color(0xFFF6FBF3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: AdaptiveInline(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              r.viewed
+                                  ? Icons.visibility_outlined
+                                  : Icons.check_circle_outline,
+                              size: 14,
+                              color: r.viewed
+                                  ? const Color(0xFF1976D2)
+                                  : _greenDark,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              r.viewed ? 'Vista' : 'Enviada',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: r.viewed
+                                    ? const Color(0xFF1976D2)
+                                    : _greenDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
     ],
   );
 }
@@ -683,7 +806,7 @@ class _QuoteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-    child: Row(
+    child: AdaptiveInline(
       children: [
         Expanded(
           child: Column(
@@ -739,7 +862,7 @@ class _SectionHeader extends StatelessWidget {
   final String action;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => AdaptiveInline(
     children: [
       Expanded(
         child: Text(
@@ -830,7 +953,7 @@ class _BottomActions extends StatelessWidget {
       color: Colors.white,
       border: Border(top: BorderSide(color: _line)),
     ),
-    child: Row(
+    child: AdaptiveInline(
       children: [
         Expanded(
           child: OutlinedButton(

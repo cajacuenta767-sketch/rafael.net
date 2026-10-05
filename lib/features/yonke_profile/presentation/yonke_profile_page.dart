@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -57,7 +59,7 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -215,29 +217,35 @@ class _YonkeProfilePageState extends ConsumerState<YonkeProfilePage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                profile.name ?? 'Datos del yonke',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w800),
+        child: ResponsiveContent(
+          maxWidth: 600,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profile.name ?? 'Datos del yonke',
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  _DataRow('Responsable', profile.manager),
+                  _DataRow('Teléfono', profile.phone),
+                  _DataRow('Correo', profile.email),
+                  _DataRow('Dirección', profile.fullAddress),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'La edición de estos datos se habilitará en una próxima versión.',
+                    style: TextStyle(color: Color(0xFF596276), fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              _DataRow('Responsable', profile.manager),
-              _DataRow('Teléfono', profile.phone),
-              _DataRow('Correo', profile.email),
-              _DataRow('Dirección', profile.fullAddress),
-              const SizedBox(height: 12),
-              const Text(
-                'La edición de estos datos se habilitará en una próxima versión.',
-                style: TextStyle(color: Color(0xFF596276), fontSize: 12),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -523,7 +531,14 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
             bytes: _logoBytes ?? await logo.readAsBytes(),
           ),
         );
+        final previousLogo = widget.profile.logoUrl;
+        if (previousLogo != null &&
+            Uri.tryParse(previousLogo)?.scheme == 'https') {
+          await NetworkImage(previousLogo).evict();
+        }
       }
+      // Las cotizaciones deben volver a resolver datos del negocio actualizado.
+      ref.invalidate(quoteYonkeResolverProvider);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (error) {
@@ -543,7 +558,7 @@ class _YonkeProfileEditorState extends ConsumerState<_YonkeProfileEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(centerTitle: true, title: const Text('Editar negocio')),
     body: Form(
@@ -656,7 +671,7 @@ class _DataRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
+    child: AdaptiveInline(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(

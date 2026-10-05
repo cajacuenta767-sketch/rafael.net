@@ -6,6 +6,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('un yonke sin identificador no deja un cargador permanente', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(body: YonkeReputationCard(yonkeId: '')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.textContaining('falta identificar'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   test(
     'calcula reputación desde las calificaciones documentadas por la API',
     () {

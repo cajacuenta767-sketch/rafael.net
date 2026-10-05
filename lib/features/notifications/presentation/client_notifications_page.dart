@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +37,7 @@ class _ClientNotificationsPageState
   void _reload() => setState(() => _items = _repository.getInbox());
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFF8F9FA),
     appBar: AppBar(
       backgroundColor: const Color(0xFFF8F9FA),

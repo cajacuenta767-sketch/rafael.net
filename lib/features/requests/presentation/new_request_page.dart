@@ -1,10 +1,15 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
+import '../../catalogs/domain/location_options.dart';
+import '../domain/autoparts_catalog.dart';
 import '../domain/request_draft.dart';
 
 const _green = Color(0xFF42B91B);
@@ -13,8 +18,9 @@ const _ink = Color(0xFF101820);
 const _muted = Color(0xFF8B929B);
 
 class NewRequestPage extends ConsumerStatefulWidget {
-  const NewRequestPage({super.key, this.draft});
+  const NewRequestPage({super.key, this.draft, this.initialStep});
   final RequestDraft? draft;
+  final int? initialStep;
 
   @override
   ConsumerState<NewRequestPage> createState() => _NewRequestPageState();
@@ -23,39 +29,69 @@ class NewRequestPage extends ConsumerStatefulWidget {
 class _NewRequestPageState extends ConsumerState<NewRequestPage> {
   static const _maxPhotos = 3;
   static const _maxPhotoBytes = 10 * 1024 * 1024;
-  final _partKey = GlobalKey<FormState>();
-  final _vehicleKey = GlobalKey<FormState>();
+
+  final _formKey = GlobalKey<FormState>();
+  final _cityFormKey = GlobalKey<FormState>();
   final _partController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _partNumberController = TextEditingController();
+  final _engineController = TextEditingController();
   final _picker = ImagePicker();
+
   List<_CatalogOption> _brands = const [];
   List<_CatalogOption> _models = const [];
+  List<StateOption> _states = const [];
+  List<CityOption> _cities = const [];
+
   int _step = 0;
   int? _brandId;
   int? _modelId;
   int? _year;
+  String? _selectedSide;
+  String? _selectedTransmission;
+  int? _selectedStateId;
+  int? _selectedCityId;
+
   String? _error;
+  String? _cityError;
   bool _loadingBrands = true;
   bool _loadingModels = false;
+  bool _loadingStates = false;
+  bool _loadingCities = false;
   bool _pickingPhoto = false;
+
   late final RequestDraft _draft;
 
   @override
   void initState() {
     super.initState();
     _draft = widget.draft ?? RequestDraft();
+    _step = widget.initialStep ?? 0;
     _partController.text = _draft.part;
+    _selectedSide = _draft.partSide;
+    _partNumberController.text = _draft.partNumber ?? '';
+    _engineController.text = _draft.engine ?? '';
+    _selectedTransmission = _draft.transmission;
     _descriptionController.text = _draft.description ?? '';
     _brandId = _draft.brandId;
     _modelId = _draft.modelId;
     _year = _draft.year;
+    _selectedStateId = _draft.stateId;
+    _selectedCityId = _draft.cityId;
+
+    _partController.addListener(() => setState(() {}));
     _loadBrands();
+    if (_step == 3 || _selectedStateId != null) {
+      _loadStates();
+    }
   }
 
   @override
   void dispose() {
     _partController.dispose();
     _descriptionController.dispose();
+    _partNumberController.dispose();
+    _engineController.dispose();
     super.dispose();
   }
 
@@ -111,41 +147,224 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
     }
   }
 
-  void _goBack() {
-    if (_step > 0) {
-      setState(() => _step--);
-    } else {
-      context.pop();
+  Future<void> _loadStates() async {
+    if (_states.isNotEmpty) return;
+    setState(() {
+      _loadingStates = true;
+      _cityError = null;
+    });
+    try {
+      final response = await ref.read(catalogsApiProvider).getStates();
+      final states = statesFromResponse(response);
+      if (states.isEmpty) throw StateError('No hay estados disponibles.');
+      if (!mounted) return;
+      setState(() {
+        _states = states;
+        _selectedStateId = states.any((state) => state.id == _selectedStateId)
+            ? _selectedStateId
+            : states.first.id;
+        _loadingStates = false;
+      });
+      if (_selectedStateId != null) {
+        await _loadCities(_selectedStateId!);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingStates = false;
+        _cityError = 'No se pudieron cargar los estados.';
+      });
     }
   }
 
-  void _continue() {
-    FocusScope.of(context).unfocus();
+  Future<void> _loadCities(int stateId) async {
+    setState(() {
+      _selectedStateId = stateId;
+      _selectedCityId = null;
+      _cities = const [];
+      _loadingCities = true;
+      _cityError = null;
+    });
+    try {
+      final response = await ref
+          .read(catalogsApiProvider)
+          .getCitiesByState(stateId);
+      final stateName = _states
+          .where((state) => state.id == stateId)
+          .map((state) => state.name)
+          .firstOrNull;
+      final cities = citiesFromResponse(response, fallbackStateName: stateName);
+      if (!mounted) return;
+      setState(() {
+        _cities = cities;
+        _selectedCityId = cities.any((city) => city.id == _draft.cityId)
+            ? _draft.cityId
+            : null;
+        _loadingCities = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingCities = false;
+        _cityError = 'No se pudieron cargar las ciudades.';
+      });
+    }
+  }
+
+  void _syncCurrentStepToDraft() {
     if (_step == 0) {
-      if (!(_partKey.currentState?.validate() ?? false)) return;
       _draft.part = _partController.text.trim();
-      setState(() => _step = 1);
-      return;
-    }
-    if (_step == 1) {
-      if (!(_vehicleKey.currentState?.validate() ?? false)) return;
-      _draft
-        ..brandId = _brandId
-        ..brandName = _selectedName(_brands, _brandId)
-        ..modelId = _modelId
-        ..modelName = _selectedName(_models, _modelId)
-        ..year = _year;
-      setState(() => _step = 2);
-      return;
-    }
-    if (_step == 2) {
+      _draft.partSide = _selectedSide;
+      _draft.brandId = _brandId;
+      _draft.brandName = _selectedName(_brands, _brandId);
+      _draft.modelId = _modelId;
+      _draft.modelName = _selectedName(_models, _modelId);
+      _draft.year = _year;
+    } else if (_step == 1) {
       _draft.description = _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim();
+      _draft.partNumber = _partNumberController.text.trim().isEmpty
+          ? null
+          : _partNumberController.text.trim();
+      _draft.engine = _engineController.text.trim().isEmpty
+          ? null
+          : _engineController.text.trim();
+      _draft.transmission = _selectedTransmission;
+    } else if (_step == 3) {
+      final city = _cities.where((c) => c.id == _selectedCityId).firstOrNull;
+      final state = _states.where((s) => s.id == _selectedStateId).firstOrNull;
+      if (city != null) {
+        _draft.cityId = city.id;
+        _draft.cityName = city.fullName;
+      }
+      if (state != null) {
+        _draft.stateId = state.id;
+        _draft.stateName = state.name;
+      }
+    }
+  }
+
+  void _goToStep(int targetStep) {
+    if (targetStep == _step) return;
+    HapticFeedback.lightImpact();
+
+    if (targetStep < _step) {
+      _syncCurrentStepToDraft();
+      setState(() => _step = targetStep);
+      return;
+    }
+
+    // Si intenta saltar hacia adelante
+    FocusScope.of(context).unfocus();
+    if (_step == 0) {
+      if (!(_formKey.currentState?.validate() ?? false)) return;
+      _syncCurrentStepToDraft();
+    } else if (_step == 1) {
+      _syncCurrentStepToDraft();
+    }
+
+    if (targetStep == 3 && _states.isEmpty && !_loadingStates) {
+      _loadStates();
+    }
+    setState(() => _step = targetStep);
+  }
+
+  Future<void> _goBack() async {
+    if (_step > 0) {
+      _syncCurrentStepToDraft();
+      setState(() => _step--);
+    } else {
+      final hasData =
+          _partController.text.isNotEmpty ||
+          _brandId != null ||
+          _partNumberController.text.isNotEmpty ||
+          _engineController.text.isNotEmpty ||
+          _descriptionController.text.isNotEmpty ||
+          _draft.photos.isNotEmpty;
+      if (hasData) {
+        final leave = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('¿Descartar solicitud?'),
+            content: const Text(
+              'Si sales ahora se perderán los datos ingresados en tu solicitud.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Continuar editando'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                ),
+                child: const Text('Descartar'),
+              ),
+            ],
+          ),
+        );
+        if (leave == true && mounted) {
+          context.pop();
+        }
+      } else {
+        context.pop();
+      }
+    }
+  }
+
+  Future<void> _continue() async {
+    FocusScope.of(context).unfocus();
+    HapticFeedback.lightImpact();
+
+    if (_step == 0) {
+      if (!(_formKey.currentState?.validate() ?? false)) return;
+      _syncCurrentStepToDraft();
+      setState(() => _step = 1);
+      return;
+    }
+
+    if (_step == 1) {
+      _syncCurrentStepToDraft();
+      setState(() => _step = 2);
+      return;
+    }
+
+    if (_step == 2) {
+      if (_states.isEmpty && !_loadingStates) {
+        _loadStates();
+      }
       setState(() => _step = 3);
       return;
     }
-    context.push(AppRoutes.clientRequestCity, extra: _draft);
+
+    if (_step == 3) {
+      if (!(_cityFormKey.currentState?.validate() ?? false)) return;
+      final city = _cities
+          .where((item) => item.id == _selectedCityId)
+          .firstOrNull;
+      if (city == null) {
+        _showMessage('Selecciona una ciudad para continuar.');
+        return;
+      }
+      final state = _states
+          .where((item) => item.id == _selectedStateId)
+          .firstOrNull;
+      _draft
+        ..stateId = state?.id
+        ..stateName = state?.name
+        ..cityId = city.id
+        ..cityName = city.fullName;
+
+      final targetStep = await context.push<int>(
+        AppRoutes.clientRequestReview,
+        extra: _draft,
+      );
+      if (targetStep != null && mounted) {
+        setState(() => _step = targetStep);
+      }
+    }
   }
 
   Future<void> _choosePhoto() async {
@@ -190,7 +409,12 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
   Future<void> _pickPhoto(ImageSource source) async {
     setState(() => _pickingPhoto = true);
     try {
-      final file = await _picker.pickImage(source: source, imageQuality: 85);
+      final file = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
       if (file == null) return;
       final extension = file.name.split('.').last.toLowerCase();
       if (!const {'jpg', 'jpeg', 'png', 'webp'}.contains(extension)) {
@@ -216,87 +440,120 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
           .showSnackBar(SnackBar(content: Text(message)));
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.white,
-    appBar: AppBar(
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) _goBack();
+    },
+    child: ResponsiveScaffold(
       backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      leading: IconButton(
-        tooltip: 'Regresar',
-        onPressed: _goBack,
-        icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _ink),
-      ),
-      title: const Text(
-        'Nueva solicitud',
-        style: TextStyle(
-          color: _ink,
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          tooltip: 'Regresar',
+          onPressed: _goBack,
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _ink),
+        ),
+        title: const Text(
+          'Nueva solicitud',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
-    ),
-    body: SafeArea(
-      top: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            children: [
-              _RequestProgress(currentStep: _step),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 48),
-                  child: switch (_step) {
-                    0 => _PartStep(
-                      key: const ValueKey('part-step'),
-                      formKey: _partKey,
-                      controller: _partController,
-                    ),
-                    1 => _VehicleStep(
-                      key: const ValueKey('vehicle-step'),
-                      formKey: _vehicleKey,
-                      brands: _brands,
-                      models: _models,
-                      brandId: _brandId,
-                      modelId: _modelId,
-                      year: _year,
-                      loadingBrands: _loadingBrands,
-                      loadingModels: _loadingModels,
-                      error: _error,
-                      onBrandChanged: (value) {
-                        if (value != null) _loadModels(value);
-                      },
-                      onModelChanged: (value) =>
-                          setState(() => _modelId = value),
-                      onYearChanged: (value) => setState(() => _year = value),
-                      onRetry: _brandId == null
-                          ? _loadBrands
-                          : () => _loadModels(_brandId!),
-                    ),
-                    2 => _DetailsStep(
-                      key: const ValueKey('details-step'),
-                      controller: _descriptionController,
-                      part: _draft.part,
-                      vehicle: _vehicleLabel,
-                    ),
-                    _ => _PhotosStep(
-                      key: const ValueKey('photos-step'),
-                      photos: _draft.photos,
-                      picking: _pickingPhoto,
-                      onAdd: _choosePhoto,
-                      onRemove: (index) =>
-                          setState(() => _draft.photos.removeAt(index)),
-                    ),
-                  },
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              children: [
+                _RequestProgress(currentStep: _step, onStepTapped: _goToStep),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: switch (_step) {
+                      0 => _PartAndVehicleStep(
+                        key: const ValueKey('part-and-vehicle-step'),
+                        formKey: _formKey,
+                        partController: _partController,
+                        selectedSide: _selectedSide,
+                        onSideChanged: (side) =>
+                            setState(() => _selectedSide = side),
+                        brands: _brands,
+                        models: _models,
+                        brandId: _brandId,
+                        modelId: _modelId,
+                        year: _year,
+                        loadingBrands: _loadingBrands,
+                        loadingModels: _loadingModels,
+                        error: _error,
+                        onBrandChanged: (value) {
+                          if (value != null) _loadModels(value);
+                        },
+                        onModelChanged: (value) =>
+                            setState(() => _modelId = value),
+                        onYearChanged: (value) => setState(() => _year = value),
+                        onRetry: _brandId == null
+                            ? _loadBrands
+                            : () => _loadModels(_brandId!),
+                      ),
+                      1 => _DetailsStep(
+                        key: const ValueKey('details-step'),
+                        descriptionController: _descriptionController,
+                        partNumberController: _partNumberController,
+                        engineController: _engineController,
+                        selectedTransmission: _selectedTransmission,
+                        onTransmissionChanged: (value) =>
+                            setState(() => _selectedTransmission = value),
+                        part: _partController.text.trim().isEmpty
+                            ? _draft.part
+                            : _partController.text.trim(),
+                        partSide: _selectedSide,
+                        vehicle: _vehicleLabel,
+                      ),
+                      2 => _PhotosStep(
+                        key: const ValueKey('photos-step'),
+                        photos: _draft.photos,
+                        picking: _pickingPhoto,
+                        onAdd: _choosePhoto,
+                        onRemove: (index) =>
+                            setState(() => _draft.photos.removeAt(index)),
+                      ),
+                      _ => _CityStep(
+                        key: const ValueKey('city-step'),
+                        formKey: _cityFormKey,
+                        states: _states,
+                        cities: _cities,
+                        selectedStateId: _selectedStateId,
+                        selectedCityId: _selectedCityId,
+                        loadingStates: _loadingStates,
+                        loadingCities: _loadingCities,
+                        error: _cityError,
+                        onStateChanged: (stateId) {
+                          if (stateId != null) _loadCities(stateId);
+                        },
+                        onCityChanged: (cityId) =>
+                            setState(() => _selectedCityId = cityId),
+                        onRetry: _loadStates,
+                      ),
+                    },
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-                child: _ContinueButton(onPressed: _continue),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+                  child: _ContinueButton(
+                    label: _step == 3 ? 'Revisar solicitud' : 'Continuar',
+                    onPressed: _continue,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -304,43 +561,81 @@ class _NewRequestPageState extends ConsumerState<NewRequestPage> {
   );
 
   String get _vehicleLabel => [
-    _draft.brandName,
-    _draft.modelName,
-    _draft.year?.toString(),
+    _selectedName(_brands, _brandId) ?? _draft.brandName,
+    _selectedName(_models, _modelId) ?? _draft.modelName,
+    (_year ?? _draft.year)?.toString(),
   ].whereType<String>().join(' ');
 }
 
 class _RequestProgress extends StatelessWidget {
-  const _RequestProgress({required this.currentStep});
+  const _RequestProgress({
+    required this.currentStep,
+    required this.onStepTapped,
+  });
+
   final int currentStep;
-  static const _labels = ['Parte', 'Vehículo', 'Detalles', 'Fotos'];
+  final ValueChanged<int> onStepTapped;
+  static const _labels = ['Vehículo', 'Detalles', 'Fotos', 'Ciudad'];
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(22, 5, 22, 20),
-    child: Row(
-      children: [
-        for (var index = 0; index < _labels.length; index++) ...[
-          Expanded(
-            child: _ProgressItem(
-              number: index + 1,
-              label: _labels[index],
-              active: index == currentStep,
-              completed: index < currentStep,
-            ),
-          ),
-          if (index < _labels.length - 1)
+  Widget build(BuildContext context) {
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.3 ||
+        MediaQuery.sizeOf(context).height < 480) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        child: Row(
+          children: [
             Expanded(
-              child: Container(
-                height: 1.5,
-                margin: const EdgeInsets.only(bottom: 20),
-                color: index < currentStep ? _green : const Color(0xFFE3E7E9),
+              child: Text(
+                'Paso ${currentStep + 1} de 4 · ${_labels[currentStep]}',
+                style: const TextStyle(
+                  color: _greenDark,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+            PopupMenuButton<int>(
+              tooltip: 'Cambiar paso',
+              onSelected: onStepTapped,
+              itemBuilder: (_) => [
+                for (var i = 0; i < _labels.length; i++)
+                  PopupMenuItem(
+                    value: i,
+                    child: Text('${i + 1}. ${_labels[i]}'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 5, 22, 14),
+      child: Row(
+        children: [
+          for (var index = 0; index < _labels.length; index++) ...[
+            Expanded(
+              child: _ProgressItem(
+                number: index + 1,
+                label: _labels[index],
+                active: index == currentStep,
+                completed: index < currentStep,
+                onTap: () => onStepTapped(index),
+              ),
+            ),
+            if (index < _labels.length - 1)
+              Expanded(
+                child: Container(
+                  height: 1.5,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  color: index < currentStep ? _green : const Color(0xFFE3E7E9),
+                ),
+              ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _ProgressItem extends StatelessWidget {
@@ -349,231 +644,71 @@ class _ProgressItem extends StatelessWidget {
     required this.label,
     required this.active,
     required this.completed,
+    required this.onTap,
   });
+
   final int number;
   final String label;
   final bool active;
   final bool completed;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final highlighted = active || completed;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: highlighted ? _greenDark : const Color(0xFFE7EAEC),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '$number',
-            style: TextStyle(
-              color: highlighted ? Colors.white : const Color(0xFF687078),
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: highlighted ? _green : Colors.transparent,
+              border: Border.all(
+                color: highlighted ? _green : const Color(0xFFC7CDD3),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: completed
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : Text(
+                      '$number',
+                      style: TextStyle(
+                        color: active ? Colors.white : _muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          maxLines: 1,
-          style: TextStyle(
-            color: active ? _greenDark : _muted,
-            fontSize: 9,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          const SizedBox(height: 5),
+          Text(
+            label,
+            maxLines: 1,
+            style: TextStyle(
+              color: active ? _greenDark : _muted,
+              fontSize: 9,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _PartStep extends StatefulWidget {
-  const _PartStep({super.key, required this.formKey, required this.controller});
-  final GlobalKey<FormState> formKey;
-  final TextEditingController controller;
-
-  @override
-  State<_PartStep> createState() => _PartStepState();
-}
-
-class _PartStepState extends State<_PartStep> {
-  static const _categories = [
-    ('Carrocería', Icons.directions_car_outlined),
-    ('Motor', Icons.settings_outlined),
-    ('Suspensión', Icons.build_outlined),
-    ('Transmisión', Icons.hub_outlined),
-    ('Eléctrico', Icons.electric_bolt_outlined),
-    ('Interior', Icons.airline_seat_recline_normal_outlined),
-    ('Frenos', Icons.album_outlined),
-    ('Enfriamiento', Icons.device_thermostat_outlined),
-  ];
-  String? _selected;
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Form(
-      key: widget.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            '¿Qué autoparte buscas?',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextFormField(
-            key: const Key('request-part-field'),
-            controller: widget.controller,
-            textCapitalization: TextCapitalization.sentences,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              hintText: 'Ej. Faro izquierdo, Puerta, Motor...',
-              hintStyle: const TextStyle(color: _muted, fontSize: 12),
-              suffixIcon: const Icon(Icons.search, color: _greenDark, size: 22),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: const BorderSide(color: Color(0xFFF0F1F2)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: const BorderSide(color: _green),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: const BorderSide(color: Colors.redAccent),
-              ),
-            ),
-            validator: (value) => value == null || value.trim().isEmpty
-                ? 'Escribe la autoparte que buscas.'
-                : null,
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Categorías populares',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Estas son todas las categorías disponibles.',
-                    ),
-                  ),
-                ),
-                child: const Text(
-                  'Ver todas',
-                  style: TextStyle(
-                    color: _greenDark,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _categories.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.05,
-            ),
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              return _CategoryCard(
-                label: category.$1,
-                icon: category.$2,
-                selected: _selected == category.$1,
-                onTap: () {
-                  setState(() => _selected = category.$1);
-                  widget.controller.text = category.$1;
-                  widget.controller.selection = TextSelection.collapsed(
-                    offset: widget.controller.text.length,
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? const Color(0xFFF3FCEB) : Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: BorderSide(color: selected ? _green : const Color(0xFFEEF0F1)),
-    ),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 27, color: _ink),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            maxLines: 1,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _VehicleStep extends StatelessWidget {
-  const _VehicleStep({
+class _PartAndVehicleStep extends StatefulWidget {
+  const _PartAndVehicleStep({
     super.key,
     required this.formKey,
+    required this.partController,
+    required this.selectedSide,
+    required this.onSideChanged,
     required this.brands,
     required this.models,
     required this.brandId,
@@ -587,7 +722,11 @@ class _VehicleStep extends StatelessWidget {
     required this.onYearChanged,
     required this.onRetry,
   });
+
   final GlobalKey<FormState> formKey;
+  final TextEditingController partController;
+  final String? selectedSide;
+  final ValueChanged<String?> onSideChanged;
   final List<_CatalogOption> brands;
   final List<_CatalogOption> models;
   final int? brandId;
@@ -602,62 +741,621 @@ class _VehicleStep extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
+  State<_PartAndVehicleStep> createState() => _PartAndVehicleStepState();
+}
+
+class _PartAndVehicleStepState extends State<_PartAndVehicleStep> {
+  final _searchFocus = FocusNode();
+  final _suggestionsScrollController = ScrollController();
+  bool _showSuggestions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(_onFocusChange);
+    widget.partController.addListener(_onPartChanged);
+  }
+
+  void _onPartChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _showSuggestions = _searchFocus.hasFocus;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.partController.removeListener(_onPartChanged);
+    _searchFocus.removeListener(_onFocusChange);
+    _searchFocus.dispose();
+    _suggestionsScrollController.dispose();
+    super.dispose();
+  }
+
+  bool get _hasExactMatch {
+    final clean = normalizeText(widget.partController.text);
+    if (clean.isEmpty) return false;
+    return autopartsCatalog.any(
+      (item) =>
+          normalizeText(item.name) == clean ||
+          item.aliases.any((a) => normalizeText(a) == clean),
+    );
+  }
+
+  bool _checkPartNeedsSide(String partName) {
+    final clean = normalizeText(partName);
+    if (clean.length < 3) return false;
+    const nonSided = {
+      'motor',
+      'transmision',
+      'caja',
+      'caja de velocidades',
+      'radiador',
+      'alternador',
+      'bateria',
+      'compresor a/c',
+      'compresor',
+      'marcha',
+      'bomba de gasolina',
+      'cremallera',
+    };
+    if (nonSided.contains(clean)) return false;
+
+    return autopartsCatalog.any((item) {
+      if (!item.hasSides) return false;
+      final cleanItem = normalizeText(item.name);
+      if (clean == cleanItem ||
+          clean.contains(cleanItem) ||
+          cleanItem.contains(clean)) {
+        return true;
+      }
+      return item.aliases.any((a) {
+        final cleanAlias = normalizeText(a);
+        return clean == cleanAlias ||
+            clean.contains(cleanAlias) ||
+            cleanAlias.contains(clean);
+      });
+    });
+  }
+
+  Widget _highlightMatch(String text, String query) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(
+          color: _ink,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+
+    final cleanText = normalizeText(text);
+    final cleanQuery = normalizeText(query);
+    final matchIndex = cleanText.indexOf(cleanQuery);
+
+    if (matchIndex == -1 || matchIndex + query.length > text.length) {
+      return Text(
+        text,
+        style: const TextStyle(
+          color: _ink,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+
+    final before = text.substring(0, matchIndex);
+    final matched = text.substring(matchIndex, matchIndex + query.length);
+    final after = text.substring(matchIndex + query.length);
+
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(
+          color: _ink,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        children: [
+          if (before.isNotEmpty) TextSpan(text: before),
+          TextSpan(
+            text: matched,
+            style: const TextStyle(
+              color: _greenDark,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (after.isNotEmpty) TextSpan(text: after),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final years = List<int>.generate(
       DateTime.now().year - 1979,
       (index) => DateTime.now().year - index,
     );
+
+    final currentQuery = widget.partController.text.trim();
+    final suggestions = searchAutoparts(currentQuery);
+    final showSides = _checkPartNeedsSide(widget.partController.text);
+
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Form(
-        key: formKey,
+        key: widget.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const AdaptiveInline(
+              children: [
+                Text(
+                  '¿Qué autoparte buscas?',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Text(
+                  '*',
+                  style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              key: const Key('request-part-field'),
+              controller: widget.partController,
+              focusNode: _searchFocus,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.next,
+              onTap: () {
+                if (!_showSuggestions) {
+                  setState(() => _showSuggestions = true);
+                }
+              },
+              decoration: InputDecoration(
+                hintText: 'Ej. Faro, Espejo, Motor, Amortiguador...',
+                hintStyle: const TextStyle(color: _muted, fontSize: 13),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: _greenDark,
+                  size: 22,
+                ),
+                suffixIcon: widget.partController.text.isNotEmpty
+                    ? IconButton(
+                        tooltip: 'Limpiar',
+                        icon: const Icon(Icons.close, size: 18, color: _muted),
+                        onPressed: () {
+                          widget.partController.clear();
+                          widget.onSideChanged(null);
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Color(0xFFE2E6E9)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: _green, width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Colors.redAccent),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(
+                    color: Colors.redAccent,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Escribe la autoparte que buscas.'
+                  : null,
+            ),
+
+            // Tarjeta de sugerencias de autocompletado y catálogo continuo
+            if (_showSuggestions && !_hasExactMatch) ...[
+              const SizedBox(height: 6),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E6E9)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                      child: AdaptiveInline(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              currentQuery.isEmpty
+                                  ? 'CATÁLOGO DE AUTOPARTES (${suggestions.length})'
+                                  : 'COINCIDENCIAS (${suggestions.length})',
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '↕ Desliza para explorar',
+                            style: TextStyle(
+                              color: _muted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    if (suggestions.isNotEmpty)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 270),
+                        child: Scrollbar(
+                          controller: _suggestionsScrollController,
+                          thumbVisibility: true,
+                          child: ListView.separated(
+                            controller: _suggestionsScrollController,
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            itemCount: suggestions.length,
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              color: Color(0xFFF8FAFC),
+                            ),
+                            itemBuilder: (context, index) {
+                              final item = suggestions[index];
+                              return InkWell(
+                                key: Key('autopart-suggestion-${item.name}'),
+                                onTap: () {
+                                  widget.partController.text = item.name;
+                                  if (!item.hasSides) {
+                                    widget.onSideChanged(null);
+                                  }
+                                  _searchFocus.unfocus();
+                                  setState(() => _showSuggestions = false);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 11,
+                                  ),
+                                  child: AdaptiveInline(
+                                    children: [
+                                      const Icon(
+                                        Icons.search,
+                                        size: 18,
+                                        color: _greenDark,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: _highlightMatch(
+                                          item.name,
+                                          currentQuery,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF0F4F2),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          item.category,
+                                          style: const TextStyle(
+                                            color: Color(0xFF4A5568),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                    else if (currentQuery.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'No se encontraron piezas en el catálogo para "$currentQuery".',
+                          style: const TextStyle(color: _muted, fontSize: 13),
+                        ),
+                      ),
+                    if (currentQuery.isNotEmpty) ...[
+                      const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      InkWell(
+                        key: const Key('autopart-custom-option'),
+                        onTap: () {
+                          _searchFocus.unfocus();
+                          setState(() => _showSuggestions = false);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 11,
+                          ),
+                          child: AdaptiveInline(
+                            children: [
+                              const Icon(
+                                Icons.add_circle_outline,
+                                size: 18,
+                                color: _greenDark,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Usar "$currentQuery" como pieza personalizada',
+                                  style: const TextStyle(
+                                    color: _greenDark,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+
+            // Chips populares cuando el campo está vacío y no se está buscando
+            if (widget.partController.text.isEmpty && !_showSuggestions) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Búsquedas frecuentes:',
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: AdaptiveInline(
+                  children: popularAutopartChips.map((chip) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text(chip),
+                        backgroundColor: const Color(0xFFF5F7F8),
+                        labelStyle: const TextStyle(
+                          color: Color(0xFF334155),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        onPressed: () {
+                          widget.partController.text = chip;
+                          _searchFocus.unfocus();
+                          setState(() => _showSuggestions = false);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+
+            // Selector de Lado / Posición para autopartes aplicables (ej. Espejo, Faro, Puerta)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              child: showSides
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7FAF5),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE0EEDE)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const AdaptiveInline(
+                              children: [
+                                Icon(
+                                  Icons.swap_horiz,
+                                  size: 18,
+                                  color: _greenDark,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Lado o posición de la pieza (opcional):',
+                                    style: TextStyle(
+                                      color: _ink,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                                  [
+                                    'Izquierdo (Piloto)',
+                                    'Derecho (Copiloto)',
+                                    'Ambos / Par',
+                                    'Delantero',
+                                    'Trasero',
+                                  ].map((side) {
+                                    final isSelected =
+                                        widget.selectedSide == side;
+                                    return ChoiceChip(
+                                      label: Text(side),
+                                      selected: isSelected,
+                                      selectedColor: const Color(0xFFE4F5DE),
+                                      backgroundColor: Colors.white,
+                                      labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? _greenDark
+                                            : const Color(0xFF4A5568),
+                                        fontSize: 12,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                      ),
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? _greenDark
+                                            : const Color(0xFFE2E8F0),
+                                      ),
+                                      onSelected: (selected) {
+                                        widget.onSideChanged(
+                                          selected ? side : null,
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 24),
             const Text(
-              'Cuéntanos de tu vehículo',
+              'Datos de tu vehículo',
               style: TextStyle(
                 color: _ink,
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 22),
-            if (loadingBrands)
-              const Center(child: CircularProgressIndicator(color: _green))
-            else
-              DropdownButtonFormField<int>(
-                key: const Key('request-brand-select'),
-                initialValue: brandId,
-                isExpanded: true,
-                decoration: _selectDecoration('Marca *'),
-                hint: const Text('Selecciona una marca'),
-                items: brands
-                    .map(
-                      (brand) => DropdownMenuItem(
-                        value: brand.id,
-                        child: Text(brand.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onBrandChanged,
-                validator: (value) =>
-                    value == null ? 'Selecciona una marca.' : null,
-              ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
+
+            // Dropdown de Marca (Zero-Flicker sin parpadeo)
             DropdownButtonFormField<int>(
-              key: ValueKey('request-model-select-$brandId'),
-              initialValue: modelId,
+              key: const Key('request-brand-select'),
+              initialValue: widget.brandId,
               isExpanded: true,
-              decoration: _selectDecoration('Modelo *'),
+              decoration: _selectDecoration(
+                'Marca *',
+                suffixIcon: widget.loadingBrands
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _greenDark,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
               hint: Text(
-                loadingModels
+                widget.loadingBrands
+                    ? 'Cargando marcas...'
+                    : 'Selecciona una marca',
+              ),
+              items: widget.brands
+                  .map(
+                    (brand) => DropdownMenuItem(
+                      value: brand.id,
+                      child: Text(brand.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: widget.loadingBrands ? null : widget.onBrandChanged,
+              validator: (value) =>
+                  value == null ? 'Selecciona una marca.' : null,
+            ),
+            const SizedBox(height: 16),
+
+            // Dropdown de Modelo
+            DropdownButtonFormField<int>(
+              key: ValueKey('request-model-select-${widget.brandId}'),
+              initialValue: widget.modelId,
+              isExpanded: true,
+              decoration: _selectDecoration(
+                'Modelo *',
+                suffixIcon: widget.loadingModels
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _greenDark,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              hint: Text(
+                widget.loadingModels
                     ? 'Cargando modelos...'
-                    : brandId == null
+                    : widget.brandId == null
                     ? 'Primero selecciona una marca'
                     : 'Selecciona un modelo',
               ),
-              items: models
+              items: widget.models
                   .map(
                     (model) => DropdownMenuItem(
                       value: model.id,
@@ -665,16 +1363,18 @@ class _VehicleStep extends StatelessWidget {
                     ),
                   )
                   .toList(),
-              onChanged: loadingModels || brandId == null
+              onChanged: widget.loadingModels || widget.brandId == null
                   ? null
-                  : onModelChanged,
+                  : widget.onModelChanged,
               validator: (value) =>
                   value == null ? 'Selecciona un modelo.' : null,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
+
+            // Dropdown de Año
             DropdownButtonFormField<int>(
               key: const Key('request-year-select'),
-              initialValue: year,
+              initialValue: widget.year,
               isExpanded: true,
               decoration: _selectDecoration('Año *'),
               hint: const Text('Selecciona el año'),
@@ -684,14 +1384,18 @@ class _VehicleStep extends StatelessWidget {
                         DropdownMenuItem(value: item, child: Text('$item')),
                   )
                   .toList(),
-              onChanged: onYearChanged,
+              onChanged: widget.onYearChanged,
               validator: (value) => value == null ? 'Selecciona el año.' : null,
             ),
-            if (error != null) ...[
+            if (widget.error != null) ...[
               const SizedBox(height: 12),
-              Text(error!, style: const TextStyle(color: Colors.red)),
-              TextButton(onPressed: onRetry, child: const Text('Reintentar')),
+              Text(widget.error!, style: const TextStyle(color: Colors.red)),
+              TextButton(
+                onPressed: widget.onRetry,
+                child: const Text('Reintentar'),
+              ),
             ],
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -702,16 +1406,28 @@ class _VehicleStep extends StatelessWidget {
 class _DetailsStep extends StatelessWidget {
   const _DetailsStep({
     super.key,
-    required this.controller,
+    required this.descriptionController,
+    required this.partNumberController,
+    required this.engineController,
+    required this.selectedTransmission,
+    required this.onTransmissionChanged,
     required this.part,
+    required this.partSide,
     required this.vehicle,
   });
-  final TextEditingController controller;
+
+  final TextEditingController descriptionController;
+  final TextEditingController partNumberController;
+  final TextEditingController engineController;
+  final String? selectedTransmission;
+  final ValueChanged<String?> onTransmissionChanged;
   final String part;
+  final String? partSide;
   final String vehicle;
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -726,7 +1442,7 @@ class _DetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Ayuda a los yonkes a identificar exactamente la pieza.',
+          'Ayuda a los yonkes a identificar con precisión la pieza compatible con tu vehículo.',
           style: TextStyle(color: _muted, fontSize: 13),
         ),
         const SizedBox(height: 20),
@@ -737,7 +1453,7 @@ class _DetailsStep extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE5EFE1)),
           ),
-          child: Row(
+          child: AdaptiveInline(
             children: [
               Container(
                 width: 48,
@@ -757,7 +1473,9 @@ class _DetailsStep extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      part,
+                      part.isNotEmpty
+                          ? '$part${partSide != null && partSide!.isNotEmpty ? ' ($partSide)' : ''}'
+                          : 'Pieza sin especificar',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -768,7 +1486,7 @@ class _DetailsStep extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      vehicle,
+                      vehicle.isNotEmpty ? vehicle : 'Vehículo',
                       style: const TextStyle(color: _muted, fontSize: 12),
                     ),
                   ],
@@ -780,13 +1498,99 @@ class _DetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: 22),
         TextFormField(
-          controller: controller,
-          minLines: 5,
-          maxLines: 7,
+          key: const Key('request-part-number-field'),
+          controller: partNumberController,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: 'Número de parte / OEM (opcional)',
+            hintText: 'Ej. 28100-0P060, OEM-12345',
+            labelStyle: const TextStyle(color: _muted),
+            prefixIcon: const Icon(Icons.tag, color: _greenDark, size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: Color(0xFFE7EBED)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: _green, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          key: const Key('request-engine-field'),
+          controller: engineController,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: 'Motor / Cilindrada (opcional)',
+            hintText: 'Ej. 2.0L 4 Cilindros, V6 3.5L',
+            labelStyle: const TextStyle(color: _muted),
+            prefixIcon: const Icon(Icons.speed, color: _greenDark, size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: Color(0xFFE7EBED)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: _green, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          key: const Key('request-transmission-field'),
+          initialValue: selectedTransmission,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: 'Transmisión (opcional)',
+            labelStyle: const TextStyle(color: _muted),
+            prefixIcon: const Icon(
+              Icons.settings_outlined,
+              color: _greenDark,
+              size: 20,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: Color(0xFFE7EBED)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: _green, width: 1.5),
+            ),
+          ),
+          hint: const Text('Selecciona tipo de transmisión'),
+          items: const [
+            DropdownMenuItem(value: 'Automática', child: Text('Automática')),
+            DropdownMenuItem(
+              value: 'Estándar / Manual',
+              child: Text('Estándar / Manual'),
+            ),
+            DropdownMenuItem(value: 'CVT', child: Text('CVT')),
+            DropdownMenuItem(
+              value: 'Dual-Clutch / DSG',
+              child: Text('Dual-Clutch / DSG'),
+            ),
+          ],
+          onChanged: onTransmissionChanged,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          key: const Key('request-description-field'),
+          controller: descriptionController,
+          minLines: 4,
+          maxLines: 6,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
-            labelText: 'Descripción adicional',
-            hintText: 'Escribe detalles adicionales de la pieza (opcional)...',
+            labelText: 'Descripción adicional (opcional)',
+            hintText: 'Describe el color deseado, versión del vehículo, detalles de la falla...',
             alignLabelWithHint: true,
             labelStyle: const TextStyle(color: _muted),
             filled: true,
@@ -801,6 +1605,7 @@ class _DetailsStep extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 20),
       ],
     ),
   );
@@ -843,12 +1648,12 @@ class _PhotosStep extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: photos.length + (photos.length < 5 ? 1 : 0),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          itemCount: photos.length + (photos.length < 3 ? 1 : 0),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.18,
+            childAspectRatio: 1.18 / MediaQuery.textScalerOf(context).scale(1),
           ),
           itemBuilder: (context, index) {
             if (index == photos.length) {
@@ -885,13 +1690,13 @@ class _PhotosStep extends StatelessWidget {
             color: const Color(0xFFF7FAF5),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Row(
+          child: const AdaptiveInline(
             children: [
               Icon(Icons.info_outline, color: _greenDark, size: 21),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Puedes continuar sin fotos o agregar hasta 5.',
+                  'Puedes continuar sin fotos o agregar hasta 3 (máx. 10 MB).',
                   style: TextStyle(color: _muted, fontSize: 12),
                 ),
               ),
@@ -899,6 +1704,129 @@ class _PhotosStep extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+class _CityStep extends StatelessWidget {
+  const _CityStep({
+    super.key,
+    required this.formKey,
+    required this.states,
+    required this.cities,
+    required this.selectedStateId,
+    required this.selectedCityId,
+    required this.loadingStates,
+    required this.loadingCities,
+    required this.error,
+    required this.onStateChanged,
+    required this.onCityChanged,
+    required this.onRetry,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final List<StateOption> states;
+  final List<CityOption> cities;
+  final int? selectedStateId;
+  final int? selectedCityId;
+  final bool loadingStates;
+  final bool loadingCities;
+  final String? error;
+  final ValueChanged<int?> onStateChanged;
+  final ValueChanged<int?> onCityChanged;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Selecciona tu ubicación',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Para enviar tu solicitud a los yonkes con cobertura en tu zona.',
+            style: TextStyle(color: _muted, fontSize: 13),
+          ),
+          const SizedBox(height: 22),
+          DropdownButtonFormField<int>(
+            key: const Key('request-state-selector'),
+            initialValue: selectedStateId,
+            isExpanded: true,
+            decoration: _selectDecoration(
+              'Estado *',
+              suffixIcon: loadingStates
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _greenDark,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            hint: Text(
+              loadingStates ? 'Cargando estados...' : 'Selecciona tu estado',
+            ),
+            items: states
+                .map(
+                  (state) => DropdownMenuItem(
+                    value: state.id,
+                    child: Text(state.name),
+                  ),
+                )
+                .toList(),
+            onChanged: loadingStates ? null : onStateChanged,
+            validator: (value) =>
+                value == null ? 'Selecciona un estado.' : null,
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            key: ValueKey('request-city-selector-$selectedStateId'),
+            initialValue: selectedCityId,
+            isExpanded: true,
+            decoration: _selectDecoration('Ciudad *'),
+            hint: Text(
+              loadingCities
+                  ? 'Cargando ciudades...'
+                  : selectedStateId == null
+                  ? 'Primero selecciona un estado'
+                  : 'Selecciona una ciudad',
+            ),
+            items: cities
+                .map(
+                  (city) => DropdownMenuItem(
+                    value: city.id,
+                    child: Text(city.fullName),
+                  ),
+                )
+                .toList(),
+            onChanged: loadingCities || selectedStateId == null
+                ? null
+                : onCityChanged,
+            validator: (value) =>
+                value == null ? 'Selecciona una ciudad.' : null,
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 12),
+            Text(error!, style: const TextStyle(color: Colors.red)),
+            TextButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ],
+        ],
+      ),
     ),
   );
 }
@@ -943,8 +1871,10 @@ class _AddPhotoCard extends StatelessWidget {
 }
 
 class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({required this.onPressed});
+  const _ContinueButton({required this.onPressed, this.label = 'Continuar'});
+
   final VoidCallback onPressed;
+  final String label;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -967,12 +1897,12 @@ class _ContinueButton extends StatelessWidget {
         key: const Key('request-continue-button'),
         onTap: onPressed,
         borderRadius: BorderRadius.circular(28),
-        child: const SizedBox(
+        child: SizedBox(
           height: 54,
           child: Center(
             child: Text(
-              'Continuar',
-              style: TextStyle(
+              label,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -1013,26 +1943,28 @@ List<_CatalogOption> _catalogOptions(dynamic response, String nameKey) {
       .toList();
 }
 
-InputDecoration _selectDecoration(String label) => InputDecoration(
-  labelText: label,
-  labelStyle: const TextStyle(color: _muted),
-  filled: true,
-  fillColor: Colors.white,
-  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(15),
-    borderSide: const BorderSide(color: Color(0xFFE7EBED)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(15),
-    borderSide: const BorderSide(color: _green, width: 1.5),
-  ),
-  errorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(15),
-    borderSide: const BorderSide(color: Colors.redAccent),
-  ),
-  focusedErrorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(15),
-    borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-  ),
-);
+InputDecoration _selectDecoration(String label, {Widget? suffixIcon}) =>
+    InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _muted),
+      filled: true,
+      fillColor: Colors.white,
+      suffixIcon: suffixIcon,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Color(0xFFE7EBED)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: _green, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+    );

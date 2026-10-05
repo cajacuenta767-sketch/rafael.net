@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,7 +99,7 @@ class _YonkeCoveragePageState extends ConsumerState<YonkeCoveragePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: const Color(0xFFFAFBFD),

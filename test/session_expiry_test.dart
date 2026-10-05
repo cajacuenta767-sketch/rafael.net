@@ -44,6 +44,34 @@ void main() {
   });
 
   group('401 del servidor', () {
+    test('401 antiguo no borra una sesión nueva', () async {
+      final store = _MemoryTokenStore(token: 'anterior');
+      final adapter = _ScriptedAdapter({
+        ApiEndpoints.dashboardRequests: _Reply(
+          401,
+          delay: true,
+          headers: {
+            'www-authenticate': ['Bearer error="invalid_token"'],
+          },
+        ),
+      });
+      final client = DioApiClient(
+        store,
+        dio: Dio(BaseOptions(baseUrl: 'https://api.test'))
+          ..httpClientAdapter = adapter,
+      );
+      final pending = expectLater(
+        client.get(ApiEndpoints.dashboardRequests),
+        throwsA(isA<ApiException>()),
+      );
+      while (adapter.calls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      await store.writeTokens(accessToken: 'nueva');
+      SessionEvents.notifySignedIn();
+      await pending;
+      expect(store.token, 'nueva');
+    });
     Dio dioReturning(int status) =>
         Dio(BaseOptions(baseUrl: 'https://api.test'))
           ..httpClientAdapter = _StatusAdapter(status);

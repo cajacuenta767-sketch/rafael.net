@@ -2,11 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/adaptive_navigation.dart';
 
-class ClientBottomNavigation extends StatelessWidget {
+class ClientBottomNavigation extends StatelessWidget
+    implements AdaptiveNavigation {
   const ClientBottomNavigation({super.key, required this.currentIndex});
 
   final int currentIndex;
+
+  @override
+  Widget buildSideNavigation(BuildContext context) => SideNavigation(
+    background: const Color(0xFF07284D),
+    labels: const ['Inicio', 'Solicitudes', 'Acciones +', 'Mensajes', 'Perfil'],
+    icons: const [
+      Icons.home_outlined,
+      Icons.assignment_outlined,
+      Icons.add_circle_outline,
+      Icons.chat_bubble_outline,
+      Icons.person_outline,
+    ],
+    selectedIndex: currentIndex,
+    onSelect: (index) => _select(context, index),
+  );
 
   Future<void> _showQuickActions(BuildContext context) async {
     final action = await showModalBottomSheet<_ClientQuickAction>(
@@ -53,7 +70,10 @@ class ClientBottomNavigation extends StatelessWidget {
     child: SafeArea(
       top: false,
       child: SizedBox(
-        height: 76,
+        height:
+            76 +
+            (MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0) - 1) *
+                32,
         child: Row(
           children: [
             _NavigationItem(
@@ -127,59 +147,62 @@ class _QuickActionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
-    child: Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x2607284D),
-            blurRadius: 24,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD8DDE3),
-              borderRadius: BorderRadius.circular(4),
+    child: SingleChildScrollView(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x2607284D),
+              blurRadius: 24,
+              offset: Offset(0, 8),
             ),
-          ),
-          const SizedBox(height: 16),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '¿Qué deseas hacer?',
-              style: TextStyle(
-                color: Color(0xFF07284D),
-                fontSize: 21,
-                fontWeight: FontWeight.w900,
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8DDE3),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-          _QuickActionTile(
-            icon: Icons.add_circle_outline_rounded,
-            title: 'Nueva solicitud',
-            subtitle: 'Publica la autoparte que necesitas',
-            onTap: () => Navigator.pop(context, _ClientQuickAction.newRequest),
-          ),
-          const SizedBox(height: 10),
-          _QuickActionTile(
-            icon: Icons.storefront_outlined,
-            title: 'Explorar yonkes',
-            subtitle: 'Consulta yonkes, cobertura y opiniones',
-            onTap: () =>
-                Navigator.pop(context, _ClientQuickAction.exploreYonkes),
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '¿Qué deseas hacer?',
+                style: TextStyle(
+                  color: Color(0xFF07284D),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _QuickActionTile(
+              icon: Icons.add_circle_outline_rounded,
+              title: 'Nueva solicitud',
+              subtitle: 'Publica la autoparte que necesitas',
+              onTap: () =>
+                  Navigator.pop(context, _ClientQuickAction.newRequest),
+            ),
+            const SizedBox(height: 10),
+            _QuickActionTile(
+              icon: Icons.storefront_outlined,
+              title: 'Explorar yonkes',
+              subtitle: 'Consulta yonkes, cobertura y opiniones',
+              onTap: () =>
+                  Navigator.pop(context, _ClientQuickAction.exploreYonkes),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -283,19 +306,35 @@ class _NavigationItem extends StatelessWidget {
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: selected
-                        ? const Color(0xFF9BE63B)
-                        : const Color(0xFFB8C4D1),
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ),
+              child: MediaQuery.textScalerOf(context).scale(1) > 1
+                  ? Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? const Color(0xFF9BE63B)
+                            : const Color(0xFFB8C4D1),
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: selected
+                              ? const Color(0xFF9BE63B)
+                              : const Color(0xFFB8C4D1),
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

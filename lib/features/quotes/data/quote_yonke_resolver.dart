@@ -1,3 +1,4 @@
+import '../../../core/session/session_events.dart';
 import '../../yonkes/data/yonkes_api.dart';
 import '../../yonkes/domain/client_yonke.dart';
 import '../domain/client_quote.dart';
@@ -17,19 +18,32 @@ class QuoteYonkeResolver {
 
   /// Se comparten entre pantallas: la misma cotización y el mismo yonke no
   /// se piden dos veces en la sesión.
-  static final _yonkeIdByQuote = <String, String>{};
-  static final _yonkes = <String, Future<ClientYonke?>>{};
+  final _yonkeIdByQuote = <String, String>{};
+  final _yonkes = <String, Future<ClientYonke?>>{};
+  int _sessionRevision = SessionEvents.revision;
 
   Future<List<ClientQuote>> resolveAll(List<ClientQuote> quotes) =>
       Future.wait(quotes.map(resolve));
 
   /// Nunca falla: si el API no responde se conserva la cotización tal cual.
   Future<ClientQuote> resolve(ClientQuote quote) async {
-    if (quote.hasYonkeIdentity && quote.logoUrl != null) return quote;
+    if (_sessionRevision != SessionEvents.revision) {
+      _yonkeIdByQuote.clear();
+      _yonkes.clear();
+      _sessionRevision = SessionEvents.revision;
+    }
+    if (quote.hasYonkeIdentity &&
+        quote.logoUrl != null &&
+        quote.yonkeId.isNotEmpty) {
+      return quote;
+    }
     try {
-      final yonkeId = await _yonkeIdFor(quote);
+      final revision = _sessionRevision;
+      final yonkeId = await _yonkeIdFor(quote, revision);
+      if (revision != SessionEvents.revision) return quote;
       if (yonkeId == null) return quote;
       final yonke = await (_yonkes[yonkeId] ??= _loadYonke(yonkeId));
+      if (revision != SessionEvents.revision) return quote;
       if (yonke == null) return quote;
       return quote.withYonke(
         yonkeId: yonke.id,
@@ -42,18 +56,22 @@ class QuoteYonkeResolver {
     }
   }
 
-  Future<String?> _yonkeIdFor(ClientQuote quote) async {
+  Future<String?> _yonkeIdFor(ClientQuote quote, int revision) async {
     if (quote.yonkeId.isNotEmpty) return quote.yonkeId;
     final cached = _yonkeIdByQuote[quote.id];
     if (cached != null) return cached;
     final response = await _quotesApi.getById(quote.id);
     final data = response is Map ? response['data'] ?? response : null;
-    final assignment = data is Map ? data['solicitudYonkes'] : null;
+    final assignment = data is Map
+        ? (data['solicitudYonkes'] ?? data['SolicitudYonkes'])
+        : null;
     final yonkeId = assignment is Map
-        ? assignment['yonkeGuidId']?.toString().trim()
+        ? (assignment['yonkeGuidId'] ?? assignment['YonkeGuidId'])
+              ?.toString()
+              .trim()
         : null;
     if (yonkeId == null || yonkeId.isEmpty) return null;
-    _yonkeIdByQuote[quote.id] = yonkeId;
+    if (revision == SessionEvents.revision) _yonkeIdByQuote[quote.id] = yonkeId;
     return yonkeId;
   }
 

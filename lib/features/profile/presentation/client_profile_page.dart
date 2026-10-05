@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -65,7 +67,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(
       backgroundColor: _page,
@@ -394,7 +396,7 @@ class _ClientAddressesPageState extends State<ClientAddressesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(title: const Text('Direcciones'), centerTitle: true),
     body: _addresses == null
@@ -568,38 +570,40 @@ class ClientPaymentMethodsPage extends StatelessWidget {
   const ClientPaymentMethodsPage({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(title: const Text('Métodos de pago'), centerTitle: true),
-    body: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.credit_card_outlined, size: 58, color: _green),
-          const SizedBox(height: 16),
-          const Text(
-            'El pago se realiza al confirmar una cotización',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _navy,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+    body: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.credit_card_outlined, size: 58, color: _green),
+            const SizedBox(height: 16),
+            const Text(
+              'El pago se realiza al confirmar una cotización',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _navy,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Por seguridad, Refanet no guarda tarjetas en la aplicación. Stripe solicita el método de pago cuando existe una orden.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: _muted, height: 1.4),
-          ),
-          const SizedBox(height: 22),
-          FilledButton(
-            onPressed: () => context.go(AppRoutes.clientRequests),
-            style: FilledButton.styleFrom(backgroundColor: _green),
-            child: const Text('Ver mis solicitudes'),
-          ),
-        ],
+            const SizedBox(height: 10),
+            const Text(
+              'Por seguridad, Refanet no guarda tarjetas en la aplicación. Stripe solicita el método de pago cuando existe una orden.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _muted, height: 1.4),
+            ),
+            const SizedBox(height: 22),
+            FilledButton(
+              onPressed: () => context.go(AppRoutes.clientRequests),
+              style: FilledButton.styleFrom(backgroundColor: _green),
+              child: const Text('Ver mis solicitudes'),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -609,7 +613,7 @@ class ClientHelpPage extends StatelessWidget {
   const ClientHelpPage({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(title: const Text('Ayuda y soporte'), centerTitle: true),
     body: ListView(

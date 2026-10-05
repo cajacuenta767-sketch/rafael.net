@@ -4,6 +4,7 @@ abstract final class ApiEndpoints {
   static const requestOtp = '/api/ClienteAuth/solicitar-otp';
   static const verifyOtp = '/api/ClienteAuth/verificar-otp';
   static const registerClientDevice = '/api/ClienteAuth/registrar-dispositivo';
+  static String clientProfile(String clientId) => '/api/ClienteAuth/$clientId';
 
   // CotizacionYonke
   static const quotes = '/api/CotizacionYonke';
@@ -64,11 +65,15 @@ abstract final class ApiEndpoints {
   // SolicitudYonkes
   static String sendRequestToYonkes(String requestId) =>
       '/api/SolicitudYonkes/$requestId/enviar';
+  static String requestRecipients(String requestId) =>
+      '/api/SolicitudYonkes/solicitud/$requestId/destinatarios';
   static String markYonkeRequestViewed(String requestYonkeId) =>
       '/api/SolicitudYonkes/$requestYonkeId/vista';
   static const yonkeAssignedRequests = '/api/SolicitudYonkes/MisSolicitudes';
   static const yonkeNewRequestsTotal =
       '/api/SolicitudYonkes/TotalSolicitudesNuevas';
+  static const yonkeMostRecentRequest =
+      '/api/SolicitudYonkes/MasReciente';
 
   // Utilerias
   static const states = '/api/Utilerias/entidades';
@@ -85,6 +90,7 @@ abstract final class ApiEndpoints {
 
   // YonkeAuth y Yonkes
   static const yonkeLogin = '/api/YonkeAuth/login';
+  static const yonkeForgotPassword = '/api/YonkeAuth/forgot-password';
   static const yonkes = '/api/Yonkes';
   static const pagedYonkes = '/api/Yonkes/byPage';
   static String yonke(String yonkeId) => '/api/Yonkes/$yonkeId';

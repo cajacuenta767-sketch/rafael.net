@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -103,7 +105,10 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
         .where((city) => city.id == _selectedCityId)
         .firstOrNull;
     if (city == null) return;
+    final state = _states.where((s) => s.id == _selectedStateId).firstOrNull;
     widget.draft
+      ..stateId = _selectedStateId
+      ..stateName = state?.name
       ..cityId = city.id
       ..cityName = city.fullName;
     context.push(AppRoutes.clientRequestReview, extra: widget.draft);
@@ -112,7 +117,7 @@ class _RequestCityPageState extends ConsumerState<RequestCityPage> {
   @override
   Widget build(BuildContext context) {
     final canContinue = !_loadingCities && _selectedCityId != null;
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

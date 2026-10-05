@@ -1,3 +1,7 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+import '../../../app/widgets/read_receipt_notice.dart';
+import '../../../core/realtime/read_receipt_tracking.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -69,7 +73,7 @@ class _ClientMessagesPageState extends ConsumerState<ClientMessagesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(
       automaticallyImplyLeading: false,
@@ -367,11 +371,15 @@ class _ClientConversationPageState
 
   Future<void> _refreshSilently() async {
     if (_loading || _sending || !mounted) return;
+    final followLatest =
+        !_scrollController.hasClients ||
+        _scrollController.position.extentAfter < 80;
     try {
       final messages = await _repository.getConversation(widget.args.quote.id);
-      if (!mounted || _sameMessages(_messages, messages)) return;
+      if (!mounted) return;
+      final changed = !_sameMessages(_messages, messages);
       setState(() => _messages = messages);
-      _scrollToBottom();
+      if (changed && followLatest) _scrollToBottom();
     } catch (_) {
       // La actualización automática no reemplaza el historial visible.
     }
@@ -432,7 +440,7 @@ class _ClientConversationPageState
   @override
   Widget build(BuildContext context) {
     final quote = _quote;
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: _page,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -473,6 +481,11 @@ class _ClientConversationPageState
                 ],
               ),
             ),
+            if (_repository is ReadReceiptTracking &&
+                (_repository as ReadReceiptTracking).readReceiptPending(
+                  widget.args.quote.id,
+                ))
+              ReadReceiptNotice(onRetry: _loading ? null : _refreshSilently),
             _MessageComposer(
               controller: _messageController,
               sending: _sending,
@@ -602,7 +615,7 @@ class _QuoteHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final vehicle = _vehicleLabel(quote);
     return _HeaderCard(
-      child: Row(
+      child: AdaptiveInline(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(

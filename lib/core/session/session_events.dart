@@ -4,6 +4,8 @@ import '../storage/token_store.dart';
 
 /// Avisa a la app cuando el servidor deja de aceptar la sesión guardada.
 abstract final class SessionEvents {
+  static int _revision = 0;
+  static int get revision => _revision;
   static final _expired = StreamController<void>.broadcast();
 
   static Stream<void> get expired => _expired.stream;
@@ -19,9 +21,15 @@ abstract final class SessionEvents {
   /// Se borró la sesión (cierre de sesión, baja o 401).
   static Stream<void> get signedOut => _signedOut.stream;
 
-  static void notifySignedIn() => _signedIn.add(null);
+  static void notifySignedIn() {
+    _revision++;
+    _signedIn.add(null);
+  }
 
-  static void notifySignedOut() => _signedOut.add(null);
+  static void notifySignedOut() {
+    _revision++;
+    _signedOut.add(null);
+  }
 }
 
 /// Sesión utilizable: hay token y, si el servidor informó expiración, aún no

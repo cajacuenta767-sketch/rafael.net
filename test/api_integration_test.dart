@@ -140,18 +140,9 @@ void main() {
       ..year = 2015
       ..cityId = 12;
 
-    test('usa el GuidId real de mi-solicitud-reciente', () async {
+    test('usa directamente el GuidId devuelto por la creación', () async {
       final client = _RoutedClient({
-        ApiEndpoints.requests: {'success': true, 'data': 'guid-falso'},
-        ApiEndpoints.dashboardRecentRequest: {
-          'data': {
-            'guidId': 'guid-real',
-            'piezaBuscada': 'Alternador',
-            'marcaId': 3,
-            'modeloId': 8,
-            'año': 2015,
-          },
-        },
+        ApiEndpoints.requests: {'success': true, 'data': 'guid-real'},
         ApiEndpoints.sendRequestToYonkes('guid-real'): {'success': true},
       });
 
@@ -165,29 +156,10 @@ void main() {
         client.bodies[ApiEndpoints.requests],
         isNot(contains('usuarioId')),
       );
-    });
-
-    test('si la reciente es otra solicitud conserva el id devuelto', () async {
-      final client = _RoutedClient({
-        ApiEndpoints.requests: {'data': 'guid-devuelto'},
-        ApiEndpoints.dashboardRecentRequest: {
-          'data': {
-            'guidId': 'otra',
-            'piezaBuscada': 'Marcha',
-            'marcaId': 3,
-            'modeloId': 8,
-            'año': 2015,
-          },
-        },
-        ApiEndpoints.sendRequestToYonkes('guid-devuelto'): {'success': true},
-      });
-
-      final result = await ApiRequestSubmissionRepository(
-        RequestsApi(client),
-        DashboardApi(client),
-      ).submit(draft());
-
-      expect(result.requestId, 'guid-devuelto');
+      expect(
+        client.calls,
+        isNot(contains(ApiEndpoints.dashboardRecentRequest)),
+      );
     });
 
     test('un error al crear se informa sin simular éxito', () async {

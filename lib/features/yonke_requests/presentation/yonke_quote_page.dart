@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -201,7 +203,7 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -253,6 +255,9 @@ class _YonkeQuotePageState extends ConsumerState<YonkeQuotePage> {
                     ),
                     const SizedBox(height: 14),
                     SegmentedButton<bool>(
+                      direction: MediaQuery.textScalerOf(context).scale(1) > 1.3
+                          ? Axis.vertical
+                          : Axis.horizontal,
                       segments: const [
                         ButtonSegment(
                           value: false,
@@ -556,8 +561,11 @@ class _QuoteImages extends StatelessWidget {
       GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: MediaQuery.textScalerOf(context).scale(1) > 1.3
+              ? 2
+              : 3,
+          childAspectRatio: 1 / MediaQuery.textScalerOf(context).scale(1),
           crossAxisSpacing: 9,
           mainAxisSpacing: 9,
         ),

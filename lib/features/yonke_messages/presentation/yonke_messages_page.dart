@@ -1,3 +1,7 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+import '../../../app/widgets/read_receipt_notice.dart';
+import '../../../core/realtime/read_receipt_tracking.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -79,7 +83,7 @@ class _YonkeMessagesPageState extends ConsumerState<YonkeMessagesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: YonkeColors.primaryNavy,
@@ -404,7 +408,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     if (_loading || _sending || !mounted) return;
     try {
       final messages = await _repository.getConversation(widget.args.quote.id);
-      if (!mounted || messages.length == _messages.length) return;
+      if (!mounted) return;
       setState(() {
         _messages = messages;
         _client = _contactIn(messages) ?? _client;
@@ -507,7 +511,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: const Color(0xFFFAFBFD),
@@ -542,6 +546,11 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
             onWhatsApp: () => _contact(whatsapp: true),
           ),
           Expanded(child: _messagesBody()),
+          if (_repository is ReadReceiptTracking &&
+              (_repository as ReadReceiptTracking).readReceiptPending(
+                widget.args.quote.id,
+              ))
+            ReadReceiptNotice(onRetry: _loading ? null : _refreshSilently),
           _Composer(
             controller: _messageController,
             sending: _sending,

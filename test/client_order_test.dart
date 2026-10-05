@@ -42,10 +42,7 @@ void main() {
     expect(find.text('Revisa tu selección'), findsOneWidget);
     expect(find.text('Yonke Norte'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('client-confirm-order')),
-      250,
-    );
+    await tester.ensureVisible(find.byKey(const Key('client-confirm-order')));
     await tester.tap(find.byKey(const Key('client-confirm-order')));
     await tester.pumpAndSettle();
 

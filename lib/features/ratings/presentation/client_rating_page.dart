@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -71,7 +73,7 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFCFCFC),
     appBar: AppBar(
       backgroundColor: const Color(0xFFFCFCFC),
@@ -115,14 +117,14 @@ class _ClientRatingPageState extends ConsumerState<ClientRatingPage> {
         style: TextStyle(color: Color(0xFF596276)),
       ),
       const SizedBox(height: 24),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      Wrap(
+        alignment: WrapAlignment.center,
         children: List.generate(5, (index) {
           final value = index + 1;
           return IconButton(
             key: Key('client-rating-$value'),
             tooltip: '$value de 5',
-            iconSize: 42,
+            iconSize: 32,
             color: value <= _rating
                 ? const Color(0xFFF5AA16)
                 : const Color(0xFFD1D5DB),

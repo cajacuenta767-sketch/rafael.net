@@ -105,7 +105,7 @@ void main() {
     expect(find.text('Continuar con Google'), findsOneWidget);
     expect(find.text('Continuar con Apple'), findsOneWidget);
     expect(find.text('Al continuar, aceptas nuestros'), findsNothing);
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(find.byType(ListView), findsNothing);
   });
 
@@ -382,9 +382,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('a vertical drag cannot move the fixed login page', (
-    tester,
-  ) async {
+  testWidgets('login remains usable after a vertical drag', (tester) async {
     await tester.pumpWidget(_loginHarness(_TestClientAuthRepository()));
     await tester.pumpAndSettle();
     final card = find.byKey(const Key('client_login_card'));
@@ -393,8 +391,8 @@ void main() {
     await tester.drag(card, const Offset(0, -180));
     await tester.pump();
 
-    expect(tester.getTopLeft(card), before);
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(tester.getTopLeft(card).dy, lessThanOrEqualTo(before.dy));
+    expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(find.byType(ListView), findsNothing);
   });
 
@@ -416,7 +414,7 @@ void main() {
   for (final size in sizes) {
     for (final scale in scales) {
       testWidgets(
-        'fixed login fits ${size.width}x${size.height} at $scale text',
+        'scrollable login fits ${size.width}x${size.height} at $scale text',
         (tester) async {
           tester.view.devicePixelRatio = 1;
           tester.view.physicalSize = size;
@@ -436,7 +434,7 @@ void main() {
           expect(find.text('Continuar con Apple'), findsOneWidget);
           expect(find.text('Al continuar, aceptas nuestros'), findsNothing);
           expect(find.text('Regresar'), findsOneWidget);
-          expect(find.byType(SingleChildScrollView), findsNothing);
+          expect(find.byType(SingleChildScrollView), findsWidgets);
           expect(find.byType(ListView), findsNothing);
         },
       );
@@ -456,7 +454,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('client_phone_field')));
     await tester.pump();
-    final before = tester.getRect(find.byKey(const Key('client_phone_field')));
+    final phoneController = tester
+        .widget<EditableText>(find.byType(EditableText).first)
+        .controller;
     expect(
       tester
           .widget<EditableText>(find.byType(EditableText).first)
@@ -475,12 +475,63 @@ void main() {
           .hasFocus,
       isTrue,
     );
-    expect(tester.getRect(find.byKey(const Key('client_phone_field'))), before);
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText).first).controller,
+      same(phoneController),
+    );
     expect(find.text('Continuar con Google'), findsOneWidget);
     expect(find.text('Continuar con Apple'), findsOneWidget);
   });
 
-  testWidgets('keyboard keeps the phone and action visible without scrolling', (
+  testWidgets('keyboard keeps the phone and action reachable', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _loginHarness(_TestClientAuthRepository(), keyboardInset: 290),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('client_phone_field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('client_phone_field')));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('client_phone_field')), findsOneWidget);
+    expect(find.text('Enviar código'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+  });
+
+  for (final size in [
+    const Size(1366, 768),
+    const Size(1600, 900),
+    const Size(1920, 1080),
+  ]) {
+    testWidgets('desktop login has a readable full-width form at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(_loginHarness(_TestClientAuthRepository()));
+      await tester.pumpAndSettle();
+      final card = tester.getRect(find.byKey(const Key('client_login_card')));
+      final phone = tester.getRect(find.byKey(const Key('client_phone_field')));
+      expect(card.width, inInclusiveRange(450, 560));
+      expect(phone.width, greaterThan(400));
+      final button = find.ancestor(
+        of: find.text('Enviar código'),
+        matching: find.byType(FilledButton),
+      );
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('OTP controls remain reachable with the keyboard', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -492,43 +543,23 @@ void main() {
       _loginHarness(_TestClientAuthRepository(), keyboardInset: 290),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('client_phone_field')));
+    await tester.enterText(
+      find.byKey(const Key('client_phone_field')),
+      '6621234567',
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.text('Enviar código'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enviar código'));
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const Key('client_phone_field')), findsOneWidget);
-    expect(find.text('Enviar código'), findsOneWidget);
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byKey(const Key('client_otp_field')), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+
+    await tester.pumpWidget(const SizedBox.shrink());
   });
-
-  testWidgets(
-    'OTP controls remain visible with the keyboard and never scroll',
-    (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(320, 640);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        _loginHarness(_TestClientAuthRepository(), keyboardInset: 290),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('client_phone_field')),
-        '6621234567',
-      );
-      await tester.pump();
-      await tester.tap(find.text('Enviar código'));
-      await tester.pump();
-
-      expect(tester.takeException(), isNull);
-      expect(find.byKey(const Key('client_otp_field')), findsOneWidget);
-      expect(find.text('Iniciar sesión'), findsOneWidget);
-      expect(find.byType(SingleChildScrollView), findsNothing);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
 
   testWidgets('OTP boxes lift with the keyboard and return when it closes', (
     tester,

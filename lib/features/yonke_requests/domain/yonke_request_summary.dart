@@ -33,6 +33,10 @@ class YonkeRequestSummary {
     this.photoCount = 0,
     this.hasQuote = false,
     this.imageUrl,
+    this.description,
+    this.engine,
+    this.transmission,
+    this.clientId,
   });
 
   final String requestId;
@@ -48,6 +52,10 @@ class YonkeRequestSummary {
   final int photoCount;
   final bool hasQuote;
   final String? imageUrl;
+  final String? description;
+  final String? engine;
+  final String? transmission;
+  final String? clientId;
 
   bool get isNew => status == YonkeRequestStatus.newRequest;
 
@@ -60,22 +68,29 @@ class YonkeRequestSummary {
   YonkeRequestSummary copyWith({
     YonkeRequestStatus? status,
     bool? hasQuote,
-  }) =>
-      YonkeRequestSummary(
-        requestId: requestId,
-        requestYonkeId: requestYonkeId,
-        part: part,
-        status: status ?? this.status,
-        receivedAt: receivedAt,
-        brand: brand,
-        model: model,
-        year: year,
-        city: city,
-        folio: folio,
-        photoCount: photoCount,
-        hasQuote: hasQuote ?? this.hasQuote,
-        imageUrl: imageUrl,
-      );
+    String? description,
+    String? engine,
+    String? transmission,
+    String? clientId,
+  }) => YonkeRequestSummary(
+    requestId: requestId,
+    requestYonkeId: requestYonkeId,
+    part: part,
+    status: status ?? this.status,
+    receivedAt: receivedAt,
+    brand: brand,
+    model: model,
+    year: year,
+    city: city,
+    folio: folio,
+    photoCount: photoCount,
+    hasQuote: hasQuote ?? this.hasQuote,
+    imageUrl: imageUrl,
+    description: description ?? this.description,
+    engine: engine ?? this.engine,
+    transmission: transmission ?? this.transmission,
+    clientId: clientId ?? this.clientId,
+  );
 }
 
 class YonkeRequestFilters {

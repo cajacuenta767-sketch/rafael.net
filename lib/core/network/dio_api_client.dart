@@ -27,6 +27,7 @@ class DioApiClient implements ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          options.extra[_sessionRevisionFlag] = SessionEvents.revision;
           final token = await _tokenStore.readAccessToken();
           if (token != null &&
               token.isNotEmpty &&
@@ -41,7 +42,13 @@ class DioApiClient implements ApiClient {
           if (error.requestOptions.extra[_sessionProbeFlag] != true &&
               error.response?.statusCode == 401 &&
               error.requestOptions.headers.containsKey('Authorization') &&
-              await _sessionIsInvalid(error.response!)) {
+              error.requestOptions.extra[_sessionRevisionFlag] ==
+                  SessionEvents.revision &&
+              await _sessionIsInvalid(error.response!) &&
+              error.requestOptions.extra[_sessionRevisionFlag] ==
+                  SessionEvents.revision &&
+              error.requestOptions.headers['Authorization'] ==
+                  'Bearer ${await _tokenStore.readAccessToken()}') {
             await _tokenStore.clear();
             SessionEvents.notifyExpired();
           }
@@ -67,6 +74,7 @@ class DioApiClient implements ApiClient {
   Future<bool>? _sessionProbe;
 
   static const _sessionProbeFlag = 'refanet.sessionProbe';
+  static const _sessionRevisionFlag = 'refanet.sessionRevision';
 
   /// Varios endpoints del API responden 401 o 302 aunque el token sea válido
   /// (usan `[Authorize]` sin el esquema JWT). Por eso un 401 solo cierra la

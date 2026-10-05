@@ -4,12 +4,18 @@ import 'package:image_picker/image_picker.dart';
 
 class RequestDraft {
   String part = '';
+  String? partSide;
+  String? partNumber;
   int? brandId;
   String? brandName;
   int? modelId;
   String? modelName;
   int? year;
+  String? engine;
+  String? transmission;
   String? description;
+  int? stateId;
+  String? stateName;
   int? cityId;
   String? cityName;
   final photos = <RequestPhoto>[];

@@ -51,6 +51,8 @@ abstract interface class YonkeAuthRepository {
     required String email,
     required String password,
   });
+
+  Future<String> requestPasswordReset(String email);
 }
 
 class ApiYonkeAuthRepository implements YonkeAuthRepository {
@@ -65,5 +67,14 @@ class ApiYonkeAuthRepository implements YonkeAuthRepository {
   }) async {
     final response = await _api.loginYonke(email: email, password: password);
     return YonkeLoginResult.fromResponse(response);
+  }
+
+  @override
+  Future<String> requestPasswordReset(String email) async {
+    final response = await _api.forgotPasswordYonke(email);
+    if (response is Map && response['message'] != null) {
+      return response['message'].toString();
+    }
+    return 'Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.';
   }
 }

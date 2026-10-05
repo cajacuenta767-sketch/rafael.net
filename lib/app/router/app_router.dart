@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/client_login_page.dart';
 import '../../features/auth/presentation/client_session_gate.dart';
+import '../../features/auth/presentation/yonke_forgot_password_page.dart';
 import '../../features/auth/presentation/yonke_login_page.dart';
 import '../../features/auth/presentation/yonke_register_page.dart';
 import '../../features/auth/presentation/yonke_session_gate.dart';
@@ -77,6 +78,7 @@ abstract final class AppRoutes {
   static const yonkeRequests = '/yonke/solicitudes';
   static const yonkeLogin = '/yonke/login';
   static const yonkeRegister = '/yonke/registro';
+  static const yonkeForgotPassword = '/yonke/recuperar-password';
   static const yonkeQuotes = '/yonke/cotizaciones';
   static const yonkeProfile = '/yonke/perfil';
   static const yonkeMessages = '/yonke/mensajes';
@@ -286,6 +288,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.yonkeRegister,
       builder: (context, state) => const YonkeRegisterPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.yonkeForgotPassword,
+      builder: (context, state) => const YonkeForgotPasswordPage(),
     ),
     GoRoute(
       path: AppRoutes.yonkeHome,

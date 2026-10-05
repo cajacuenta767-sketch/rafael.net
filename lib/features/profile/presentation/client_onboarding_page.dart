@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -200,7 +202,7 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(
       backgroundColor: _page,

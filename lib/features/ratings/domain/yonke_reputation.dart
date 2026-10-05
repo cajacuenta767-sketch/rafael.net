@@ -7,15 +7,21 @@ class YonkeRatingRecord {
 }
 
 class YonkeReputation {
-  const YonkeReputation({required this.records});
+  const YonkeReputation({this.records = const [], double? average, int? count})
+    : explicitAverage = average,
+      explicitCount = count;
 
   final List<YonkeRatingRecord> records;
+  final double? explicitAverage;
+  final int? explicitCount;
 
-  int get count => records.length;
+  int get count => explicitCount ?? records.length;
 
-  double get average => count == 0
-      ? 0
-      : records.fold<int>(0, (total, item) => total + item.rating) / count;
+  double get average =>
+      explicitAverage ??
+      (count == 0
+          ? 0
+          : records.fold<int>(0, (total, item) => total + item.rating) / count);
 
   List<YonkeRatingRecord> get comments => records
       .where((item) => item.comment != null && item.comment!.isNotEmpty)

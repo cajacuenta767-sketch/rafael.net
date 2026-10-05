@@ -9,6 +9,7 @@ import 'package:app_yonke/features/yonke_quotes/domain/yonke_quote.dart';
 import 'package:app_yonke/features/yonke_requests/data/yonke_requests_repository.dart';
 import 'package:app_yonke/features/yonke_requests/domain/yonke_request_summary.dart';
 import 'package:app_yonke/features/yonkes/data/yonkes_api.dart';
+import 'package:app_yonke/features/ratings/data/yonke_reputation_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -463,6 +464,171 @@ void main() {
       expect(client.fields, {'GuidId': 'yonke-1'});
       expect(client.files.single.fieldName, 'LogoUrl');
       expect(client.files.single.fileName, 'logo.png');
+    });
+
+    test('ClientQuote y YonkeQuote parsean EstadoPago correctamente (3=pagado, 1=pendiente)', () {
+      final paidClientQuote = clientQuoteFromJson({
+        'guidId': 'quote-paid',
+        'solicitudGuidId': 'sol-1',
+        'folio': 'FOL-100',
+        'estadoPago': 3,
+      });
+      expect(paidClientQuote, isNotNull);
+      expect(paidClientQuote!.isPaid, isTrue);
+
+      final pendingClientQuote = clientQuoteFromJson({
+        'guidId': 'quote-pending',
+        'solicitudGuidId': 'sol-1',
+        'folio': 'FOL-101',
+        'estadoPago': 1,
+      });
+      expect(pendingClientQuote, isNotNull);
+      expect(pendingClientQuote!.isPaid, isFalse);
+
+      final paidYonkeQuote = yonkeQuoteFromJson({
+        'guidId': 'yquote-paid',
+        'solicitudYonkeGuidId': 'sy-1',
+        'solicitudYonkes': {
+          'guidId': 'sy-1',
+          'solicitudGuidId': 'sol-1',
+        },
+        'estadoPago': 3,
+      });
+      expect(paidYonkeQuote, isNotNull);
+      expect(paidYonkeQuote!.isPaid, isTrue);
+
+      final pendingYonkeQuote = yonkeQuoteFromJson({
+        'guidId': 'yquote-pending',
+        'solicitudYonkeGuidId': 'sy-2',
+        'solicitudYonkes': {
+          'guidId': 'sy-2',
+          'solicitudGuidId': 'sol-2',
+        },
+        'estadoPago': 1,
+      });
+      expect(pendingYonkeQuote, isNotNull);
+      expect(pendingYonkeQuote!.isPaid, isFalse);
+    });
+
+    test('yonkeRequestSummaryFromJson maneja SolicitudYonke_List_DTO de MasReciente sin marca ni modelo', () {
+      final summary = yonkeRequestSummaryFromJson({
+        'solicitudYonkeGuidId': 'sy-guid-123',
+        'solicitudGuidId': 'sol-guid-456',
+        'folio': 'SOL-2026-001',
+        'piezaBuscada': 'Cremallera de dirección',
+        'fechaEnvio': '2026-09-30T10:00:00Z',
+        'vista': false,
+        'cotizaciones': 0,
+        'imagenes': <dynamic>[],
+        'ciudades': <dynamic>[],
+      });
+
+      expect(summary, isNotNull);
+      expect(summary!.requestYonkeId, 'sy-guid-123');
+      expect(summary.requestId, 'sol-guid-456');
+      expect(summary.part, 'Cremallera de dirección');
+      expect(summary.folio, 'SOL-2026-001');
+      expect(summary.brand, isNull);
+      expect(summary.model, isNull);
+      expect(summary.year, isNull);
+      expect(summary.status, YonkeRequestStatus.newRequest);
+    });
+
+    test('clientQuoteFromJson extrae imágenes y datos con PascalCase o camelCase', () {
+      final quote = clientQuoteFromJson({
+        'GuidId': 'quote-pascal-1',
+        'SolicitudYonkes': {
+          'SolicitudGuidId': 'req-pascal-1',
+          'YonkeGuidId': 'yonke-guid-999',
+        },
+        'SolicitudCotizacionEstatus': {
+          'Descripcion': 'Cotizada',
+        },
+        'SolicitudCotizacionesImagenes': [
+          {
+            'UrlImagen': 'https://storage.azure.com/img1.jpg',
+            'Orden': 1,
+          },
+          {
+            'urlImagen': 'http://storage.azure.com/img2.jpg',
+            'Orden': 2,
+          },
+        ],
+        'Precio': 1500.0,
+        'Disponible': true,
+        'Comentarios': 'En buen estado',
+      });
+
+      expect(quote, isNotNull);
+      expect(quote!.id, 'quote-pascal-1');
+      expect(quote.requestId, 'req-pascal-1');
+      expect(quote.yonkeId, 'yonke-guid-999');
+      expect(quote.status, 'Cotizada');
+      expect(quote.imageUrls.length, 2);
+      expect(quote.imageUrls[0], 'https://storage.azure.com/img1.jpg');
+      expect(quote.imageUrls[1], 'http://storage.azure.com/img2.jpg');
+    });
+
+    test('ClientRequestSummary.copyWith actualiza imageUrl manteniendo el resto', () {
+      const original = ClientRequestSummary(
+        id: 'r1',
+        part: 'Espejo',
+        status: 'En proceso',
+        quoteCount: 1,
+        brand: 'Ford',
+        model: 'Fiesta',
+        year: 2018,
+      );
+
+      final withImage = original.copyWith(imageUrl: 'https://example.com/mirror.jpg');
+      expect(withImage.imageUrl, 'https://example.com/mirror.jpg');
+      expect(withImage.id, original.id);
+      expect(withImage.part, original.part);
+      expect(withImage.vehicle, original.vehicle);
+    });
+
+    test('clientQuoteFromJson mapea estatusId numerico a texto oficial', () {
+      final quote = clientQuoteFromJson({
+        'guidId': 'q-estatus-1',
+        'solicitudGuidId': 'req-1',
+        'estatusId': 3,
+      });
+      expect(quote, isNotNull);
+      expect(quote!.status, 'Cotizada');
+
+      final quoteAceptada = clientQuoteFromJson({
+        'guidId': 'q-estatus-2',
+        'solicitudGuidId': 'req-1',
+        'estatusId': 7,
+      });
+      expect(quoteAceptada!.status, 'Aceptada');
+    });
+
+    test('reputationFromResponse parsea CalificacionYonkeDto en camelCase y PascalCase', () {
+      final repCamel = reputationFromResponse({
+        'data': {
+          'yonkeGuidId': 'y-1',
+          'promedio': 4.5,
+          'totalCalificaciones': 12,
+        },
+      });
+      expect(repCamel.average, 4.5);
+      expect(repCamel.count, 12);
+
+      final repPascal = reputationFromResponse({
+        'YonkeGuidId': 'y-2',
+        'Promedio': 5,
+        'TotalCalificaciones': 1,
+      });
+      expect(repPascal.average, 5.0);
+      expect(repPascal.count, 1);
+
+      final repZero = reputationFromResponse({
+        'promedio': 0.0,
+        'totalCalificaciones': 0,
+      });
+      expect(repZero.average, 0.0);
+      expect(repZero.count, 0);
     });
   });
 }

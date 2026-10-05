@@ -55,3 +55,16 @@ app.*.map.json
 output/
 swagger.json
 test/failures/
+
+# Credenciales y material privado de distribución
+.env
+.env.*
+!.env.example
+android/key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+plan_execution/
+config/app.*.json
+!config/app.*.example.json

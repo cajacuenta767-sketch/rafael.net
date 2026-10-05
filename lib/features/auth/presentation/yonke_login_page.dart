@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -120,7 +122,7 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !_loading,
-    child: Scaffold(
+    child: ResponsiveScaffold(
       backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAFBFD),
@@ -278,6 +280,20 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
                                 onFieldSubmitted: (_) {
                                   if (_canSubmit) _submit();
                                 },
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  key: const Key('yonke-forgot-password-link'),
+                                  onPressed: _loading
+                                      ? null
+                                      : () => context.push(
+                                          AppRoutes.yonkeForgotPassword,
+                                        ),
+                                  child: const Text(
+                                    '¿Olvidaste tu contraseña?',
+                                  ),
+                                ),
                               ),
                               if (_message != null) ...[
                                 const SizedBox(height: 16),

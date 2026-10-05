@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,7 +62,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
     if (_submissionError != null) {
       return _SubmissionError(error: _submissionError!);
     }
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -72,7 +74,7 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
         top: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+            constraints: const BoxConstraints(maxWidth: 1040),
             child: Column(
               children: [
                 Expanded(
@@ -118,49 +120,98 @@ class _RequestReviewPageState extends ConsumerState<RequestReviewPage> {
             ?.copyWith(color: const Color(0xFF30394B)),
       ),
       const SizedBox(height: 20),
-      _ReviewCard(
-        title: 'Información de la pieza',
+      ResponsiveRow(
+        minItemWidth: 380,
+        spacing: 20,
         children: [
-          _ReviewRow('Pieza', widget.draft.part),
-          _ReviewRow('Marca', widget.draft.brandName ?? '—'),
-          _ReviewRow('Modelo', widget.draft.modelName ?? '—'),
-          _ReviewRow('Año', widget.draft.year?.toString() ?? '—'),
-          if (widget.draft.description != null)
-            _ReviewRow('Descripción', widget.draft.description!),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _ReviewCard(
-        title: 'Ciudad de envío',
-        children: [_ReviewRow('Ciudad', widget.draft.cityName ?? '—')],
-      ),
-      const SizedBox(height: 16),
-      _ReviewCard(
-        title: 'Fotografías (${widget.draft.photos.length})',
-        children: [
-          if (widget.draft.photos.isEmpty)
-            const Text(
-              'No agregaste fotografías.',
-              style: TextStyle(color: Color(0xFF596276)),
-            )
-          else
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
+          _ReviewCard(
+            title: 'Pieza y vehículo',
+            onEdit: () => Navigator.pop(context, 0),
+            children: [
+              _ReviewRow(
+                'Pieza',
+                widget.draft.partSide != null &&
+                        widget.draft.partSide!.isNotEmpty
+                    ? '${widget.draft.part} (${widget.draft.partSide})'
+                    : widget.draft.part,
               ),
-              itemCount: widget.draft.photos.length,
-              itemBuilder: (context, index) => ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(
-                  widget.draft.photos[index].bytes,
-                  fit: BoxFit.cover,
+              _ReviewRow('Marca', widget.draft.brandName ?? '—'),
+              _ReviewRow('Modelo', widget.draft.modelName ?? '—'),
+              _ReviewRow('Año', widget.draft.year?.toString() ?? '—'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _ReviewCard(
+            title: 'Detalles adicionales',
+            onEdit: () => Navigator.pop(context, 1),
+            children: [
+              if (widget.draft.partNumber != null &&
+                  widget.draft.partNumber!.isNotEmpty)
+                _ReviewRow('No. Parte / OEM', widget.draft.partNumber!),
+              if (widget.draft.engine != null &&
+                  widget.draft.engine!.isNotEmpty)
+                _ReviewRow('Motor', widget.draft.engine!),
+              if (widget.draft.transmission != null &&
+                  widget.draft.transmission!.isNotEmpty)
+                _ReviewRow('Transmisión', widget.draft.transmission!),
+              if (widget.draft.description != null &&
+                  widget.draft.description!.isNotEmpty)
+                _ReviewRow('Descripción', widget.draft.description!),
+              if ((widget.draft.partNumber == null ||
+                      widget.draft.partNumber!.isEmpty) &&
+                  (widget.draft.engine == null ||
+                      widget.draft.engine!.isEmpty) &&
+                  (widget.draft.transmission == null ||
+                      widget.draft.transmission!.isEmpty) &&
+                  (widget.draft.description == null ||
+                      widget.draft.description!.isEmpty))
+                const Text(
+                  'Sin detalles adicionales especificados.',
+                  style: TextStyle(color: Color(0xFF596276)),
                 ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _ReviewCard(
+            title: 'Fotografías (${widget.draft.photos.length})',
+            onEdit: () => Navigator.pop(context, 2),
+            children: [
+              if (widget.draft.photos.isEmpty)
+                const Text(
+                  'No agregaste fotografías.',
+                  style: TextStyle(color: Color(0xFF596276)),
+                )
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: widget.draft.photos.length,
+                  itemBuilder: (context, index) => ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      widget.draft.photos[index].bytes,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _ReviewCard(
+            title: 'Ciudad de envío',
+            onEdit: () => Navigator.pop(context, 3),
+            children: [
+              _ReviewRow(
+                'Ciudad',
+                widget.draft.cityName ?? widget.draft.stateName ?? '—',
               ),
-            ),
+            ],
+          ),
         ],
       ),
     ],
@@ -172,7 +223,7 @@ class _SubmissionSuccess extends StatelessWidget {
   final RequestSubmissionResult result;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: Colors.white,
     body: SafeArea(
       child: Center(
@@ -229,7 +280,7 @@ class _SubmissionError extends StatelessWidget {
   final RequestSubmissionException error;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: Colors.white,
     appBar: AppBar(
       backgroundColor: Colors.white,
@@ -323,9 +374,10 @@ class _SubmissionError extends StatelessWidget {
 }
 
 class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.title, required this.children});
+  const _ReviewCard({required this.title, required this.children, this.onEdit});
   final String title;
   final List<Widget> children;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -338,10 +390,40 @@ class _ReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (onEdit != null)
+                TextButton(
+                  onPressed: onEdit,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xFF26991D),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_outlined, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Editar',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           ...children,
@@ -364,10 +446,13 @@ class _ReviewRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Color(0xFF596276), fontSize: 12),
+          style: const TextStyle(color: Color(0xFF596276), fontSize: 14),
         ),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ],
     ),
   );

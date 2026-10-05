@@ -122,6 +122,9 @@ class RequestsApi {
   Future<dynamic> sendToCoveredYonkes(String requestId) =>
       _client.post(ApiEndpoints.sendRequestToYonkes(requestId));
 
+  Future<dynamic> getRecipients(String requestId) =>
+      _client.get(ApiEndpoints.requestRecipients(requestId));
+
   Future<dynamic> markAsViewedByYonke(String requestYonkeId) =>
       _client.put(ApiEndpoints.markYonkeRequestViewed(requestYonkeId));
 
@@ -132,6 +135,10 @@ class RequestsApi {
   /// Número de solicitudes nuevas del yonke de la sesión.
   Future<dynamic> getYonkeNewRequestsTotal() =>
       _client.get(ApiEndpoints.yonkeNewRequestsTotal);
+
+  /// Solicitud más reciente asignada al yonke de la sesión.
+  Future<dynamic> getYonkeMostRecentRequest() =>
+      _client.get(ApiEndpoints.yonkeMostRecentRequest);
 }
 
 /// `GET /api/Solicitudes/{guid}` usa `[Authorize]` sin el esquema JWT y el API

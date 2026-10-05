@@ -10,6 +10,8 @@ abstract interface class YonkeRequestsRepository {
   });
 
   Future<void> markAsViewed(String requestYonkeId);
+
+  Future<YonkeRequestSummary?> getMostRecentRequest();
 }
 
 /// La respuesta de la bandeja no tiene la forma `SolicitudYonkes` que el
@@ -74,6 +76,14 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
   @override
   Future<void> markAsViewed(String requestYonkeId) =>
       _requestsApi.markAsViewedByYonke(requestYonkeId);
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async {
+    final response = await _requestsApi.getYonkeMostRecentRequest();
+    final data = response is Map ? response['data'] : response;
+    if (data == null || data is! Map) return null;
+    return yonkeRequestSummaryFromJson(data);
+  }
 }
 
 bool _matchesSearch(YonkeRequestSummary item, String search) {
@@ -224,6 +234,10 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
                 {'urlImagen': request['urlImagen']},
               ])
             : null),
+    description: _text(request['descripcion']) ?? _text(json['descripcion']),
+    engine: _text(request['motor']) ?? _text(json['motor']),
+    transmission: _text(request['transmicion']) ?? _text(json['transmicion']),
+    clientId: _text(request['usuarioId']) ?? _text(json['clienteGuidId']),
   );
 }
 

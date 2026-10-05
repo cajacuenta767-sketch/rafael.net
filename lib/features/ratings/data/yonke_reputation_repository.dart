@@ -19,6 +19,19 @@ class ApiYonkeReputationRepository implements YonkeReputationRepository {
 
 YonkeReputation reputationFromResponse(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
+  if (data is Map) {
+    final rawPromedio = data['promedio'] ?? data['Promedio'];
+    final rawTotal = data['totalCalificaciones'] ?? data['TotalCalificaciones'];
+    final promedio = rawPromedio is num
+        ? rawPromedio.toDouble()
+        : double.tryParse('$rawPromedio');
+    final total = rawTotal is num
+        ? rawTotal.toInt()
+        : int.tryParse('$rawTotal');
+    if (promedio != null || total != null) {
+      return YonkeReputation(average: promedio ?? 0.0, count: total ?? 0);
+    }
+  }
   final records = switch (data) {
     List() => data,
     Map() when data['items'] is List => data['items'] as List,

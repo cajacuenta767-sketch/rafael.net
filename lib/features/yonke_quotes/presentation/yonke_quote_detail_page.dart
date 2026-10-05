@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,7 +94,7 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFFAFBFD),
     appBar: AppBar(
       backgroundColor: const Color(0xFFFAFBFD),
@@ -173,6 +175,51 @@ class _YonkeQuoteDetailPageState extends ConsumerState<YonkeQuoteDetailPage> {
               fontWeight: FontWeight.w900,
             ),
           ),
+          if (quote.isPaid) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFC8E6C9)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF269627),
+                    size: 26,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PAGADA POR EL CLIENTE',
+                          style: TextStyle(
+                            color: Color(0xFF1B5E20),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'El cliente completó el pago de esta autoparte. Procede con la preparación y entrega.',
+                          style: TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           _DetailCard(
             title: 'Propuesta enviada',

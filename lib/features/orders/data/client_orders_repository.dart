@@ -19,7 +19,31 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
 
   @override
   Future<ClientOrderCreationResult> createOrder(String quoteId) async {
-    final response = await _ordersApi.create(quoteId);
+    dynamic response;
+    try {
+      response = await _ordersApi.create(quoteId);
+    } catch (error, stack) {
+      // Un timeout/500 puede ocurrir después de persistir. Recuperar por
+      // cotización, sin repetir el POST ni fabricar un identificador.
+      if (error is ApiException &&
+          error.statusCode != null &&
+          error.statusCode != 408 &&
+          error.statusCode! < 500) {
+        rethrow;
+      }
+      try {
+        final recovered = await getForQuote(quoteId);
+        if (recovered?.id != null) {
+          return ClientOrderCreationResult(
+            orderId: recovered!.id,
+            responseContractPending: recovered.responseContractPending,
+          );
+        }
+      } catch (_) {
+        // La respuesta de creación sigue siendo desconocida.
+      }
+      Error.throwWithStackTrace(error, stack);
+    }
     var orderId = _orderIdFromResponse(response);
     if (orderId == null) {
       try {
@@ -71,12 +95,15 @@ class ApiClientOrdersRepository implements ClientOrdersRepository {
       fallbackId: orderId,
       quoteId: order.quoteId,
     );
-    // El endpoint confirma con 200 pero Swagger aún no define el cuerpo.
-    return updated.copyWith(
-      status: updated.status ?? 'Cancelada',
-      isCancelled: true,
-      canCancel: false,
-    );
+    if (updated.isCancelled) return updated;
+    // Un 200 sin estado no demuestra la transición: volver a consultar.
+    final confirmed = await getById(orderId, quoteId: order.quoteId);
+    if (!confirmed.isCancelled) {
+      throw const ApiException(
+        message: 'La cancelación fue enviada, pero el servidor aún no confirma el estado. Actualiza la orden antes de volver a cancelar.',
+      );
+    }
+    return confirmed;
   }
 }
 
@@ -95,8 +122,19 @@ String? _orderIdFromResponse(dynamic response) {
   final data = response is Map ? response['data'] ?? response : response;
   if (data is String && data.trim().isNotEmpty) return data.trim();
   if (data is! Map) return null;
-  for (final key in const ['guidId', 'ordenGuidId', 'orderId', 'id']) {
-    final value = data[key]?.toString().trim();
+  final orderMap = data['orden'] ?? data['Orden'];
+  final target = orderMap is Map ? orderMap : data;
+  for (final key in const [
+    'guidId',
+    'ordenGuidId',
+    'orderId',
+    'id',
+    'GuidId',
+    'OrdenGuidId',
+    'OrderId',
+    'Id',
+  ]) {
+    final value = target[key]?.toString().trim();
     if (value != null && value.isNotEmpty) return value;
   }
   return null;
@@ -107,15 +145,26 @@ ClientOrder _orderFromResponse(
   required String quoteId,
   String? fallbackId,
 }) {
-  final data = response is Map ? response['data'] ?? response : response;
+  final rawData = response is Map ? response['data'] ?? response : response;
+  final data = rawData is Map
+      ? (rawData['orden'] ?? rawData['Orden'] ?? rawData)
+      : rawData;
   final json = data is Map ? data : const <dynamic, dynamic>{};
   final statusValue =
       json['estatus'] ??
       json['estado'] ??
       json['status'] ??
-      json['ordenEstatus'];
+      json['ordenEstatus'] ??
+      json['estatusOrdenId'] ??
+      json['EstatusOrdenId'];
   final status = statusValue is Map
-      ? (statusValue['descripcion'] ?? statusValue['nombre'])?.toString()
+      ? (statusValue['descripcion'] ??
+                statusValue['nombre'] ??
+                statusValue['Descripcion'] ??
+                statusValue['Nombre'])
+            ?.toString()
+      : statusValue is num
+      ? _orderStatusFromId(statusValue.toInt())
       : statusValue?.toString();
   final normalizedStatus = (status ?? '').toLowerCase();
   final cancelled =
@@ -127,26 +176,48 @@ ClientOrder _orderFromResponse(
       normalizedStatus.contains('entreg') ||
       normalizedStatus.contains('finaliz');
   final explicitCanCancel = json['puedeCancelar'] ?? json['cancelable'];
+  final pendingPayment = normalizedStatus == 'pendiente de pago';
+  final paid =
+      normalizedStatus.contains('pagada') ||
+      normalizedStatus.contains('pagado');
 
   return ClientOrder(
     id: _orderIdFromResponse(response) ?? fallbackId,
-    quoteId: json['cotizacionGuidId']?.toString() ?? quoteId,
+    quoteId:
+        json['cotizacionGuidId']?.toString() ??
+        json['CotizacionGuidId']?.toString() ??
+        quoteId,
     status: status,
     createdAt: _dateFrom(
-      json['fechaCreacion'] ?? json['creadoEn'] ?? json['fecha'],
+      json['fechaCreacion'] ??
+          json['FechaCreacion'] ??
+          json['creadoEn'] ??
+          json['fecha'],
     ),
     isCancelled: cancelled,
     canCancel: explicitCanCancel is bool
-        ? explicitCanCancel && !cancelled
+        ? explicitCanCancel && !cancelled && !completed && !paid
         : !cancelled &&
               !completed &&
+              pendingPayment &&
               (_orderIdFromResponse(response) ?? fallbackId) != null,
     responseContractPending:
         data is! Map ||
         _orderIdFromResponse(response) == null ||
-        status == null,
+        status == null ||
+        normalizedStatus.startsWith('estado no reconocido'),
   );
 }
 
 DateTime? _dateFrom(dynamic value) =>
     value is String ? DateTime.tryParse(value) : null;
+
+String _orderStatusFromId(int id) => switch (id) {
+  1 => 'Pendiente de pago',
+  2 => 'Procesando',
+  3 => 'Pagada',
+  4 => 'En camino',
+  7 => 'Completada',
+  9 => 'Cancelada',
+  _ => 'Estado no reconocido ($id)',
+};

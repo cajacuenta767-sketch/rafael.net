@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -222,9 +224,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'No se pudo abrir la solicitud. Inténtalo nuevamente.',
-          ),
+          content: Text('No se pudo abrir la solicitud. Inténtalo nuevamente.'),
         ),
       );
     } finally {
@@ -234,7 +234,7 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
         backgroundColor: YonkeColors.primaryNavy,

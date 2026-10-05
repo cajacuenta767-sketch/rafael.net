@@ -38,4 +38,9 @@ class AuthApi {
     ApiEndpoints.yonkeLogin,
     data: {'correo': email, 'password': password},
   );
+
+  Future<dynamic> forgotPasswordYonke(String email) => _client.post(
+    ApiEndpoints.yonkeForgotPassword,
+    data: {'email': email.trim().toLowerCase()},
+  );
 }

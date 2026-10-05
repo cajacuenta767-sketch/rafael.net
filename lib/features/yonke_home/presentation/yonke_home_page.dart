@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,47 +34,49 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
   }
 
   Future<YonkeHomeData> _load() async {
+    var partialError = false;
+    Future<T?> attempt<T>(Future<T> Function() action) async {
+      try {
+        return await action();
+      } catch (_) {
+        partialError = true;
+        return null;
+      }
+    }
+
     final requestsRepository = ref.read(yonkeRequestsRepositoryProvider);
     final quotesRepository = ref.read(yonkeQuotesRepositoryProvider);
     final messagesRepository = ref.read(yonkeMessagesRepositoryProvider);
     final profileRepository = ref.read(yonkeProfileRepositoryProvider);
 
-    final requests = await _safe(
-      () => requestsRepository.getAssignedRequests(page: 1, pageSize: 20),
-    );
-    final quotes = await _safe(
+    final mostRecent = await attempt(requestsRepository.getMostRecentRequest);
+    final quotes = await attempt(
       () => quotesRepository.getMyQuotes(page: 1, pageSize: 30),
     );
-    final quoteTotal = await _safe(
+    final quoteTotal = await attempt(
       () async => quoteTotalFromResponse(
         await ref.read(quotesApiProvider).getYonkeTotal(),
       ),
     );
-    final newRequestsTotal = await _safe(
+    final newRequestsTotal = await attempt(
       () async => quoteTotalFromResponse(
         await ref.read(requestsApiProvider).getYonkeNewRequestsTotal(),
       ),
     );
-    final messages = await _safe(messagesRepository.getInbox);
-    final profile = await _safe(profileRepository.load);
+    final messages = await attempt(messagesRepository.getInbox);
+    final profile = await attempt(profileRepository.load);
 
     return YonkeHomeData(
-      requests: requests?.items ?? const [],
+      requests: mostRecent != null ? [mostRecent] : const [],
+      mostRecentRequest: mostRecent,
       quoteCount: quoteTotal ?? quotes?.items.length ?? 0,
       newRequestsTotal: newRequestsTotal,
       unreadMessages:
           messages?.fold<int>(0, (total, item) => total + item.unreadCount) ??
           0,
       businessName: profile?.profile?.name,
+      hasPartialError: partialError,
     );
-  }
-
-  Future<T?> _safe<T>(Future<T> Function() action) async {
-    try {
-      return await action();
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<void> _refresh() async {
@@ -81,7 +85,7 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: YonkeColors.background,
     body: SafeArea(
       bottom: false,
@@ -100,7 +104,20 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
                   sliver: SliverList.list(
                     children: [
-                      _Metrics(data: data),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        _Metrics(data: data),
+                      if (data.hasPartialError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            'No se pudo actualizar todo el resumen. Los contadores pueden estar incompletos. Desliza para reintentar.',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 25),
                       Row(
                         children: [
@@ -158,24 +175,30 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
 class YonkeHomeData {
   const YonkeHomeData({
     this.requests = const [],
+    this.mostRecentRequest,
     this.quoteCount = 0,
     this.unreadMessages = 0,
     this.businessName,
     this.newRequestsTotal,
+    this.hasPartialError = false,
   });
   final List<YonkeRequestSummary> requests;
+  final YonkeRequestSummary? mostRecentRequest;
   final int quoteCount;
   final int unreadMessages;
   final String? businessName;
+  final bool hasPartialError;
 
   /// `GET /api/SolicitudYonkes/TotalSolicitudesNuevas`; si no responde se
   /// cuentan las nuevas de la bandeja cargada.
   final int? newRequestsTotal;
   int get newRequests =>
       newRequestsTotal ??
-      requests
-          .where((item) => item.status == YonkeRequestStatus.newRequest)
-          .length;
+      (mostRecentRequest?.status == YonkeRequestStatus.newRequest
+          ? 1
+          : requests
+                .where((item) => item.status == YonkeRequestStatus.newRequest)
+                .length);
 }
 
 class _Hero extends StatelessWidget {
@@ -198,8 +221,6 @@ class _Hero extends StatelessWidget {
             children: [
               Text(
                 '¡Hola, ${data.businessName ?? 'Yonke'}! 👋',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -233,7 +254,8 @@ class _Metrics extends StatelessWidget {
   final YonkeHomeData data;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => ResponsiveRow(
+    minItemWidth: 135,
     children: [
       Expanded(
         child: _MetricCard(
@@ -290,7 +312,7 @@ class _MetricCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        height: 134,
+        constraints: const BoxConstraints(minHeight: 134),
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -309,18 +331,18 @@ class _MetricCard extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 height: 1.22,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Text(
                   '$value',
                   style: const TextStyle(
-                    fontSize: 28,
+                    fontSize: 32,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -335,7 +357,7 @@ class _MetricCard extends StatelessWidget {
             const SizedBox(height: 7),
             const Text(
               'Ver todas →',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -397,7 +419,10 @@ class _RecentRequest extends StatelessWidget {
                       item.part,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     if (item.city != null)
                       Text(
@@ -406,7 +431,7 @@ class _RecentRequest extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: YonkeColors.textSecondary,
-                          fontSize: 12,
+                          fontSize: 14,
                         ),
                       ),
                   ],
@@ -434,7 +459,7 @@ class _Status extends StatelessWidget {
     child: Text(
       status.label.toUpperCase(),
       style: const TextStyle(
-        fontSize: 9,
+        fontSize: 11,
         color: YonkeColors.accentGreen,
         fontWeight: FontWeight.w900,
       ),

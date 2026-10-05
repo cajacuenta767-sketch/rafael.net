@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -123,7 +125,7 @@ class _ClientYonkesPageState extends ConsumerState<ClientYonkesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: _page,
     appBar: AppBar(
       backgroundColor: _page,
@@ -333,7 +335,7 @@ class _ClientYonkeProfilePageState
   Widget build(BuildContext context) {
     final detail = _detail;
     final yonke = detail?.yonke ?? widget.initial;
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: _page,
       appBar: AppBar(
         backgroundColor: _page,

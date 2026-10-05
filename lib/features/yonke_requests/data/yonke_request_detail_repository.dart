@@ -44,7 +44,15 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     YonkeRequestSummary? summary,
   }) async {
     if (requestId.isEmpty) throw const YonkeRequestDetailNotFoundException();
-    final images = _requestsApi.getImages(requestId);
+    // Attach the error handler immediately: both requests run in parallel.
+    // Otherwise a fast image failure escapes while the detail is awaited.
+    final images = _requestsApi
+        .getImages(requestId)
+        .then<({dynamic response, Object? error, StackTrace? stack})>(
+          (response) => (response: response, error: null, stack: null),
+          onError: (Object error, StackTrace stack) =>
+              (response: null, error: error, stack: stack),
+        );
     dynamic requestResponse;
     YonkeRequestSummary? known = summary;
     try {
@@ -57,9 +65,13 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
       if (known == null) rethrow;
       requestResponse = {'guidId': requestId};
     }
+    final imageResult = await images;
+    if (imageResult.error != null) {
+      Error.throwWithStackTrace(imageResult.error!, imageResult.stack!);
+    }
     final detail = yonkeRequestDetailFromResponses(
       requestResponse: requestResponse,
-      imagesResponse: await images,
+      imagesResponse: imageResult.response,
       requestYonkeId: requestYonkeId,
       summary: known,
     );
@@ -153,7 +165,7 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
   if (raw == null) return null;
 
   final images = _unwrapList(imagesResponse);
-  final imageUrls = images
+  var imageUrls = images
       .whereType<Map>()
       .map(
         (image) =>
@@ -164,6 +176,11 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
       .whereType<String>()
       .where(_isSafeRemoteImage)
       .toList(growable: false);
+  if (imageUrls.isEmpty &&
+      summary?.imageUrl != null &&
+      _isSafeRemoteImage(summary!.imageUrl!)) {
+    imageUrls = [summary.imageUrl!];
+  }
   final closed = raw['cerrada'] == true;
 
   return YonkeRequestDetail(
@@ -178,10 +195,10 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
     brand: _text(raw['marca']) ?? summary?.brand,
     model: _text(raw['modelo']) ?? summary?.model,
     year: (raw['año'] as num?)?.toInt() ?? summary?.year,
-    engine: _text(raw['motor']),
-    transmission: _text(raw['transmicion']),
+    engine: _text(raw['motor']) ?? summary?.engine,
+    transmission: _text(raw['transmicion']) ?? summary?.transmission,
     partNumber: _text(raw['numeroParte']),
-    description: _text(raw['descripcion']),
+    description: _text(raw['descripcion']) ?? summary?.description,
     folio: _text(raw['folio']) ?? summary?.folio,
     city: summary?.city,
     receivedAt:
@@ -193,14 +210,15 @@ YonkeRequestDetail? yonkeRequestDetailFromResponses({
 
 Map<dynamic, dynamic>? _unwrapMap(dynamic response) {
   if (response is! Map) return null;
-  final data = response['data'];
+  final data = response['data'] ?? response['Data'];
   return data is Map ? data : response;
 }
 
 List<dynamic> _unwrapList(dynamic response) {
   if (response is List) return response;
-  if (response is Map && response['data'] is List) {
-    return response['data'] as List<dynamic>;
+  if (response is Map) {
+    final list = response['data'] ?? response['Data'];
+    if (list is List) return list;
   }
   return const [];
 }

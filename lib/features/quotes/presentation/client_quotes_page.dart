@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,7 +57,7 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ResponsiveScaffold(
     backgroundColor: const Color(0xFFF8F9FA),
     appBar: AppBar(
       centerTitle: true,
@@ -183,6 +185,38 @@ class _ClientQuotesPageState extends ConsumerState<ClientQuotesPage> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
+                        if (quote.isPaid) ...[
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 13,
+                                  color: Color(0xFF269627),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Pagada',
+                                  style: TextStyle(
+                                    color: Color(0xFF269627),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 3),
                         Text(
                           quote.status,

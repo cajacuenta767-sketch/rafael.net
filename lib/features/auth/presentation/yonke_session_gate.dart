@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,7 +35,7 @@ class _YonkeSessionGateState extends ConsumerState<YonkeSessionGate> {
     future: _session,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
-        return const Scaffold(
+        return const ResponsiveScaffold(
           body: SafeArea(child: Center(child: CircularProgressIndicator())),
         );
       }
@@ -44,7 +46,7 @@ class _YonkeSessionGateState extends ConsumerState<YonkeSessionGate> {
             if (mounted) context.go('/yonke/login');
           });
         }
-        return const Scaffold(body: SizedBox.shrink());
+        return const ResponsiveScaffold(body: SizedBox.shrink());
       }
       return widget.builder(context);
     },

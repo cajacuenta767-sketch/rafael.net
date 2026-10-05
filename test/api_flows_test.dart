@@ -103,17 +103,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('¿Qué autoparte buscas?'), findsOneWidget);
-    expect(find.text('Categorías populares'), findsOneWidget);
-    expect(find.text('Carrocería'), findsOneWidget);
-    expect(find.text('Enfriamiento'), findsOneWidget);
+    expect(find.text('Datos de tu vehículo'), findsOneWidget);
+    expect(find.text('Selecciona una marca'), findsOneWidget);
     expect(find.byKey(const Key('request-continue-button')), findsOneWidget);
 
-    await tester.tap(find.text('Carrocería'));
-    await tester.tap(find.byKey(const Key('request-continue-button')));
+    await tester.enterText(find.byKey(const Key('request-part-field')), 'Motor');
     await tester.pumpAndSettle();
-
-    expect(find.text('Cuéntanos de tu vehículo'), findsOneWidget);
-    expect(find.text('Selecciona una marca'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('request-brand-select')));
     await tester.pumpAndSettle();
@@ -131,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Agrega más detalles'), findsOneWidget);
-    expect(find.text('Carrocería'), findsOneWidget);
+    expect(find.text('Motor'), findsOneWidget);
     expect(find.text('Nissan Altima ${DateTime.now().year}'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('request-continue-button')));

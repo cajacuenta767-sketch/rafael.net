@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -39,13 +41,20 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   }
 
   Future<void> _loadQuote() async {
+    final hasInitial = _quote != null || widget.initialQuote != null;
     setState(() {
-      _loading = true;
+      if (!hasInitial) {
+        _loading = true;
+      }
       _error = null;
       _existingOrder = null;
       _checkingExistingOrder = false;
       _existingOrderError = null;
+      if (_quote == null && widget.initialQuote != null) {
+        _quote = widget.initialQuote;
+      }
     });
+
     if (widget.quoteId.isEmpty) {
       setState(() {
         _loading = false;
@@ -54,11 +63,8 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       return;
     }
 
-    if (widget.initialQuote != null) {
-      _quote = widget.initialQuote;
-      _loading = false;
-      unawaited(_loadExistingOrder(widget.initialQuote!));
-      return;
+    if (_quote != null) {
+      unawaited(_loadExistingOrder(_quote!));
     }
 
     try {
@@ -71,13 +77,16 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           : await ref.read(quoteYonkeResolverProvider).resolve(parsed);
       if (!mounted) return;
       setState(() {
-        _quote = quote;
+        _quote = quote ?? _quote;
         _loading = false;
       });
       if (quote != null) unawaited(_loadExistingOrder(quote));
     } catch (_) {
       if (!mounted) return;
-      if (_quote != null) return;
+      if (_quote != null) {
+        setState(() => _loading = false);
+        return;
+      }
       setState(() {
         _loading = false;
         _error = 'No se pudo cargar la cotización. Inténtalo nuevamente.';
@@ -137,7 +146,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFCFCFC),
@@ -186,7 +195,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
       children: [
-        Row(
+        AdaptiveInline(
           children: [
             _LargeYonkeLogo(name: quote.yonkeName, url: quote.logoUrl),
             const SizedBox(width: 14),
@@ -207,7 +216,10 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           ],
         ),
         const SizedBox(height: 18),
-        YonkeReputationCard(yonkeId: quote.yonkeId),
+        YonkeReputationCard(
+          key: ValueKey('reputation-${quote.yonkeId}'),
+          yonkeId: quote.yonkeId,
+        ),
         const SizedBox(height: 18),
         Text(
           formatQuotePrice(quote.price),
@@ -350,6 +362,62 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       );
     }
     final existingOrder = _existingOrder;
+    if (quote.isPaid) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFC8E6C9)),
+        ),
+        child: AdaptiveInline(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF269627),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Cotización pagada',
+                    style: TextStyle(
+                      color: Color(0xFF1B5E20),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    existingOrder != null
+                        ? 'Tu pago fue confirmado y la orden está en proceso.'
+                        : 'Tu pago fue confirmado exitosamente.',
+                    style: const TextStyle(
+                      color: Color(0xFF2E7D32),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (existingOrder != null)
+              TextButton(
+                onPressed: () => context.push(
+                  AppRoutes.clientOrderTracking(quote.id),
+                  extra: ClientOrderTrackingArgs(
+                    quote: quote,
+                    orderId: existingOrder.id,
+                  ),
+                ),
+                child: const Text('Ver orden'),
+              ),
+          ],
+        ),
+      );
+    }
     if (existingOrder != null) {
       return FilledButton.icon(
         key: const Key('client-open-order-tracking'),
@@ -386,6 +454,9 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   }
 
   String _orderActionMessage(ClientQuote quote) {
+    if (quote.isPaid) {
+      return 'Esta cotización ya fue pagada. Tu autoparte está en preparación.';
+    }
     if (_checkingExistingOrder) {
       return 'Estamos comprobando el estado de la orden.';
     }
@@ -459,7 +530,7 @@ class _QuoteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
-    child: Row(
+    child: AdaptiveInline(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(

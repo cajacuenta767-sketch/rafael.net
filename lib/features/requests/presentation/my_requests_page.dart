@@ -1,3 +1,5 @@
+import '../../../app/widgets/responsive_scaffold.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,6 +53,10 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         _requests = list;
         _loading = false;
       });
+      if (list.isNotEmpty &&
+          list.any((r) => r.imageUrl == null || r.imageUrl!.isEmpty)) {
+        _hydrateImages(list);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -58,6 +64,32 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
         _error = error is ApiException
             ? error.message
             : 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
+      });
+    }
+  }
+
+  void _hydrateImages(List<ClientRequestSummary> initial) async {
+    final requestsApi = ref.read(requestsApiProvider);
+    var updated = false;
+    final updatedList = await Future.wait(
+      initial.map((req) async {
+        if (req.imageUrl != null && req.imageUrl!.isNotEmpty) return req;
+        try {
+          final imagesResponse = await requestsApi.getImages(req.id);
+          final urls = requestImageUrlsFromResponse(imagesResponse);
+          if (urls.isNotEmpty) {
+            updated = true;
+            return req.copyWith(imageUrl: urls.first);
+          }
+          return req;
+        } catch (_) {
+          return req;
+        }
+      }),
+    );
+    if (updated && mounted) {
+      setState(() {
+        _requests = updatedList;
       });
     }
   }
@@ -117,7 +149,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFCFCFC),
@@ -220,7 +252,8 @@ class _RequestSummaryCard extends StatelessWidget {
           },
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Row(
+            child: AdaptiveInline(
+              minimumInlineWidth: 200,
               children: [
                 Container(
                   width: 72,
@@ -257,37 +290,27 @@ class _RequestSummaryCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 10),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Icon(
-                            Icons.local_offer_outlined,
-                            size: 18,
-                            color: statusColor,
+                          Text(
+                            '${request.quoteCount} cotizaciones',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(
-                              '${request.quoteCount} cotizaciones',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.circle, size: 8, color: statusColor),
-                          const SizedBox(width: 5),
                           Text(
                             request.status,
                             style: TextStyle(color: statusColor),
                           ),
                           if (onCancel != null && request.isInProgress) ...[
-                            const SizedBox(width: 8),
                             IconButton(
                               key: Key('cancel-request-card-${request.id}'),
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
+                                minWidth: 48,
+                                minHeight: 48,
                               ),
                               icon: const Icon(
                                 Icons.delete_outline,
