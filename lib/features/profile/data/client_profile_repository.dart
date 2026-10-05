@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/storage/token_store.dart';
+import '../../auth/data/auth_api.dart';
 import '../../auth/domain/session_payload.dart';
 import '../domain/client_profile.dart';
 
@@ -41,12 +42,14 @@ abstract interface class ClientProfileRepository {
 class LocalClientProfileRepository implements ClientProfileRepository {
   LocalClientProfileRepository({
     required this.tokenStore,
+    this.authApi,
     FlutterSecureStorage? storage,
     Future<Directory> Function()? photosDirectory,
   }) : _storage = storage ?? const FlutterSecureStorage(),
        _photosDirectory = photosDirectory ?? _defaultPhotosDirectory;
 
   final TokenStore tokenStore;
+  final AuthApi? authApi;
   final FlutterSecureStorage _storage;
   final Future<Directory> Function() _photosDirectory;
 
@@ -77,7 +80,7 @@ class LocalClientProfileRepository implements ClientProfileRepository {
   Future<ClientProfileSnapshot> load() async {
     final claims = await _claims();
     final stored = await _storedProfile(claims);
-    final profile = ClientProfile(
+    var profile = ClientProfile(
       id: stored?.id ?? _subject(claims),
       name: _first([stored?.name, _realName(_claim(claims, _nameClaims))]),
       email: _first([stored?.email, _claim(claims, _emailClaims)]),
@@ -90,6 +93,29 @@ class LocalClientProfileRepository implements ClientProfileRepository {
       photoPath: stored?.photoPath,
       photoUrl: stored?.photoUrl,
     );
+    final id = profile.id;
+    if (id != null && id.isNotEmpty && authApi != null) {
+      try {
+        final remote = _profileRecord(await authApi!.getOwnClientProfile());
+        if (remote != null) {
+          profile = profile.copyWith(
+            name: _first([
+              _realName(remote['nombre']?.toString()),
+              profile.name,
+            ]),
+            email: _first([remote['correo']?.toString(), profile.email]),
+            phone: _first([remote['telefono']?.toString(), profile.phone]),
+            photoUrl: _first([
+              remote['fotoPerfil']?.toString(),
+              profile.photoUrl,
+            ]),
+          );
+        }
+      } catch (_) {
+        // La API puede estar temporalmente sin conexión; se conserva el caché
+        // local y las funciones de perfil/direcciones siguen disponibles.
+      }
+    }
     return ClientProfileSnapshot(
       availability: profile.hasConfirmedData
           ? ClientProfileAvailability.available
@@ -155,10 +181,29 @@ class LocalClientProfileRepository implements ClientProfileRepository {
   @override
   Future<void> saveProfile(ClientProfile profile) async {
     final subject = _subject(await _claims());
+    final remoteName = profile.name?.trim();
+    if (subject != null && remoteName != null && remoteName.isNotEmpty) {
+      await authApi?.updateOwnClientProfile(
+        name: remoteName,
+        photoUrl: profile.photoPath == null ? profile.photoUrl : null,
+      );
+    }
     await _storage.write(
       key: subject == null ? _legacyProfileKey : _profileKey(subject),
       value: jsonEncode(profile.toJson()),
     );
+  }
+
+  static Map<String, dynamic>? _profileRecord(dynamic response) {
+    dynamic node = response;
+    for (var i = 0; i < 3 && node is Map; i++) {
+      node = node['data'] ?? node['Data'] ?? node;
+      if (node is Map &&
+          (node.containsKey('guidId') || node.containsKey('GuidId'))) {
+        return Map<String, dynamic>.from(node);
+      }
+    }
+    return node is Map ? Map<String, dynamic>.from(node) : null;
   }
 
   @override

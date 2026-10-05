@@ -3,11 +3,13 @@ import '../../../app/widgets/responsive_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
+import '../../payments/data/payments_api.dart';
 import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
 import '../domain/client_order_creation.dart';
@@ -178,124 +180,255 @@ class _ClientOrderConfirmationPageState
   }
 }
 
-class ClientOrderSuccessPage extends StatelessWidget {
+class ClientOrderSuccessPage extends ConsumerStatefulWidget {
   const ClientOrderSuccessPage({super.key, required this.args});
 
   final ClientOrderSuccessArgs args;
 
   @override
-  Widget build(BuildContext context) => ResponsiveScaffold(
-    backgroundColor: const Color(0xFFFCFCFC),
-    appBar: AppBar(
-      automaticallyImplyLeading: false,
+  ConsumerState<ClientOrderSuccessPage> createState() =>
+      _ClientOrderSuccessPageState();
+}
+
+class _ClientOrderSuccessPageState
+    extends ConsumerState<ClientOrderSuccessPage> {
+  bool _openingCheckout = false;
+  String? _sessionId;
+  String? _paymentMessage;
+  bool _checkingPayment = false;
+
+  Future<void> _pay() async {
+    final orderId = widget.args.result.orderId;
+    if (orderId == null || _openingCheckout) return;
+    setState(() => _openingCheckout = true);
+    try {
+      final api = ref.read(paymentsApiProvider);
+      final checkout = PaymentsApi.parseCheckout(
+        await api.createCheckout(orderId),
+      );
+      if (checkout == null)
+        throw const FormatException('Respuesta de Stripe inválida.');
+      _sessionId = checkout.sessionId;
+      final opened = await launchUrl(
+        checkout.checkoutUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened)
+        throw StateError('No se pudo abrir el pago seguro de Stripe.');
+      if (mounted)
+        setState(
+          () => _paymentMessage =
+              'Completa el pago en Stripe y vuelve aquí para verificarlo.',
+        );
+    } catch (error) {
+      if (mounted)
+        setState(
+          () => _paymentMessage = error is ApiException ? error.message : 'No pudimos iniciar el pago. Tu orden sigue registrada; puedes reintentar.',
+        );
+    } finally {
+      if (mounted) setState(() => _openingCheckout = false);
+    }
+  }
+
+  Future<void> _verifyPayment() async {
+    final sessionId = _sessionId;
+    if (sessionId == null || _checkingPayment) return;
+    setState(() => _checkingPayment = true);
+    try {
+      final result = PaymentsApi.parseResult(
+        await ref.read(paymentsApiProvider).getResult(sessionId),
+      );
+      if (result == null) throw const FormatException();
+      final state =
+          (result['estado'] ??
+                  result['Estado'] ??
+                  result['paymentStatus'] ??
+                  result['PaymentStatus'] ??
+                  '')
+              .toString();
+      final success =
+          result['exitoso'] == true ||
+          result['Exitoso'] == true ||
+          state.toLowerCase() == 'paid';
+      if (mounted)
+        setState(
+          () => _paymentMessage = success
+              ? 'Pago confirmado por el servidor.'
+              : (state.isEmpty
+                    ? 'El pago aún no está confirmado.'
+                    : 'Estado del pago: $state'),
+        );
+    } catch (error) {
+      if (mounted)
+        setState(
+          () => _paymentMessage = error is ApiException ? error.message : 'No se pudo verificar el pago. Intenta de nuevo en unos momentos.',
+        );
+    } finally {
+      if (mounted) setState(() => _checkingPayment = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final args = widget.args;
+    return ResponsiveScaffold(
       backgroundColor: const Color(0xFFFCFCFC),
-      surfaceTintColor: const Color(0xFFFCFCFC),
-      centerTitle: true,
-      title: const Text('Orden creada'),
-    ),
-    body: SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 92,
-                    height: 92,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE8F5EA),
-                      shape: BoxShape.circle,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFFFCFCFC),
+        surfaceTintColor: const Color(0xFFFCFCFC),
+        centerTitle: true,
+        title: const Text('Orden creada'),
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5EA),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_outline,
+                        size: 56,
+                        color: Color(0xFF147A1D),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check_circle_outline,
-                      size: 56,
-                      color: Color(0xFF147A1D),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Orden creada',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Tu selección de ${args.quote.yonkeName} fue registrada.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFF596276)),
-                  ),
-                  if (args.result.orderId != null) ...[
-                    const SizedBox(height: 16),
-                    SelectableText(
-                      'Orden: ${args.result.orderId}',
+                    const SizedBox(height: 20),
+                    Text(
+                      'Orden creada',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
-                  ],
-                  const SizedBox(height: 18),
-                  _OrderStatusInfoCard(
-                    contractPending: args.result.responseContractPending,
-                  ),
-                  const SizedBox(height: 24),
-                  if (args.result.orderId != null) ...[
-                    FilledButton.icon(
-                      key: const Key('client-track-order'),
-                      onPressed: () => context.push(
-                        AppRoutes.clientOrderTracking(args.quote.id),
-                        extra: ClientOrderTrackingArgs(
-                          quote: args.quote,
-                          orderId: args.result.orderId,
+                    const SizedBox(height: 10),
+                    Text(
+                      'Tu selección de ${args.quote.yonkeName} fue registrada.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFF596276)),
+                    ),
+                    if (args.result.orderId != null) ...[
+                      const SizedBox(height: 16),
+                      SelectableText(
+                        'Orden: ${args.result.orderId}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    _OrderStatusInfoCard(
+                      contractPending: args.result.responseContractPending,
+                    ),
+                    if (args.result.orderId != null) ...[
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        key: const Key('client-pay-with-stripe'),
+                        onPressed: _openingCheckout ? null : _pay,
+                        icon: _openingCheckout
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.lock_outline),
+                        label: Text(
+                          _openingCheckout
+                              ? 'Preparando pago seguro...'
+                              : 'Pagar con Stripe',
+                        ),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          backgroundColor: const Color(0xFF1746A2),
                         ),
                       ),
-                      icon: const Icon(Icons.receipt_long_outlined),
-                      label: const Text('Ver seguimiento de la orden'),
+                      if (_sessionId != null) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          key: const Key('client-verify-payment'),
+                          onPressed: _checkingPayment ? null : _verifyPayment,
+                          child: Text(
+                            _checkingPayment
+                                ? 'Verificando...'
+                                : 'Ya volví, verificar pago',
+                          ),
+                        ),
+                      ],
+                      if (_paymentMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _paymentMessage!,
+                          key: const Key('client-payment-status'),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                    const SizedBox(height: 24),
+                    if (args.result.orderId != null) ...[
+                      FilledButton.icon(
+                        key: const Key('client-track-order'),
+                        onPressed: () => context.push(
+                          AppRoutes.clientOrderTracking(args.quote.id),
+                          extra: ClientOrderTrackingArgs(
+                            quote: args.quote,
+                            orderId: args.result.orderId,
+                          ),
+                        ),
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        label: const Text('Ver seguimiento de la orden'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          backgroundColor: const Color(0xFF00695C),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    OutlinedButton.icon(
+                      key: const Key('client-rate-yonke'),
+                      onPressed: () => context.push(
+                        AppRoutes.clientRating(args.quote.id),
+                        extra: ClientRatingArgs(quote: args.quote),
+                      ),
+                      icon: const Icon(Icons.star_outline),
+                      label: const Text('Calificar al yonke'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: () => context.go(AppRoutes.clientRequests),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                         backgroundColor: const Color(0xFF00695C),
                       ),
+                      child: const Text('Ver mis solicitudes'),
                     ),
                     const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => context.go(AppRoutes.clientHome),
+                      child: const Text('Ir al inicio'),
+                    ),
                   ],
-                  OutlinedButton.icon(
-                    key: const Key('client-rate-yonke'),
-                    onPressed: () => context.push(
-                      AppRoutes.clientRating(args.quote.id),
-                      extra: ClientRatingArgs(quote: args.quote),
-                    ),
-                    icon: const Icon(Icons.star_outline),
-                    label: const Text('Calificar al yonke'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  FilledButton(
-                    onPressed: () => context.go(AppRoutes.clientRequests),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      backgroundColor: const Color(0xFF00695C),
-                    ),
-                    child: const Text('Ver mis solicitudes'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => context.go(AppRoutes.clientHome),
-                    child: const Text('Ir al inicio'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _SummaryCard extends StatelessWidget {

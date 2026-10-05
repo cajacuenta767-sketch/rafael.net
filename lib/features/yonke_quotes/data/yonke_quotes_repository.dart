@@ -33,11 +33,35 @@ class ApiYonkeQuotesRepository implements YonkeQuotesRepository {
     String? search,
     YonkeQuoteFilters filters = const YonkeQuoteFilters(),
   }) async {
-    // El API publicado no tiene una lista de cotizaciones del yonke:
-    // `mis-cotizaciones` es del rol Cliente. Si el servidor la rechaza (403) o
-    // responde con otra forma se informa como contrato pendiente; cualquier
-    // otro error se propaga en lugar de mostrarse como lista vacía.
-    // Mientras tanto se usan las cotizaciones registradas en el teléfono.
+    final safePage = page < 1 ? 1 : page;
+    final cleanSearch = search?.trim().isEmpty == true ? null : search?.trim();
+    try {
+      final serverPage = yonkeQuotesPageFromResponse(
+        await _quotesApi.getYonkeQuotes(
+          page: safePage,
+          pageSize: pageSize.clamp(1, 50),
+          search: cleanSearch,
+        ),
+      );
+      if (serverPage != null) {
+        final filtered = _filterAndPage(
+          serverPage.items,
+          page: 1,
+          pageSize: pageSize,
+          search: null,
+          filters: filters,
+        );
+        return YonkeQuotesPageResult(
+          items: filtered.items,
+          page: serverPage.page,
+          hasMore: serverPage.hasMore,
+        );
+      }
+    } on ApiException catch (error) {
+      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
+    }
+
+    // Compatibilidad temporal con instalaciones sin el endpoint nuevo.
     List<YonkeQuote>? allItems;
     try {
       allItems = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())

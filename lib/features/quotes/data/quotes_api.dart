@@ -30,6 +30,19 @@ class QuotesApi {
   /// Total de cotizaciones del yonke de la sesión (`Int32ApiResponseGlobal`).
   Future<dynamic> getYonkeTotal() => _client.get(ApiEndpoints.yonkeQuotesTotal);
 
+  Future<dynamic> getYonkeQuotes({
+    int page = 1,
+    int pageSize = 20,
+    String? search,
+  }) => _client.get(
+    ApiEndpoints.yonkeQuotes,
+    queryParameters: {
+      'Page': page,
+      'CantidadRegistrosPorPagina': pageSize,
+      'Search': search,
+    },
+  );
+
   Future<dynamic> sendMessage({
     required String quoteId,
     required String message,

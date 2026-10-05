@@ -49,17 +49,20 @@ class ApiYonkeMessagesRepository
 
   @override
   Future<List<YonkeMessagePreview>> getInbox() async {
-    // `mis-cotizaciones` es del rol Cliente en el API publicado. Si la
-    // rechaza de cualquier forma (403, 401, 302 de login, 500 o
-    // `success:false`) o no trae nada, la bandeja se arma con las
-    // cotizaciones registradas en el teléfono (enviadas desde la app o
-    // recibidas en avisos de mensaje).
     List<YonkeQuote>? known;
     try {
-      known = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
-          ?.items;
-    } on ApiException {
-      known = null;
+      known = yonkeQuotesPageFromResponse(
+        await _quotesApi.getYonkeQuotes(page: 1, pageSize: inboxLimit),
+      )?.items;
+    } on ApiException catch (error) {
+      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
+      // Compatibilidad mientras el backend actualizado se publica.
+      try {
+        known = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
+            ?.items;
+      } on ApiException {
+        known = null;
+      }
     }
     final registry = _registry;
     if ((known == null || known.isEmpty) && registry != null) {

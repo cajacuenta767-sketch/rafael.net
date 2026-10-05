@@ -6,6 +6,20 @@ class AuthApi {
 
   final ApiClient _client;
 
+  Future<dynamic> getClientProfile(String clientId) =>
+      _client.get(ApiEndpoints.clientProfile(clientId));
+
+  Future<dynamic> getOwnClientProfile() =>
+      _client.get(ApiEndpoints.ownClientProfile);
+
+  Future<dynamic> updateOwnClientProfile({
+    required String name,
+    String? photoUrl,
+  }) => _client.put(
+    ApiEndpoints.updateOwnClientProfile,
+    data: {'nombre': name.trim(), if (photoUrl != null) 'fotoPerfil': photoUrl},
+  );
+
   Future<dynamic> loginClientWithGoogle(String idToken) =>
       _client.post(ApiEndpoints.clientGoogleLogin, data: {'idToken': idToken});
 

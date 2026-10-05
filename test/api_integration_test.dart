@@ -342,6 +342,10 @@ void main() {
       final registry = YonkeQuoteRegistry(tokens);
       final client = _RoutedClient({
         ApiEndpoints.quotes: {'success': true, 'data': 'q-nueva'},
+        ApiEndpoints.yonkeQuotes: const ApiException(
+          message: 'No disponible en backend anterior',
+          statusCode: 404,
+        ),
         ApiEndpoints.dashboardQuotes: const ApiException(
           message: 'Prohibido',
           statusCode: 403,
@@ -424,6 +428,10 @@ void main() {
         final registry = YonkeQuoteRegistry(tokens);
         await registry.add('q-1');
         final client = _RoutedClient({
+          ApiEndpoints.yonkeQuotes: const ApiException(
+            message: 'No disponible en backend anterior',
+            statusCode: 404,
+          ),
           ApiEndpoints.dashboardQuotes: entry.value,
           ApiEndpoints.quote('q-1'): {
             'data': {
@@ -476,6 +484,10 @@ void main() {
     test('sin cotizaciones en el teléfono avisa en lugar de fallar', () async {
       FlutterSecureStorage.setMockInitialValues({});
       final client = _RoutedClient({
+        ApiEndpoints.yonkeQuotes: const ApiException(
+          message: 'No disponible en backend anterior',
+          statusCode: 404,
+        ),
         ApiEndpoints.dashboardQuotes: const ApiException(
           message: 'Error interno',
           statusCode: 500,

@@ -84,8 +84,10 @@ class _ClientOnboardingPageState extends ConsumerState<ClientOnboardingPage> {
     _email.text = draft.email ?? '';
     // En el registro, lo que confirmó el login no se edita: el teléfono
     // verificado por OTP y el correo de la cuenta de Google.
-    _phoneLocked = !widget.editing && (draft.phone?.isNotEmpty ?? false);
-    _emailLocked = !widget.editing && (draft.email?.isNotEmpty ?? false);
+    // La API aún no ofrece flujos de cambio de teléfono con OTP ni de correo
+    // con confirmación; no permitimos guardar esos datos solo en este equipo.
+    _phoneLocked = widget.editing || (draft.phone?.isNotEmpty ?? false);
+    _emailLocked = widget.editing || (draft.email?.isNotEmpty ?? false);
     setState(() => _loading = false);
   }
 

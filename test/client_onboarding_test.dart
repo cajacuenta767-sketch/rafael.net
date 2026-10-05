@@ -397,7 +397,7 @@ class _CatalogApi implements ApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
-  }) async => throw UnimplementedError(path);
+  }) async => {'success': true, 'data': data};
 
   @override
   Future<dynamic> delete(

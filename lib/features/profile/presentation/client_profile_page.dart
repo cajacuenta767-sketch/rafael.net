@@ -159,7 +159,7 @@ class _ClientProfilePageState extends ConsumerState<ClientProfilePage> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Los datos personales y las direcciones se guardan de forma segura en este dispositivo mientras el API publica el perfil del cliente.',
+          'El nombre se sincroniza con tu cuenta. Teléfono y correo verificados no se editan aquí; direcciones y fotos nuevas se guardan en este dispositivo.',
           textAlign: TextAlign.center,
           style: TextStyle(color: _muted, fontSize: 11, height: 1.35),
         ),

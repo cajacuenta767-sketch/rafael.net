@@ -116,14 +116,20 @@ class YonkeQuotesPageResult {
 YonkeQuotesPageResult? yonkeQuotesPageFromResponse(dynamic response) {
   final records = _extractRecords(response);
   if (records == null) return null;
+  final data = response is Map ? response['data'] : null;
+  final meta = data is Map ? data['meta'] : null;
+  final page = meta is Map ? int.tryParse('${meta['page'] ?? 1}') ?? 1 : 1;
+  final pageCount = meta is Map
+      ? int.tryParse('${meta['pageCount'] ?? 0}') ?? 0
+      : 0;
   return YonkeQuotesPageResult(
     items: records
         .whereType<Map>()
         .map(yonkeQuoteFromJson)
         .whereType<YonkeQuote>()
         .toList(growable: false),
-    page: 1,
-    hasMore: false,
+    page: page,
+    hasMore: pageCount > page,
   );
 }
 

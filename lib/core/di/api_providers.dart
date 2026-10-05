@@ -170,8 +170,10 @@ final realtimeServiceProvider = Provider<RealtimeService>((ref) {
 });
 
 final clientProfileRepositoryProvider = Provider<ClientProfileRepository>(
-  (ref) =>
-      LocalClientProfileRepository(tokenStore: ref.watch(tokenStoreProvider)),
+  (ref) => LocalClientProfileRepository(
+    tokenStore: ref.watch(tokenStoreProvider),
+    authApi: ref.watch(authApiProvider),
+  ),
 );
 
 final quoteYonkeResolverProvider = Provider<QuoteYonkeResolver>(

@@ -5,11 +5,14 @@ abstract final class ApiEndpoints {
   static const verifyOtp = '/api/ClienteAuth/verificar-otp';
   static const registerClientDevice = '/api/ClienteAuth/registrar-dispositivo';
   static String clientProfile(String clientId) => '/api/ClienteAuth/$clientId';
+  static const ownClientProfile = '/api/ClienteAuth/mi-perfil';
+  static const updateOwnClientProfile = '/api/ClienteAuth/mi-perfil';
 
   // CotizacionYonke
   static const quotes = '/api/CotizacionYonke';
   static String quote(String quoteId) => '/api/CotizacionYonke/$quoteId';
   static const yonkeQuotesTotal = '/api/CotizacionYonke/MisCotizaciones/Total';
+  static const yonkeQuotes = '/api/CotizacionYonke/MisCotizaciones';
 
   // DashboardSuscriptores
   static const dashboardSummary = '/api/DashboardSuscriptores/resumen';
@@ -72,8 +75,7 @@ abstract final class ApiEndpoints {
   static const yonkeAssignedRequests = '/api/SolicitudYonkes/MisSolicitudes';
   static const yonkeNewRequestsTotal =
       '/api/SolicitudYonkes/TotalSolicitudesNuevas';
-  static const yonkeMostRecentRequest =
-      '/api/SolicitudYonkes/MasReciente';
+  static const yonkeMostRecentRequest = '/api/SolicitudYonkes/MasReciente';
 
   // Utilerias
   static const states = '/api/Utilerias/entidades';
