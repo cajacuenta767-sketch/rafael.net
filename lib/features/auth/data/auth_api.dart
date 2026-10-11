@@ -17,7 +17,7 @@ class AuthApi {
     String? photoUrl,
   }) => _client.put(
     ApiEndpoints.updateOwnClientProfile,
-    data: {'nombre': name.trim(), if (photoUrl != null) 'fotoPerfil': photoUrl},
+    data: {'nombre': name.trim(), 'fotoPerfil': ?photoUrl},
   );
 
   Future<dynamic> loginClientWithGoogle(String idToken) =>

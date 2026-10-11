@@ -206,25 +206,29 @@ class _ClientOrderSuccessPageState
       final checkout = PaymentsApi.parseCheckout(
         await api.createCheckout(orderId),
       );
-      if (checkout == null)
+      if (checkout == null) {
         throw const FormatException('Respuesta de Stripe inválida.');
+      }
       _sessionId = checkout.sessionId;
       final opened = await launchUrl(
         checkout.checkoutUrl,
         mode: LaunchMode.externalApplication,
       );
-      if (!opened)
+      if (!opened) {
         throw StateError('No se pudo abrir el pago seguro de Stripe.');
-      if (mounted)
+      }
+      if (mounted) {
         setState(
           () => _paymentMessage =
               'Completa el pago en Stripe y vuelve aquí para verificarlo.',
         );
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _paymentMessage = error is ApiException ? error.message : 'No pudimos iniciar el pago. Tu orden sigue registrada; puedes reintentar.',
         );
+      }
     } finally {
       if (mounted) setState(() => _openingCheckout = false);
     }
@@ -250,7 +254,7 @@ class _ClientOrderSuccessPageState
           result['exitoso'] == true ||
           result['Exitoso'] == true ||
           state.toLowerCase() == 'paid';
-      if (mounted)
+      if (mounted) {
         setState(
           () => _paymentMessage = success
               ? 'Pago confirmado por el servidor.'
@@ -258,11 +262,13 @@ class _ClientOrderSuccessPageState
                     ? 'El pago aún no está confirmado.'
                     : 'Estado del pago: $state'),
         );
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => _paymentMessage = error is ApiException ? error.message : 'No se pudo verificar el pago. Intenta de nuevo en unos momentos.',
         );
+      }
     } finally {
       if (mounted) setState(() => _checkingPayment = false);
     }
