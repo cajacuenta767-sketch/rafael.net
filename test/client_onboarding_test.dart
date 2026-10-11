@@ -413,7 +413,7 @@ class _CatalogApi implements ApiClient {
     Map<String, dynamic>? fields,
     List<ApiFile> files = const [],
     Map<String, dynamic>? queryParameters,
-  }) async => throw UnimplementedError(path);
+  }) async => {'success': true, 'data': fields};
 }
 
 class _MemoryTokenStore implements TokenStore {

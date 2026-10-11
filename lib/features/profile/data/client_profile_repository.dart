@@ -183,9 +183,22 @@ class LocalClientProfileRepository implements ClientProfileRepository {
     final subject = _subject(await _claims());
     final remoteName = profile.name?.trim();
     if (subject != null && remoteName != null && remoteName.isNotEmpty) {
+      Uint8List? photoBytes;
+      String? photoFileName;
+      final localPath = profile.photoPath;
+      if (localPath != null && localPath.isNotEmpty) {
+        final file = File(localPath);
+        if (await file.exists()) {
+          photoBytes = await file.readAsBytes();
+          photoFileName = localPath.split(Platform.pathSeparator).last;
+        }
+      }
+
       await authApi?.updateOwnClientProfile(
         name: remoteName,
-        photoUrl: profile.photoPath == null ? profile.photoUrl : null,
+        email: profile.email,
+        photoBytes: photoBytes,
+        photoFileName: photoFileName,
       );
     }
     await _storage.write(

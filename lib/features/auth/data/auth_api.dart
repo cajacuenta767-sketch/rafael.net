@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/api_file.dart';
 
 class AuthApi {
   const AuthApi(this._client);
@@ -14,10 +17,24 @@ class AuthApi {
 
   Future<dynamic> updateOwnClientProfile({
     required String name,
-    String? photoUrl,
-  }) => _client.put(
+    String? email,
+    Uint8List? photoBytes,
+    String? photoFileName,
+  }) => _client.multipart(
     ApiEndpoints.updateOwnClientProfile,
-    data: {'nombre': name.trim(), 'fotoPerfil': ?photoUrl},
+    method: 'PUT',
+    fields: {
+      'nombre': name.trim(),
+      if (email != null && email.trim().isNotEmpty) 'correo': email.trim(),
+    },
+    files: [
+      if (photoBytes != null && photoBytes.isNotEmpty)
+        ApiFile(
+          fieldName: 'foto',
+          fileName: photoFileName ?? 'perfil.jpg',
+          bytes: photoBytes,
+        ),
+    ],
   );
 
   Future<dynamic> loginClientWithGoogle(String idToken) =>
