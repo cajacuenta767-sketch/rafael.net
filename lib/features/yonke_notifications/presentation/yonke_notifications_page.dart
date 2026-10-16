@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/push/push_service.dart';
@@ -225,29 +226,14 @@ class _NoticeList extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: notice.isNewMessage
-                                  ? const Color(0xFFE3F2FD)
-                                  : const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              notice.isNewMessage
-                                  ? 'MENSAJE'
-                                  : 'NUEVA SOLICITUD',
-                              style: TextStyle(
-                                color: notice.isNewMessage
-                                    ? const Color(0xFF1565C0)
-                                    : const Color(0xFF2E7D32),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
+                          AppStatusColors.badge(
+                            notice.isNewMessage
+                                ? 'MENSAJE'
+                                : (notice.title.toLowerCase().contains('error') ||
+                                        notice.title.toLowerCase().contains('rechaz')
+                                    ? 'ALERTA'
+                                    : 'NUEVA SOLICITUD'),
+                            fontSize: 10,
                           ),
                           const Spacer(),
                           Text(

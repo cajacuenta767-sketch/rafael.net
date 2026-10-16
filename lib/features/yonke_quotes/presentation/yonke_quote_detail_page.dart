@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
@@ -547,7 +548,7 @@ class _DetailStatus extends StatelessWidget {
   final YonkeQuoteStatus status;
 
   @override
-  Widget build(BuildContext context) => Chip(label: Text(status.label));
+  Widget build(BuildContext context) => AppStatusColors.badge(status.label);
 }
 
 class _DetailState extends StatelessWidget {

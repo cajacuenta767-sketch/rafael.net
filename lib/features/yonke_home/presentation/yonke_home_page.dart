@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/theme/yonke_theme.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
@@ -487,21 +488,7 @@ class _Status extends StatelessWidget {
   const _Status({required this.status});
   final YonkeRequestStatus status;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: YonkeColors.accentGreen.withValues(alpha: .13),
-      borderRadius: BorderRadius.circular(5),
-    ),
-    child: Text(
-      status.label.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11,
-        color: YonkeColors.accentGreen,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => AppStatusColors.badge(status.label);
 }
 
 class _EmptyRequests extends StatelessWidget {

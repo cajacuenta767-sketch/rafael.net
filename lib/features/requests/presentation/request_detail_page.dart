@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
@@ -914,33 +915,7 @@ class _RequestImage extends StatelessWidget {
   );
 }
 
-Color _detailStatusColor(String status) {
-  final normalized = status.toLowerCase().trim();
-  if (normalized.contains('acept') ||
-      normalized.contains('camino') ||
-      normalized.contains('complet') ||
-      normalized.contains('entreg') ||
-      normalized.contains('recibid') ||
-      normalized.contains('pagad')) {
-    return const Color(0xFF147A1D);
-  }
-  if (normalized.contains('proceso') ||
-      normalized.contains('envi') ||
-      normalized.contains('cotiz') ||
-      normalized.contains('activ')) {
-    return const Color(0xFF114EB0);
-  }
-  if (normalized.contains('pend')) {
-    return const Color(0xFFD97706);
-  }
-  if (normalized.contains('cancel') ||
-      normalized.contains('rechaz') ||
-      normalized.contains('error') ||
-      normalized.contains('fall')) {
-    return const Color(0xFFB3261E);
-  }
-  return const Color(0xFF596276);
-}
+Color _detailStatusColor(String status) => AppStatusColors.fromStatus(status);
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});

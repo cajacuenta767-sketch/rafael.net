@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/status_colors.dart';
 import '../../../../app/theme/yonke_theme.dart';
 import '../../../../app/widgets/refanet_image.dart';
 import '../../domain/yonke_request_summary.dart';
@@ -164,32 +165,8 @@ class _StatusTag extends StatelessWidget {
   final YonkeRequestStatus status;
 
   @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      YonkeRequestStatus.newRequest => YonkeColors.accentGreen,
-      YonkeRequestStatus.viewed => const Color(0xFF3F6EAE),
-      YonkeRequestStatus.quoted => YonkeColors.primaryNavy,
-      YonkeRequestStatus.accepted => const Color(0xFF147A1D),
-      YonkeRequestStatus.unavailable ||
-      YonkeRequestStatus.closed => YonkeColors.textSecondary,
-      YonkeRequestStatus.unknown => YonkeColors.textSecondary,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        status.label.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      AppStatusColors.badge(status.label, fontSize: 10);
 }
 
 class _Meta extends StatelessWidget {

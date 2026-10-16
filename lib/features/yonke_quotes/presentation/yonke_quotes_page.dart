@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
-import '../../../core/di/api_providers.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/theme/yonke_theme.dart';
+import '../../../core/di/api_providers.dart';
 import '../../yonke_requests/presentation/yonke_bottom_navigation.dart';
 import '../data/yonke_quotes_repository.dart';
 import '../domain/yonke_quote.dart';
@@ -705,20 +706,7 @@ class _StatusChip extends StatelessWidget {
   final YonkeQuoteStatus status;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: _statusColor(status).withValues(alpha: 0.11),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Text(
-      status.label,
-      style: TextStyle(
-        color: _statusColor(status),
-        fontWeight: FontWeight.w800,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => AppStatusColors.badge(status.label);
 }
 
 class _StateCard extends StatelessWidget {
@@ -759,15 +747,6 @@ class _StateCard extends StatelessWidget {
     ),
   );
 }
-
-Color _statusColor(YonkeQuoteStatus status) => switch (status) {
-  YonkeQuoteStatus.sent => const Color(0xFF114EB0),
-  YonkeQuoteStatus.viewed => const Color(0xFF114EB0),
-  YonkeQuoteStatus.accepted => const Color(0xFF147A1D),
-  YonkeQuoteStatus.rejected => const Color(0xFFB3261E),
-  YonkeQuoteStatus.closed => const Color(0xFF596276),
-  YonkeQuoteStatus.unknown => const Color(0xFF596276),
-};
 
 String _date(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';

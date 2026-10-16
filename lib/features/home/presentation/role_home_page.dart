@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../requests/domain/client_request.dart';
@@ -752,13 +753,19 @@ class _RecentRequestTile extends StatelessWidget {
                   style: const TextStyle(color: _muted, fontSize: 12),
                 ),
               const SizedBox(height: 6),
-              Text(
-                '${request.quoteCount} ${request.quoteCount == 1 ? 'cotización' : 'cotizaciones'}',
-                style: const TextStyle(
-                  color: _greenDark,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${request.quoteCount} ${request.quoteCount == 1 ? 'cotización' : 'cotizaciones'}',
+                    style: const TextStyle(
+                      color: _greenDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  AppStatusColors.badge(request.status),
+                ],
               ),
             ],
           ),

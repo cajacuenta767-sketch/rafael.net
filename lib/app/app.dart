@@ -12,6 +12,7 @@ import '../core/push/push_service.dart';
 import '../core/session/session_events.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
+import 'theme/status_colors.dart';
 
 class YonkeApp extends ConsumerStatefulWidget {
   const YonkeApp({super.key});
@@ -218,6 +219,9 @@ class _TopNoticeBannerState extends State<_TopNoticeBanner>
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = AppStatusColors.fromStatus(
+      '${widget.notice.title} ${widget.notice.body}',
+    );
     return Positioned(
       top: MediaQuery.paddingOf(context).top + 10,
       left: 16,
@@ -238,7 +242,7 @@ class _TopNoticeBannerState extends State<_TopNoticeBanner>
               decoration: BoxDecoration(
                 color: const Color(0xFF0D1B3D),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF28A745), width: 1.5),
+                border: Border.all(color: statusColor, width: 1.5),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x40000000),
@@ -253,12 +257,12 @@ class _TopNoticeBannerState extends State<_TopNoticeBanner>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF28A745).withValues(alpha: 0.18),
+                      color: statusColor.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.notifications_active,
-                      color: Color(0xFF28A745),
+                      color: statusColor,
                       size: 24,
                     ),
                   ),
@@ -300,7 +304,7 @@ class _TopNoticeBannerState extends State<_TopNoticeBanner>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF28A745),
+                      color: statusColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(

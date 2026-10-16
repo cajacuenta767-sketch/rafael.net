@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_exception.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/theme/status_colors.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../data/yonke_request_detail_repository.dart';
@@ -522,20 +523,7 @@ class _StatusChip extends StatelessWidget {
   final YonkeRequestStatus status;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-    decoration: BoxDecoration(
-      color: _statusColor(status).withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Text(
-      status.label,
-      style: TextStyle(
-        color: _statusColor(status),
-        fontWeight: FontWeight.w800,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => AppStatusColors.badge(status.label);
 }
 
 class _RequestPhoto extends StatelessWidget {
@@ -650,13 +638,3 @@ String _formatDate(DateTime date) {
   String two(int value) => value.toString().padLeft(2, '0');
   return '${two(date.day)}/${two(date.month)}/${date.year} · ${two(date.hour)}:${two(date.minute)}';
 }
-
-Color _statusColor(YonkeRequestStatus status) => switch (status) {
-  YonkeRequestStatus.newRequest => const Color(0xFF147A1D),
-  YonkeRequestStatus.viewed => const Color(0xFF114EB0),
-  YonkeRequestStatus.quoted => const Color(0xFF6D3BB6),
-  YonkeRequestStatus.accepted => const Color(0xFF147A1D),
-  YonkeRequestStatus.unavailable => const Color(0xFF9B1C1C),
-  YonkeRequestStatus.closed => const Color(0xFF596276),
-  YonkeRequestStatus.unknown => const Color(0xFF596276),
-};
