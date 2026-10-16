@@ -62,6 +62,40 @@ void main() {
     expect(find.text('3 calificaciones'), findsOneWidget);
     expect(find.textContaining('Buena atención'), findsOneWidget);
   });
+
+  testWidgets(
+    'muestra estado sin calificaciones si el repositorio falla o está vacío',
+    (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: YonkeReputationCard(
+                yonkeId: 'yonke-nuevo',
+                repository: _FailingReputationRepository(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Este yonke aún no tiene calificaciones.'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.star_outline), findsOneWidget);
+      expect(find.text('No se pudo cargar la reputación.'), findsNothing);
+    },
+  );
+}
+
+class _FailingReputationRepository implements YonkeReputationRepository {
+  const _FailingReputationRepository();
+
+  @override
+  Future<YonkeReputation> getReputation(String yonkeId) async =>
+      throw Exception('API 500');
 }
 
 class _FixedReputationRepository implements YonkeReputationRepository {

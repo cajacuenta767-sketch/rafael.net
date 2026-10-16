@@ -12,8 +12,14 @@ class ApiYonkeReputationRepository implements YonkeReputationRepository {
 
   @override
   Future<YonkeReputation> getReputation(String yonkeId) async {
-    final response = await _yonkesApi.getRatings(yonkeId);
-    return reputationFromResponse(response);
+    try {
+      final response = await _yonkesApi.getRatings(yonkeId);
+      return reputationFromResponse(response);
+    } catch (_) {
+      // Si la API falla (ej. 500 porque no hay calificaciones en BD), se degrada
+      // limpiamente a 0 calificaciones sin romper la vista del cliente.
+      return const YonkeReputation(average: 0.0, count: 0);
+    }
   }
 }
 

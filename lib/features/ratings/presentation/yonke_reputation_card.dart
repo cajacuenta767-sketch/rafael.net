@@ -73,8 +73,9 @@ class _YonkeReputationCardState extends ConsumerState<YonkeReputationCard> {
     } catch (_) {
       if (mounted) {
         setState(() {
+          _reputation = const YonkeReputation(average: 0.0, count: 0);
           _loading = false;
-          _error = true;
+          _error = false;
         });
       }
     }

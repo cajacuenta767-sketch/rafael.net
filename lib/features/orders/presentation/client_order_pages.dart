@@ -10,7 +10,6 @@ import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../payments/data/payments_api.dart';
-import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
 import '../domain/client_order_creation.dart';
 import '../domain/client_order.dart';
@@ -400,19 +399,7 @@ class _ClientOrderSuccessPageState
                       ),
                       const SizedBox(height: 10),
                     ],
-                    OutlinedButton.icon(
-                      key: const Key('client-rate-yonke'),
-                      onPressed: () => context.push(
-                        AppRoutes.clientRating(args.quote.id),
-                        extra: ClientRatingArgs(quote: args.quote),
-                      ),
-                      icon: const Icon(Icons.star_outline),
-                      label: const Text('Calificar al yonke'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+
                     FilledButton(
                       onPressed: () => context.go(AppRoutes.clientRequests),
                       style: FilledButton.styleFrom(
