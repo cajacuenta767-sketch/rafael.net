@@ -82,6 +82,68 @@ class YonkeQuote {
   /// rechazadas o cerradas se conservan como historial inmutable.
   bool get canEdit =>
       status == YonkeQuoteStatus.sent || status == YonkeQuoteStatus.viewed;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'requestYonkeId': requestYonkeId,
+    'requestId': requestId,
+    'part': part,
+    'price': price,
+    'available': available,
+    'isNew': isNew,
+    'hasWarranty': hasWarranty,
+    'warrantyDays': warrantyDays,
+    'shippingAvailable': shippingAvailable,
+    'active': active,
+    'status': status.name,
+    'createdAt': createdAt.toIso8601String(),
+    'imageUrls': imageUrls,
+    'brand': brand,
+    'model': model,
+    'year': year,
+    'folio': folio,
+    'partNumber': partNumber,
+    'comments': comments,
+    'deliveryDays': deliveryDays,
+    'shippingCost': shippingCost,
+    'paymentStatus': paymentStatus.name,
+  };
+
+  factory YonkeQuote.fromStoredJson(Map<String, dynamic> json) => YonkeQuote(
+    id: json['id']?.toString() ?? '',
+    requestYonkeId: json['requestYonkeId']?.toString() ?? '',
+    requestId: json['requestId']?.toString() ?? '',
+    part: json['part']?.toString() ?? 'Pieza sin nombre',
+    price: (json['price'] as num?)?.toDouble() ?? 0.0,
+    available: json['available'] == true,
+    isNew: json['isNew'] == true,
+    hasWarranty: json['hasWarranty'] == true,
+    warrantyDays: (json['warrantyDays'] as num?)?.toInt() ?? 0,
+    shippingAvailable: json['shippingAvailable'] == true,
+    active: json['active'] == true,
+    status: YonkeQuoteStatus.values.firstWhere(
+      (s) => s.name == json['status'],
+      orElse: () => YonkeQuoteStatus.unknown,
+    ),
+    createdAt:
+        DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal() ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    imageUrls:
+        (json['imageUrls'] as List?)?.map((e) => e.toString()).toList() ??
+        const [],
+    brand: json['brand']?.toString(),
+    model: json['model']?.toString(),
+    year: (json['year'] as num?)?.toInt(),
+    folio: json['folio']?.toString(),
+    partNumber: json['partNumber']?.toString(),
+    comments: json['comments']?.toString(),
+    deliveryDays: (json['deliveryDays'] as num?)?.toInt(),
+    shippingCost: (json['shippingCost'] as num?)?.toDouble(),
+    paymentStatus: QuotePaymentStatus.values.firstWhere(
+      (p) => p.name == json['paymentStatus'],
+      orElse: () => QuotePaymentStatus.pending,
+    ),
+  );
 }
 
 class YonkeQuoteFilters {
@@ -161,8 +223,12 @@ YonkeQuote? yonkeQuoteFromJson(Map<dynamic, dynamic> json) {
             .toList(growable: false)
       : const <String>[];
   final statusText = statusRecord is Map
-      ? _text(statusRecord['descripcion'])
-      : null;
+      ? _text(statusRecord['descripcion']) ?? _text(statusRecord['estatus'])
+      : _text(json['estatus']) ?? _text(json['estatusCotizacion']);
+  final rawStatusId = json['estatusId'] ?? json['EstatusId'];
+  final statusId = rawStatusId is num
+      ? rawStatusId.toInt()
+      : int.tryParse('$rawStatusId');
   final brands = request is Map ? request['marcas'] : null;
   final models = request is Map ? request['modelos'] : null;
 
@@ -180,7 +246,7 @@ YonkeQuote? yonkeQuoteFromJson(Map<dynamic, dynamic> json) {
     warrantyDays: (json['diasGarantia'] as num?)?.toInt() ?? 0,
     shippingAvailable: json['envioDisponible'] == true,
     active: json['activo'] == true,
-    status: _statusFromText(statusText),
+    status: _statusFromText(statusText, estatusId: statusId),
     createdAt:
         DateTime.tryParse(json['fechaCreacion']?.toString() ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0),
@@ -218,17 +284,22 @@ List<dynamic>? _extractRecords(dynamic response) {
   return null;
 }
 
-YonkeQuoteStatus _statusFromText(String? value) {
+YonkeQuoteStatus _statusFromText(String? value, {int? estatusId}) {
+  if (estatusId == 2 || estatusId == 7) return YonkeQuoteStatus.accepted;
+  if (estatusId == 4) return YonkeQuoteStatus.rejected;
+  if (estatusId == 5 || estatusId == 6) return YonkeQuoteStatus.closed;
+  if (estatusId == 1) return YonkeQuoteStatus.sent;
+
   final normalized = value?.trim().toLowerCase() ?? '';
   if (normalized.contains('acept')) return YonkeQuoteStatus.accepted;
   if (normalized.contains('rechaz')) return YonkeQuoteStatus.rejected;
-  if (normalized.contains('cerr') || normalized.contains('cancel')) {
+  if (normalized.contains('cerr') || normalized.contains('cancel') || normalized.contains('expir')) {
     return YonkeQuoteStatus.closed;
   }
   if (normalized.contains('vista') || normalized.contains('leída')) {
     return YonkeQuoteStatus.viewed;
   }
-  if (normalized.contains('envi') || normalized.contains('pend')) {
+  if (normalized.contains('envi') || normalized.contains('pend') || normalized.contains('activ')) {
     return YonkeQuoteStatus.sent;
   }
   return YonkeQuoteStatus.unknown;

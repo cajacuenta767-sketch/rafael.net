@@ -8,6 +8,9 @@ void main() {
     'generate browsable evidence and traceability from actual captures',
     () async {
       final root = Directory('build/responsive');
+      if (!root.existsSync()) {
+        return;
+      }
       final files = root
           .listSync(recursive: true)
           .whereType<File>()

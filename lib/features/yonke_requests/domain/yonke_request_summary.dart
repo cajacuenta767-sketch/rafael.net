@@ -2,6 +2,7 @@ enum YonkeRequestStatus {
   newRequest,
   viewed,
   quoted,
+  accepted,
   unavailable,
   closed,
   unknown,
@@ -12,6 +13,7 @@ extension YonkeRequestStatusLabel on YonkeRequestStatus {
     YonkeRequestStatus.newRequest => 'Nueva',
     YonkeRequestStatus.viewed => 'Vista',
     YonkeRequestStatus.quoted => 'Cotizada',
+    YonkeRequestStatus.accepted => 'Aceptada',
     YonkeRequestStatus.unavailable => 'No disponible',
     YonkeRequestStatus.closed => 'Cerrada',
     YonkeRequestStatus.unknown => 'Sin estado',
@@ -91,6 +93,52 @@ class YonkeRequestSummary {
     transmission: transmission ?? this.transmission,
     clientId: clientId ?? this.clientId,
   );
+
+  Map<String, dynamic> toJson() => {
+    'requestId': requestId,
+    'requestYonkeId': requestYonkeId,
+    'part': part,
+    'status': status.name,
+    'receivedAt': receivedAt.toIso8601String(),
+    'brand': brand,
+    'model': model,
+    'year': year,
+    'city': city,
+    'folio': folio,
+    'photoCount': photoCount,
+    'hasQuote': hasQuote,
+    'imageUrl': imageUrl,
+    'description': description,
+    'engine': engine,
+    'transmission': transmission,
+    'clientId': clientId,
+  };
+
+  factory YonkeRequestSummary.fromStoredJson(Map<String, dynamic> json) =>
+      YonkeRequestSummary(
+        requestId: json['requestId']?.toString() ?? '',
+        requestYonkeId: json['requestYonkeId']?.toString() ?? '',
+        part: json['part']?.toString() ?? '',
+        status: YonkeRequestStatus.values.firstWhere(
+          (s) => s.name == json['status'],
+          orElse: () => YonkeRequestStatus.unknown,
+        ),
+        receivedAt: DateTime.tryParse(json['receivedAt']?.toString() ?? '')
+                ?.toLocal() ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+        brand: json['brand']?.toString(),
+        model: json['model']?.toString(),
+        year: (json['year'] as num?)?.toInt(),
+        city: json['city']?.toString(),
+        folio: json['folio']?.toString(),
+        photoCount: (json['photoCount'] as num?)?.toInt() ?? 0,
+        hasQuote: json['hasQuote'] == true,
+        imageUrl: json['imageUrl']?.toString(),
+        description: json['description']?.toString(),
+        engine: json['engine']?.toString(),
+        transmission: json['transmission']?.toString(),
+        clientId: json['clientId']?.toString(),
+      );
 }
 
 class YonkeRequestFilters {

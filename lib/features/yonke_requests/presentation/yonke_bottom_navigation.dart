@@ -22,29 +22,35 @@ class YonkeBottomNavigation extends StatelessWidget
   Widget buildSideNavigation(BuildContext context) => SideNavigation(
     background: YonkeColors.primaryNavy,
     labels: const [
-      'Inicio',
       'Solicitudes',
-      'Cotizaciones +',
+      'Cotizaciones',
+      'Nueva Cotización (+)',
       'Mensajes',
       'Perfil',
     ],
     icons: const [
-      Icons.home_outlined,
-      Icons.inbox_outlined,
+      Icons.assignment_outlined,
+      Icons.inventory_2_outlined,
       Icons.add_circle_outline,
       Icons.chat_bubble_outline,
-      Icons.storefront_outlined,
+      Icons.person_outline,
     ],
-    selectedIndex: selected.index,
+    selectedIndex: switch (selected) {
+      YonkeNavigationSection.requests => 0,
+      YonkeNavigationSection.quotes => 1,
+      YonkeNavigationSection.messages => 3,
+      YonkeNavigationSection.profile => 4,
+      YonkeNavigationSection.home => -1,
+    },
     onSelect: (index) {
       if (index == 2) {
         _showQuoteActions(context);
         return;
       }
       final route = [
-        AppRoutes.yonkeHome,
         AppRoutes.yonkeRequests,
         AppRoutes.yonkeQuotes,
+        AppRoutes.yonkeRequests,
         AppRoutes.yonkeMessages,
         AppRoutes.yonkeProfile,
       ][index];
@@ -65,25 +71,26 @@ class YonkeBottomNavigation extends StatelessWidget
         child: Row(
           children: [
             _YonkeNavItem(
-              icon: Icons.home_outlined,
-              label: 'Inicio',
-              selected: selected == YonkeNavigationSection.home,
+              icon: Icons.assignment_outlined,
+              label: 'Solicitudes',
+              selected: selected == YonkeNavigationSection.requests ||
+                  selected == YonkeNavigationSection.home,
               onTap: selected == YonkeNavigationSection.home
                   ? null
                   : () => context.go(AppRoutes.yonkeHome),
             ),
             _YonkeNavItem(
-              icon: Icons.inbox_outlined,
-              label: 'Solicitudes',
-              selected: selected == YonkeNavigationSection.requests,
-              onTap: selected == YonkeNavigationSection.requests
+              icon: Icons.inventory_2_outlined,
+              label: 'Cotizaciones',
+              selected: selected == YonkeNavigationSection.quotes,
+              onTap: selected == YonkeNavigationSection.quotes
                   ? null
-                  : () => context.go(AppRoutes.yonkeRequests),
+                  : () => context.go(AppRoutes.yonkeQuotes),
             ),
             Expanded(
               child: Semantics(
                 button: true,
-                label: 'Abrir centro de cotizaciones',
+                label: 'Nueva cotización',
                 child: Center(
                   child: InkWell(
                     onTap: () => _showQuoteActions(context),
@@ -125,7 +132,7 @@ class YonkeBottomNavigation extends StatelessWidget
                   : () => context.go(AppRoutes.yonkeMessages),
             ),
             _YonkeNavItem(
-              icon: Icons.storefront_outlined,
+              icon: Icons.person_outline,
               label: 'Perfil',
               selected: selected == YonkeNavigationSection.profile,
               onTap: selected == YonkeNavigationSection.profile
@@ -236,8 +243,8 @@ class _YonkeNavItem extends StatelessWidget {
             Icon(
               icon,
               color: selected
-                  ? const Color(0xFF65D34E)
-                  : const Color(0xFFD5DCE8),
+                  ? YonkeColors.accentGreen
+                  : const Color(0xFFB0BDD0),
             ),
             const SizedBox(height: 4),
             Padding(
@@ -249,8 +256,8 @@ class _YonkeNavItem extends StatelessWidget {
                       maxLines: 2,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: selected
-                            ? const Color(0xFF65D34E)
-                            : const Color(0xFFD5DCE8),
+                            ? YonkeColors.accentGreen
+                            : const Color(0xFFB0BDD0),
                         fontWeight: selected
                             ? FontWeight.w800
                             : FontWeight.w500,
@@ -263,8 +270,8 @@ class _YonkeNavItem extends StatelessWidget {
                         maxLines: 1,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: selected
-                              ? const Color(0xFF65D34E)
-                              : const Color(0xFFD5DCE8),
+                              ? YonkeColors.accentGreen
+                              : const Color(0xFFB0BDD0),
                           fontWeight: selected
                               ? FontWeight.w800
                               : FontWeight.w500,

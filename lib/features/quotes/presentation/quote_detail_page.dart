@@ -116,25 +116,23 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     }
   }
 
-  Future<void> _contact(ClientQuote quote, {required bool whatsapp}) async {
+  Future<void> _callYonke(ClientQuote quote) async {
     final digits = _validPhoneDigits(quote.phone);
     if (digits == null) {
-      _showMessage('El yonke no tiene un teléfono válido disponible.');
+      _showMessage('El yonke no tiene un teléfono válido registrado.');
       return;
     }
-    final uri = whatsapp
-        ? Uri.https('wa.me', '/$digits')
-        : Uri(scheme: 'tel', path: '+$digits');
+    final uri = Uri(scheme: 'tel', path: '+$digits');
     try {
       final launched = await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
       );
       if (!launched) {
-        _showMessage('No se pudo abrir la aplicación de contacto.');
+        _showMessage('No se pudo abrir la aplicación de llamadas (+$digits).');
       }
     } catch (_) {
-      _showMessage('No se pudo abrir la aplicación de contacto.');
+      _showMessage('No se pudo abrir la aplicación de llamadas (+$digits).');
     }
   }
 
@@ -307,20 +305,14 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
           ),
         ),
         const SizedBox(height: 10),
-        FilledButton.icon(
-          onPressed: canContact ? () => _contact(quote, whatsapp: true) : null,
-          icon: const Icon(Icons.chat_outlined),
-          label: const Text('Contactar por WhatsApp'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            backgroundColor: const Color(0xFF14951F),
-          ),
-        ),
-        const SizedBox(height: 10),
         OutlinedButton.icon(
-          onPressed: canContact ? () => _contact(quote, whatsapp: false) : null,
+          onPressed: canContact ? () => _callYonke(quote) : null,
           icon: const Icon(Icons.phone_outlined),
-          label: const Text('Llamar al yonke'),
+          label: Text(
+            quote.phone != null && quote.phone!.trim().isNotEmpty
+                ? 'Llamar al yonke (${quote.phone!.trim()})'
+                : 'Llamar al yonke',
+          ),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
           ),

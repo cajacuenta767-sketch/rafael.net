@@ -20,22 +20,37 @@ class AuthApi {
     String? email,
     Uint8List? photoBytes,
     String? photoFileName,
-  }) => _client.multipart(
-    ApiEndpoints.updateOwnClientProfile,
-    method: 'PUT',
-    fields: {
-      'nombre': name.trim(),
-      if (email != null && email.trim().isNotEmpty) 'correo': email.trim(),
-    },
-    files: [
-      if (photoBytes != null && photoBytes.isNotEmpty)
-        ApiFile(
-          fieldName: 'foto',
-          fileName: photoFileName ?? 'perfil.jpg',
-          bytes: photoBytes,
-        ),
-    ],
-  );
+    String? photoUrl,
+  }) {
+    if (photoBytes != null && photoBytes.isNotEmpty) {
+      return _client.multipart(
+        ApiEndpoints.updateOwnClientProfile,
+        method: 'PUT',
+        fields: {
+          'nombre': name.trim(),
+          if (email != null && email.trim().isNotEmpty) 'correo': email.trim(),
+          if (photoUrl != null && photoUrl.trim().isNotEmpty)
+            'fotoPerfil': photoUrl.trim(),
+        },
+        files: [
+          ApiFile(
+            fieldName: 'foto',
+            fileName: photoFileName ?? 'perfil.jpg',
+            bytes: photoBytes,
+          ),
+        ],
+      );
+    }
+    return _client.put(
+      ApiEndpoints.updateOwnClientProfile,
+      data: {
+        'nombre': name.trim(),
+        if (email != null && email.trim().isNotEmpty) 'correo': email.trim(),
+        if (photoUrl != null && photoUrl.trim().isNotEmpty)
+          'fotoPerfil': photoUrl.trim(),
+      },
+    );
+  }
 
   Future<dynamic> loginClientWithGoogle(String idToken) =>
       _client.post(ApiEndpoints.clientGoogleLogin, data: {'idToken': idToken});

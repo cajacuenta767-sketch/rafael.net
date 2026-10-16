@@ -30,12 +30,31 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
   }
 
   Future<void> _loadRequests() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    final memory = ref.read(clientRequestsMemoryProvider);
+    String? email;
     try {
-      final response = await ref.read(dashboardApiProvider).getMyRequests();
+      final profileSnapshot =
+          await ref.read(clientProfileRepositoryProvider).load();
+      email = profileSnapshot.profile.email;
+    } catch (_) {}
+
+    final cached = await memory.loadRequests(email);
+    if (cached.isNotEmpty && mounted) {
+      setState(() {
+        _requests = cached;
+        _loading = false;
+        _error = null;
+      });
+    } else if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final response =
+          await ref.read(dashboardApiProvider).getMyRequests(pageSize: 50);
       var list = clientRequestSummariesFromResponse(response);
       if (list.isEmpty) {
         try {
@@ -48,27 +67,40 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
           }
         } catch (_) {}
       }
+
+      await memory.saveRequests(email, list);
+      final merged = await memory.loadRequests(email);
+
       if (!mounted) return;
       setState(() {
-        _requests = list;
+        _requests = merged.isNotEmpty
+            ? merged
+            : (_requests.isNotEmpty ? _requests : list);
         _loading = false;
       });
-      if (list.isNotEmpty &&
-          list.any((r) => r.imageUrl == null || r.imageUrl!.isEmpty)) {
-        _hydrateImages(list);
+      if (_requests.isNotEmpty &&
+          _requests.any((r) => r.imageUrl == null || r.imageUrl!.isEmpty)) {
+        _hydrateImages(_requests, email);
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = error is ApiException
-            ? error.message
-            : 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
-      });
+      if (_requests.isNotEmpty) {
+        setState(() => _loading = false);
+      } else {
+        setState(() {
+          _loading = false;
+          _error = error is ApiException
+              ? error.message
+              : 'No se pudieron cargar tus solicitudes. Inténtalo nuevamente.';
+        });
+      }
     }
   }
 
-  void _hydrateImages(List<ClientRequestSummary> initial) async {
+  void _hydrateImages(
+    List<ClientRequestSummary> initial, [
+    String? email,
+  ]) async {
     final requestsApi = ref.read(requestsApiProvider);
     var updated = false;
     final updatedList = await Future.wait(
@@ -91,6 +123,7 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       setState(() {
         _requests = updatedList;
       });
+      ref.read(clientRequestsMemoryProvider).saveRequests(email, updatedList);
     }
   }
 
@@ -126,6 +159,9 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
       await ref
           .read(requestsApiProvider)
           .cancel(requestId: request.id, notes: 'Cancelada por el cliente');
+      await ref
+          .read(clientRequestsMemoryProvider)
+          .markRequestCancelled(null, request.id);
     } catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -216,6 +252,34 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
   }
 }
 
+Color _clientRequestStatusColor(String status) {
+  final normalized = status.toLowerCase().trim();
+  if (normalized.contains('acept') ||
+      normalized.contains('camino') ||
+      normalized.contains('complet') ||
+      normalized.contains('entreg') ||
+      normalized.contains('recibid') ||
+      normalized.contains('pagad')) {
+    return const Color(0xFF147A1D);
+  }
+  if (normalized.contains('proceso') ||
+      normalized.contains('envi') ||
+      normalized.contains('cotiz') ||
+      normalized.contains('activ')) {
+    return const Color(0xFF114EB0);
+  }
+  if (normalized.contains('pend')) {
+    return const Color(0xFFD97706);
+  }
+  if (normalized.contains('cancel') ||
+      normalized.contains('rechaz') ||
+      normalized.contains('error') ||
+      normalized.contains('fall')) {
+    return const Color(0xFFB3261E);
+  }
+  return const Color(0xFF596276);
+}
+
 class _RequestSummaryCard extends StatelessWidget {
   const _RequestSummaryCard({
     required this.request,
@@ -229,10 +293,7 @@ class _RequestSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCancelled = request.status.toLowerCase().trim() == 'cancelada';
-    final statusColor = request.isInProgress
-        ? const Color(0xFF14951F)
-        : (isCancelled ? const Color(0xFFB3261E) : const Color(0xFF596276));
+    final statusColor = _clientRequestStatusColor(request.status);
     return Semantics(
       button: true,
       label: 'Solicitud ${request.title}, ${request.status}',
@@ -299,9 +360,23 @@ class _RequestSummaryCard extends StatelessWidget {
                             '${request.quoteCount} cotizaciones',
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          Text(
-                            request.status,
-                            style: TextStyle(color: statusColor),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              request.status,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                           if (onCancel != null && request.isInProgress) ...[
                             IconButton(

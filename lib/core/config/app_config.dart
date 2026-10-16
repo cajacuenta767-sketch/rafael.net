@@ -23,9 +23,13 @@ abstract final class AppConfig {
   /// y solo desactiva el push.
   static const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
   static const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
-  static const firebaseSenderId = String.fromEnvironment('FIREBASE_SENDER_ID');
+  static const firebaseSenderId = String.fromEnvironment(
+    'FIREBASE_SENDER_ID',
+    defaultValue: '15292015491',
+  );
   static const firebaseProjectId = String.fromEnvironment(
     'FIREBASE_PROJECT_ID',
+    defaultValue: 'refanet-a54eb',
   );
   static const firebaseIosBundleId = String.fromEnvironment(
     'FIREBASE_IOS_BUNDLE_ID',

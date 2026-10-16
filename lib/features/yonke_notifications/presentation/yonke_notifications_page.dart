@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/push/push_service.dart';
+import '../../yonke_requests/domain/yonke_request_summary.dart';
 
 /// Avisos push del yonke (nuevas solicitudes y mensajes) recibidos en esta
 /// sesión, junto con el estado del registro del dispositivo en el API.
@@ -27,6 +29,7 @@ class _YonkeNotificationsPageState
   late final PushService _push;
   bool _loading = true;
   bool _identityPending = false;
+  List<YonkeRequestSummary> _requests = const [];
 
   @override
   void initState() {
@@ -48,6 +51,11 @@ class _YonkeNotificationsPageState
       return;
     }
     await _push.registerCurrentSession();
+    try {
+      final repo = ref.read(yonkeRequestsRepositoryProvider);
+      final result = await repo.getAssignedRequests(page: 1, pageSize: 30);
+      _requests = result.items;
+    } catch (_) {}
     if (!mounted) return;
     setState(() {
       _identityPending = false;
@@ -90,7 +98,24 @@ class _YonkeNotificationsPageState
       builder: (context, notices, _) => ValueListenableBuilder<PushStatus>(
         valueListenable: _push.status,
         builder: (context, status, _) {
-          if (notices.isNotEmpty) return _NoticeList(notices: notices);
+          final allNotices = <PushNotice>[...notices];
+          final existingIds = allNotices.map((n) => n.targetId).toSet();
+          for (final req in _requests) {
+            if (!existingIds.contains(req.requestYonkeId)) {
+              allNotices.add(
+                PushNotice(
+                  title: 'Nueva solicitud: ${req.part}',
+                  body: req.vehicle,
+                  receivedAt: req.receivedAt,
+                  type: 'NuevaSolicitud',
+                  targetId: req.requestYonkeId,
+                  imageUrl: req.imageUrl,
+                  description: req.description,
+                ),
+              );
+            }
+          }
+          if (allNotices.isNotEmpty) return _NoticeList(notices: allNotices);
           return switch (status) {
             PushStatus.notConfigured => const _StateCard(
               icon: Icons.notifications_paused_outlined,
@@ -136,35 +161,172 @@ class _NoticeList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView.separated(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     itemCount: notices.length,
-    separatorBuilder: (_, _) => const SizedBox(height: 10),
+    separatorBuilder: (_, _) => const SizedBox(height: 12),
     itemBuilder: (context, index) {
       final notice = notices[index];
-      return Card(
+      return Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         elevation: 0,
-        margin: EdgeInsets.zero,
-        child: ListTile(
-          leading: Icon(
-            notice.isNewMessage
-                ? Icons.chat_bubble_outline
-                : Icons.assignment_outlined,
-          ),
-          title: Text(
-            notice.title,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          subtitle: notice.body.isEmpty ? null : Text(notice.body),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.go(
-            notice.isNewMessage
-                ? AppRoutes.yonkeMessages
-                : AppRoutes.yonkeRequests,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            if (notice.isNewMessage) {
+              context.go(AppRoutes.yonkeMessages);
+            } else if (notice.targetId != null &&
+                notice.targetId!.isNotEmpty) {
+              context.push(
+                AppRoutes.yonkeRequestDetail(notice.targetId!),
+              );
+            } else {
+              context.go(AppRoutes.yonkeRequests);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: notice.isNewMessage
+                      ? const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Color(0xFF092B61),
+                          size: 28,
+                        )
+                      : RefanetImage(
+                          source: notice.imageUrl,
+                          fit: BoxFit.cover,
+                          fallback: const Icon(
+                            Icons.settings_input_component_outlined,
+                            color: Color(0xFF092B61),
+                            size: 28,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: notice.isNewMessage
+                                  ? const Color(0xFFE3F2FD)
+                                  : const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              notice.isNewMessage
+                                  ? 'MENSAJE'
+                                  : 'NUEVA SOLICITUD',
+                              style: TextStyle(
+                                color: notice.isNewMessage
+                                    ? const Color(0xFF1565C0)
+                                    : const Color(0xFF2E7D32),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _formatDate(notice.receivedAt),
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        notice.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (notice.body.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          notice.body,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      if (notice.description != null &&
+                          notice.description!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          notice.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Padding(
+                  padding: EdgeInsets.only(top: 18),
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF94A3B8),
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     },
   );
+
+  static String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) {
+      return 'Hace ${diff.inMinutes <= 0 ? 1 : diff.inMinutes}m';
+    }
+    if (diff.inHours < 24) {
+      return 'Hace ${diff.inHours}h';
+    }
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
 }
 
 class _StateCard extends StatelessWidget {

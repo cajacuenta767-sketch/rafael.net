@@ -914,26 +914,57 @@ class _RequestImage extends StatelessWidget {
   );
 }
 
+Color _detailStatusColor(String status) {
+  final normalized = status.toLowerCase().trim();
+  if (normalized.contains('acept') ||
+      normalized.contains('camino') ||
+      normalized.contains('complet') ||
+      normalized.contains('entreg') ||
+      normalized.contains('recibid') ||
+      normalized.contains('pagad')) {
+    return const Color(0xFF147A1D);
+  }
+  if (normalized.contains('proceso') ||
+      normalized.contains('envi') ||
+      normalized.contains('cotiz') ||
+      normalized.contains('activ')) {
+    return const Color(0xFF114EB0);
+  }
+  if (normalized.contains('pend')) {
+    return const Color(0xFFD97706);
+  }
+  if (normalized.contains('cancel') ||
+      normalized.contains('rechaz') ||
+      normalized.contains('error') ||
+      normalized.contains('fall')) {
+    return const Color(0xFFB3261E);
+  }
+  return const Color(0xFF596276);
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
   final String status;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(colors: [Color(0xFF79D631), _greenDark]),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Text(
-      status,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 10.5,
-        fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final color = _detailStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
       ),
-    ),
-  );
+      child: Text(
+        status,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }
 
 class _BottomActions extends StatelessWidget {

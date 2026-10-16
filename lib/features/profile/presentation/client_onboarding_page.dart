@@ -355,9 +355,11 @@ class _PhotoPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final ImageProvider? image = file != null
         ? FileImage(File(file!.path))
-        : photoPath != null
+        : (photoPath != null && File(photoPath!).existsSync())
         ? FileImage(File(photoPath!))
-        : photoUrl != null && photoUrl!.startsWith('https://')
+        : (photoUrl != null &&
+            (photoUrl!.startsWith('https://') ||
+                photoUrl!.startsWith('http://')))
         ? NetworkImage(photoUrl!)
         : null;
     final initials = name

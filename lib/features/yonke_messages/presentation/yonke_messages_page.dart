@@ -458,12 +458,10 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     }
   }
 
-  Future<void> _contact({required bool whatsapp}) async {
+  Future<void> _callClient() async {
     final digits = _validPhoneDigits(_client?.phone);
     if (digits == null) return;
-    final uri = whatsapp
-        ? Uri.https('wa.me', '/$digits')
-        : Uri(scheme: 'tel', path: '+$digits');
+    final uri = Uri(scheme: 'tel', path: '+$digits');
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {
@@ -471,8 +469,8 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No se pudo abrir la aplicación de contacto.'),
+      SnackBar(
+        content: Text('No se pudo abrir la aplicación de llamadas (+$digits).'),
       ),
     );
   }
@@ -542,8 +540,7 @@ class _YonkeConversationPageState extends ConsumerState<YonkeConversationPage> {
           _ClientHeader(
             client: _client,
             quote: widget.args.quote,
-            onCall: () => _contact(whatsapp: false),
-            onWhatsApp: () => _contact(whatsapp: true),
+            onCall: _callClient,
           ),
           Expanded(child: _messagesBody()),
           if (_repository is ReadReceiptTracking &&
@@ -598,13 +595,11 @@ class _ClientHeader extends StatelessWidget {
     required this.client,
     required this.quote,
     required this.onCall,
-    required this.onWhatsApp,
   });
 
   final QuoteClient? client;
   final YonkeQuote quote;
   final VoidCallback onCall;
-  final VoidCallback onWhatsApp;
 
   @override
   Widget build(BuildContext context) {
@@ -668,12 +663,6 @@ class _ClientHeader extends StatelessWidget {
               tooltip: 'Llamar al cliente',
               onPressed: onCall,
               icon: const Icon(Icons.phone_outlined, color: Color(0xFF114EB0)),
-            ),
-            IconButton(
-              key: const Key('yonke-whatsapp-client'),
-              tooltip: 'WhatsApp del cliente',
-              onPressed: onWhatsApp,
-              icon: const Icon(Icons.chat_outlined, color: Color(0xFF1B8F3A)),
             ),
           ],
         ],

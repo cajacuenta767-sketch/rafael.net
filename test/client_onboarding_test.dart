@@ -6,6 +6,7 @@ import 'package:app_yonke/core/di/api_providers.dart';
 import 'package:app_yonke/core/network/api_client.dart';
 import 'package:app_yonke/core/network/api_file.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
+import 'package:app_yonke/features/auth/data/auth_api.dart';
 import 'package:app_yonke/features/auth/domain/client_auth_repository.dart';
 import 'package:app_yonke/features/auth/presentation/client_login_page.dart';
 import 'package:app_yonke/features/auth/presentation/client_session_gate.dart';
@@ -86,6 +87,38 @@ void main() {
       final snapshot = await repository.load();
       expect(snapshot.profile.name, 'Noe Gamez');
       expect(snapshot.profile.email, 'noe@email.com');
+    });
+
+    test('reinstalar la app (sin datos locales) restaura el perfil del servidor sin pedir registro', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final tokens = _MemoryTokenStore(_jwt('cliente-existente'));
+      final fakeApi = _FakeProfileApiClient({
+        '/api/ClienteAuth/mi-perfil': {
+          'success': true,
+          'data': {
+            'guidId': 'cliente-existente',
+            'nombre': 'Carlos Ramirez',
+            'correo': 'carlos@email.com',
+            'telefono': '+526629876543',
+            'fotoPerfil': 'https://almacen.blob.core.windows.net/perfiles/foto.jpg',
+          },
+        },
+      });
+      final repository = LocalClientProfileRepository(
+        tokenStore: tokens,
+        authApi: AuthApi(fakeApi),
+        photosDirectory: () async => Directory.systemTemp.createTemp('perfil'),
+      );
+
+      expect(await repository.needsOnboarding(), isFalse);
+      final snapshot = await repository.load();
+      expect(snapshot.profile.name, 'Carlos Ramirez');
+      expect(snapshot.profile.email, 'carlos@email.com');
+      expect(snapshot.profile.phone, '+526629876543');
+      expect(
+        snapshot.profile.photoUrl,
+        'https://almacen.blob.core.windows.net/perfiles/foto.jpg',
+      );
     });
 
     test('dos cuentas en el mismo teléfono no comparten perfil', () async {
@@ -384,6 +417,51 @@ class _CatalogApi implements ApiClient {
     },
     _ => {'data': <Object>[]},
   };
+
+  @override
+  Future<dynamic> post(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+  }) async => throw UnimplementedError(path);
+
+  @override
+  Future<dynamic> put(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+  }) async => {'success': true, 'data': data};
+
+  @override
+  Future<dynamic> delete(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+  }) async => throw UnimplementedError(path);
+
+  @override
+  Future<dynamic> multipart(
+    String path, {
+    required String method,
+    Map<String, dynamic>? fields,
+    List<ApiFile> files = const [],
+    Map<String, dynamic>? queryParameters,
+  }) async => {'success': true, 'data': fields};
+}
+
+class _FakeProfileApiClient implements ApiClient {
+  _FakeProfileApiClient(this.routes);
+
+  final Map<String, dynamic> routes;
+
+  @override
+  Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    if (routes.containsKey(path)) return routes[path];
+    return {'data': null};
+  }
 
   @override
   Future<dynamic> post(

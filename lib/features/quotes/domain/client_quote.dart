@@ -253,7 +253,10 @@ String _mapQuoteStatus(
   dynamic statusDesc,
 ) {
   if (statusObj is Map) {
-    final desc = statusObj['descripcion'] ?? statusObj['Descripcion'];
+    final desc = statusObj['descripcion'] ??
+        statusObj['Descripcion'] ??
+        statusObj['estatus'] ??
+        statusObj['Estatus'];
     if (desc != null && desc.toString().trim().isNotEmpty) {
       return desc.toString().trim();
     }
@@ -263,11 +266,11 @@ String _mapQuoteStatus(
   }
   final id = estatusId is num ? estatusId.toInt() : int.tryParse('$estatusId');
   return switch (id) {
-    1 => 'Enviada',
-    2 => 'Vista',
+    1 => 'Activa',
+    2 => 'Aceptada',
     3 => 'Cotizada',
     4 => 'Rechazada',
-    5 => 'Vencida',
+    5 => 'Expirada',
     6 => 'Cancelada',
     7 => 'Aceptada',
     8 => 'Recibida',

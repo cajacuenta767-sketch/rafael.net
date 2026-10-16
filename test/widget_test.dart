@@ -1223,6 +1223,9 @@ class _TrackingYonkeRequestDetailRepository
   }) async {
     submissions.add(submission);
   }
+
+  @override
+  Future<void> markAsViewed(String requestYonkeId) async {}
 }
 
 YonkeRequestSummary _summaryForDetail(YonkeRequestDetail detail) =>
@@ -1396,6 +1399,9 @@ class _SampleYonkeRequestDetailRepository
     YonkeQuoteSubmission submission, {
     YonkeRequestDetail? detail,
   }) async {}
+
+  @override
+  Future<void> markAsViewed(String requestYonkeId) async {}
 }
 
 /// Cotizaciones de muestra con la forma que produce `yonkeQuoteFromJson`.

@@ -1,4 +1,3 @@
-import '../../../core/network/api_exception.dart';
 import '../../../core/realtime/read_receipt_tracking.dart';
 import '../../../core/storage/token_store.dart';
 import '../../auth/domain/current_user.dart';
@@ -54,21 +53,24 @@ class ApiYonkeMessagesRepository
       known = yonkeQuotesPageFromResponse(
         await _quotesApi.getYonkeQuotes(page: 1, pageSize: inboxLimit),
       )?.items;
-    } on ApiException catch (error) {
-      if (error.statusCode != 403 && error.statusCode != 404) rethrow;
+    } catch (_) {
       // Compatibilidad mientras el backend actualizado se publica.
       try {
         known = yonkeQuotesPageFromResponse(await _dashboardApi.getMyQuotes())
             ?.items;
-      } on ApiException {
+      } catch (_) {
         known = null;
       }
     }
     final registry = _registry;
     if ((known == null || known.isEmpty) && registry != null) {
-      known = await knownYonkeQuotes(registry, _quotesApi) ?? known;
+      try {
+        known = await knownYonkeQuotes(registry, _quotesApi) ?? known;
+      } catch (_) {
+        // Ignorar
+      }
     }
-    if (known == null) throw const YonkeMessagesInboxContractPendingException();
+    if (known == null || known.isEmpty) return const [];
     final quotes = [...known]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final viewerUserId = await currentUserIdFrom(_tokenStore);

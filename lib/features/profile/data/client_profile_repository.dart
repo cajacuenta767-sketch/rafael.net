@@ -79,43 +79,89 @@ class LocalClientProfileRepository implements ClientProfileRepository {
   @override
   Future<ClientProfileSnapshot> load() async {
     final claims = await _claims();
-    final stored = await _storedProfile(claims);
+    var stored = await _storedProfile(claims);
+
+    // Si aún no tenemos correo en el stored, buscar en claims o hints del login
+    final hints = await _hints(claims);
+    final emailClaim = _claim(claims, _emailClaims);
+    final accountEmail = emailClaim ?? hints?.email;
+
+    ClientProfile? emailProfile;
+    if (accountEmail != null && accountEmail.trim().isNotEmpty) {
+      final map = await _readMap(_profileByEmailKey(accountEmail.trim().toLowerCase()));
+      if (map != null) emailProfile = ClientProfile.fromJson(map);
+    }
+
     var profile = ClientProfile(
-      id: stored?.id ?? _subject(claims),
-      name: _first([stored?.name, _realName(_claim(claims, _nameClaims))]),
-      email: _first([stored?.email, _claim(claims, _emailClaims)]),
-      phone: _first([stored?.phone, _claim(claims, _phoneClaims)]),
-      city: stored?.displayCity,
-      stateId: stored?.stateId,
-      stateName: stored?.stateName,
-      cityId: stored?.cityId,
-      cityName: stored?.cityName,
-      photoPath: stored?.photoPath,
-      photoUrl: stored?.photoUrl,
+      id: stored?.id ?? emailProfile?.id ?? _subject(claims),
+      name: _first([
+        stored?.name,
+        emailProfile?.name,
+        _realName(_claim(claims, _nameClaims)),
+      ]),
+      email: _first([stored?.email, emailProfile?.email, emailClaim, accountEmail]),
+      phone: _first([
+        stored?.phone,
+        emailProfile?.phone,
+        _claim(claims, _phoneClaims),
+      ]),
+      city: stored?.displayCity ?? emailProfile?.displayCity,
+      stateId: stored?.stateId ?? emailProfile?.stateId,
+      stateName: stored?.stateName ?? emailProfile?.stateName,
+      cityId: stored?.cityId ?? emailProfile?.cityId,
+      cityName: stored?.cityName ?? emailProfile?.cityName,
+      photoPath: stored?.photoPath ?? emailProfile?.photoPath,
+      photoUrl: stored?.photoUrl ?? emailProfile?.photoUrl,
     );
     final id = profile.id;
     if (id != null && id.isNotEmpty && authApi != null) {
       try {
         final remote = _profileRecord(await authApi!.getOwnClientProfile());
         if (remote != null) {
-          profile = profile.copyWith(
-            name: _first([
-              _realName(remote['nombre']?.toString()),
-              profile.name,
-            ]),
-            email: _first([remote['correo']?.toString(), profile.email]),
-            phone: _first([remote['telefono']?.toString(), profile.phone]),
-            photoUrl: _first([
-              remote['fotoPerfil']?.toString(),
-              profile.photoUrl,
-            ]),
+          final remoteName = _realName(
+            remote['nombre']?.toString() ?? remote['Nombre']?.toString(),
           );
+          final remoteEmail =
+              remote['correo']?.toString() ?? remote['Correo']?.toString();
+          final remotePhone =
+              remote['telefono']?.toString() ?? remote['Telefono']?.toString();
+          final remotePhoto =
+              remote['fotoPerfil']?.toString() ??
+              remote['FotoPerfil']?.toString();
+
+          profile = profile.copyWith(
+            name: _first([remoteName, profile.name]),
+            email: _first([remoteEmail, profile.email]),
+            phone: _first([remotePhone, profile.phone]),
+            photoUrl: _first([remotePhoto, profile.photoUrl]),
+          );
+
+          // Si el servidor entregó datos confirmados, guardamos en storage
+          // para que el caché local persista tras reinstalación o sin red.
+          final sub = _subject(claims);
+          if (sub != null && profile.hasConfirmedData) {
+            await _storage.write(
+              key: _profileKey(sub),
+              value: jsonEncode(profile.toJson()),
+            );
+          }
         }
       } catch (_) {
         // La API puede estar temporalmente sin conexión; se conserva el caché
         // local y las funciones de perfil/direcciones siguen disponibles.
       }
     }
+
+    // Persistir en memoria de correo si hay correo y datos confirmados
+    final profileEmail = profile.email?.trim().toLowerCase();
+    if (profileEmail != null && profileEmail.isNotEmpty && profile.hasConfirmedData) {
+      await _storage.write(
+        key: _profileByEmailKey(profileEmail),
+        value: jsonEncode(profile.toJson()),
+      );
+      await _storage.write(key: 'client.last_email', value: profileEmail);
+    }
+
     return ClientProfileSnapshot(
       availability: profile.hasConfirmedData
           ? ClientProfileAvailability.available
@@ -129,7 +175,37 @@ class LocalClientProfileRepository implements ClientProfileRepository {
     try {
       final claims = await _claims();
       if (claims == null) return false;
-      final stored = await _storedProfile(claims);
+      var stored = await _storedProfile(claims);
+      if (stored != null && (stored.isComplete || stored.hasConfirmedData)) {
+        return false;
+      }
+
+      final hints = await _hints(claims);
+      final email = _claim(claims, _emailClaims) ?? hints?.email;
+      if (email != null && email.trim().isNotEmpty) {
+        final emailMap = await _readMap(_profileByEmailKey(email.trim().toLowerCase()));
+        if (emailMap != null) {
+          final p = ClientProfile.fromJson(emailMap);
+          if (p.isComplete || (p.name != null && p.name!.isNotEmpty)) {
+            return false;
+          }
+        }
+      }
+
+      // Si en este dispositivo no está el perfil completo (p. ej. la app
+      // se reinstaló o se borraron datos), consultamos al servidor antes
+      // de obligar al usuario a registrarse otra vez.
+      if (authApi != null) {
+        try {
+          final snapshot = await load();
+          if (snapshot.profile.isComplete || snapshot.profile.hasConfirmedData) {
+            return false;
+          }
+        } catch (_) {
+          // Si la API falla, nos basamos en el almacenamiento local.
+        }
+      }
+
       return stored?.isComplete != true;
     } catch (_) {
       // Si el almacenamiento falla no se bloquea el acceso a la app.
@@ -140,37 +216,40 @@ class LocalClientProfileRepository implements ClientProfileRepository {
   @override
   Future<ClientProfile> draftForOnboarding() async {
     final claims = await _claims();
-    final stored = await _storedProfile(claims);
+    final snapshot = await load();
+    var profile = snapshot.profile;
     final hints = await _hints(claims);
-    return ClientProfile(
-      id: stored?.id ?? _subject(claims),
-      name: _first([
-        _realName(stored?.name),
-        _realName(hints?.name),
-        _realName(_claim(claims, _nameClaims)),
-      ]),
-      email: _first([
-        stored?.email,
-        hints?.email,
-        _claim(claims, _emailClaims),
-      ]),
-      phone: _first([
-        stored?.phone,
-        hints?.phone,
-        _claim(claims, _phoneClaims),
-      ]),
-      stateId: stored?.stateId,
-      stateName: stored?.stateName,
-      cityId: stored?.cityId,
-      cityName: stored?.cityName,
-      photoPath: stored?.photoPath,
-      photoUrl: _first([stored?.photoUrl, hints?.photoUrl]),
+    final email = _claim(claims, _emailClaims) ?? hints?.email;
+
+    ClientProfile? emailProfile;
+    if (email != null && email.trim().isNotEmpty) {
+      final map = await _readMap(_profileByEmailKey(email.trim().toLowerCase()));
+      if (map != null) emailProfile = ClientProfile.fromJson(map);
+    }
+
+    return profile.copyWith(
+      name: _first([profile.name, emailProfile?.name, _realName(hints?.name)]),
+      email: _first([profile.email, emailProfile?.email, hints?.email, email]),
+      phone: _first([profile.phone, emailProfile?.phone, hints?.phone]),
+      photoUrl: _first([profile.photoUrl, emailProfile?.photoUrl, hints?.photoUrl]),
+      photoPath: _first([profile.photoPath, emailProfile?.photoPath]),
+      city: _first([profile.city, emailProfile?.city]),
+      stateId: profile.stateId ?? emailProfile?.stateId,
+      stateName: profile.stateName ?? emailProfile?.stateName,
+      cityId: profile.cityId ?? emailProfile?.cityId,
+      cityName: profile.cityName ?? emailProfile?.cityName,
     );
   }
 
   @override
   Future<void> saveLoginHints(ClientLoginHints hints) async {
     final subject = _subject(await _claims());
+    if (hints.email != null && hints.email!.trim().isNotEmpty) {
+      await _storage.write(
+        key: 'client.last_email',
+        value: hints.email!.trim().toLowerCase(),
+      );
+    }
     if (subject == null) return;
     await _storage.write(
       key: 'client.loginHints.$subject',
@@ -180,7 +259,8 @@ class LocalClientProfileRepository implements ClientProfileRepository {
 
   @override
   Future<void> saveProfile(ClientProfile profile) async {
-    final subject = _subject(await _claims());
+    final claims = await _claims();
+    final subject = _subject(claims);
     final remoteName = profile.name?.trim();
     if (subject != null && remoteName != null && remoteName.isNotEmpty) {
       Uint8List? photoBytes;
@@ -194,13 +274,35 @@ class LocalClientProfileRepository implements ClientProfileRepository {
         }
       }
 
-      await authApi?.updateOwnClientProfile(
-        name: remoteName,
-        email: profile.email,
-        photoBytes: photoBytes,
-        photoFileName: photoFileName,
-      );
+      try {
+        final response = await authApi?.updateOwnClientProfile(
+          name: remoteName,
+          email: profile.email,
+          photoBytes: photoBytes,
+          photoFileName: photoFileName,
+          photoUrl: profile.photoUrl,
+        );
+        final remote = _profileRecord(response);
+        final newPhotoUrl = remote?['fotoPerfil']?.toString() ??
+            remote?['FotoPerfil']?.toString();
+        if (newPhotoUrl != null && newPhotoUrl.isNotEmpty) {
+          profile = profile.copyWith(photoUrl: newPhotoUrl);
+        }
+      } catch (_) {
+        // La API puede estar temporalmente sin conexión; se conserva el caché
+        // local para que no se bloquee el flujo del usuario.
+      }
     }
+
+    final cleanEmail = profile.email?.trim().toLowerCase();
+    if (cleanEmail != null && cleanEmail.isNotEmpty) {
+      await _storage.write(
+        key: _profileByEmailKey(cleanEmail),
+        value: jsonEncode(profile.toJson()),
+      );
+      await _storage.write(key: 'client.last_email', value: cleanEmail);
+    }
+
     await _storage.write(
       key: subject == null ? _legacyProfileKey : _profileKey(subject),
       value: jsonEncode(profile.toJson()),
@@ -282,6 +384,9 @@ class LocalClientProfileRepository implements ClientProfileRepository {
 
   static String _profileKey(String subject) => 'client.profile.$subject';
 
+  static String _profileByEmailKey(String email) =>
+      'client.profile.email.${email.trim().toLowerCase()}';
+
   static String _addressesKey(String? subject) =>
       subject == null ? _legacyAddressesKey : 'client.addresses.$subject';
 
@@ -309,6 +414,24 @@ class LocalClientProfileRepository implements ClientProfileRepository {
       final own = await _readMap(_profileKey(subject));
       if (own != null) return ClientProfile.fromJson(own);
     }
+
+    // MEMORIA POR CORREO: Si el usuario ingresa con un correo existente, recuperar su perfil
+    final hints = await _hints(claims);
+    final email = _claim(claims, _emailClaims) ?? hints?.email;
+    if (email != null && email.trim().isNotEmpty) {
+      final emailMap = await _readMap(_profileByEmailKey(email.trim().toLowerCase()));
+      if (emailMap != null) {
+        final profile = ClientProfile.fromJson(emailMap);
+        if (subject != null) {
+          await _storage.write(
+            key: _profileKey(subject),
+            value: jsonEncode(profile.copyWith(id: subject).toJson()),
+          );
+        }
+        return profile;
+      }
+    }
+
     final legacy = await _readMap(_legacyProfileKey);
     if (legacy == null) return null;
     final profile = ClientProfile.fromJson(legacy);

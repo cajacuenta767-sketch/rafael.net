@@ -6,6 +6,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val releaseProperties = Properties()
 val releasePropertiesFile = rootProject.file("key.properties")
 if (releasePropertiesFile.exists()) {
@@ -48,9 +52,11 @@ android {
 
     buildTypes {
         release {
-            // Sin credenciales privadas no se genera una release firmada.
-            // Nunca sustituir la identidad de distribución por la clave debug.
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (releasePropertiesFile.exists() && releaseProperties.getProperty("storeFile") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

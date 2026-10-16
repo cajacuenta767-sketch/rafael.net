@@ -1,4 +1,3 @@
-import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../quotes/data/quotes_api.dart';
 import '../../requests/data/requests_api.dart';
@@ -24,6 +23,8 @@ abstract interface class YonkeRequestDetailRepository {
     YonkeQuoteSubmission submission, {
     YonkeRequestDetail? detail,
   });
+
+  Future<void> markAsViewed(String requestYonkeId);
 }
 
 class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
@@ -43,51 +44,69 @@ class ApiYonkeRequestDetailRepository implements YonkeRequestDetailRepository {
     required String requestYonkeId,
     YonkeRequestSummary? summary,
   }) async {
-    if (requestId.isEmpty) throw const YonkeRequestDetailNotFoundException();
-    // Attach the error handler immediately: both requests run in parallel.
-    // Otherwise a fast image failure escapes while the detail is awaited.
-    final images = _requestsApi
-        .getImages(requestId)
-        .then<({dynamic response, Object? error, StackTrace? stack})>(
-          (response) => (response: response, error: null, stack: null),
-          onError: (Object error, StackTrace stack) =>
-              (response: null, error: error, stack: stack),
-        );
-    dynamic requestResponse;
-    YonkeRequestSummary? known = summary;
+    final searchId = requestId.isNotEmpty ? requestId : requestYonkeId;
+    if (searchId.isEmpty) throw const YonkeRequestDetailNotFoundException();
+
+    YonkeRequestSummary? known = summary ?? await _assignedSummary(searchId);
+    final effectiveRequestId =
+        known?.requestId ?? (requestId.isNotEmpty ? requestId : requestYonkeId);
+    final effectiveRequestYonkeId =
+        known?.requestYonkeId ??
+        (requestYonkeId.isNotEmpty ? requestYonkeId : requestId);
+
+    dynamic imagesResponse;
     try {
-      requestResponse = await _requestsApi.getById(requestId);
-    } on ApiException {
-      // `GET /api/Solicitudes/{guid}` responde 302 aunque la sesión sea
-      // válida ([Authorize] sin esquema JWT). La bandeja (MisSolicitudes)
-      // trae pieza, folio, fechas, ciudad y fotos; con eso se arma el detalle.
-      known ??= await _assignedSummary(requestYonkeId);
-      if (known == null) rethrow;
-      requestResponse = {'guidId': requestId};
+      imagesResponse = await _requestsApi.getImages(effectiveRequestId);
+    } catch (_) {
+      imagesResponse = null;
     }
-    final imageResult = await images;
-    if (imageResult.error != null) {
-      Error.throwWithStackTrace(imageResult.error!, imageResult.stack!);
+
+    dynamic requestResponse;
+    try {
+      requestResponse = await _requestsApi.getById(effectiveRequestId);
+    } catch (_) {
+      if (known != null) {
+        requestResponse = {
+          'guidId': effectiveRequestId,
+          'piezaBuscada': known.part,
+          'descripcion': known.description,
+          'folio': known.folio,
+          'ciudad': known.city,
+        };
+      }
     }
+
     final detail = yonkeRequestDetailFromResponses(
-      requestResponse: requestResponse,
-      imagesResponse: imageResult.response,
-      requestYonkeId: requestYonkeId,
+      requestResponse: requestResponse ?? {'guidId': effectiveRequestId},
+      imagesResponse: imagesResponse,
+      requestYonkeId: effectiveRequestYonkeId,
       summary: known,
     );
     if (detail == null) throw const YonkeRequestDetailNotFoundException();
+    if (effectiveRequestYonkeId.isNotEmpty) {
+      try {
+        await _requestsApi.markAsViewedByYonke(effectiveRequestYonkeId);
+      } catch (_) {}
+    }
     return detail;
   }
 
-  Future<YonkeRequestSummary?> _assignedSummary(String requestYonkeId) async {
+  @override
+  Future<void> markAsViewed(String requestYonkeId) =>
+      _requestsApi.markAsViewedByYonke(requestYonkeId);
+
+  Future<YonkeRequestSummary?> _assignedSummary(String id) async {
     try {
       final items = yonkeAssignedRequestsFromResponse(
         await _requestsApi.getAssignedToYonke(),
       );
-      return items
-          ?.where((item) => item.requestYonkeId == requestYonkeId)
-          .firstOrNull;
-    } on ApiException {
+      if (items == null) return null;
+      final clean = id.trim().toLowerCase();
+      return items.where((item) {
+        return item.requestYonkeId.toLowerCase() == clean ||
+            item.requestId.toLowerCase() == clean;
+      }).firstOrNull;
+    } catch (_) {
       return null;
     }
   }
@@ -241,6 +260,7 @@ bool _isSafeRemoteImage(String value) {
 
 YonkeRequestStatus _statusFromText(String? value) {
   final normalized = value?.toLowerCase() ?? '';
+  if (normalized.contains('acept')) return YonkeRequestStatus.accepted;
   if (normalized.contains('cotiz')) return YonkeRequestStatus.quoted;
   if (normalized.contains('vista')) return YonkeRequestStatus.viewed;
   if (normalized.contains('cerr')) return YonkeRequestStatus.closed;

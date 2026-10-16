@@ -51,6 +51,11 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         widget.repository ?? ref.read(yonkeRequestsRepositoryProvider);
     _scrollController.addListener(_handleScroll);
     _load(refresh: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(pushServiceProvider).registerCurrentSession();
+      }
+    });
   }
 
   @override
@@ -119,27 +124,29 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
     } on AssignedRequestsEndpointPendingException {
       if (!mounted) return;
       setState(() {
-        _requests = const [];
-        _totalCount = 0;
-        _newCount = 0;
-        _viewedCount = 0;
-        _quotedCount = 0;
+        if (_requests.isEmpty) {
+          _endpointPending = true;
+          _totalCount = 0;
+          _newCount = 0;
+          _viewedCount = 0;
+          _quotedCount = 0;
+        }
         _loading = false;
         _loadingMore = false;
-        _endpointPending = true;
         _hasMore = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _requests = const [];
-        _totalCount = 0;
-        _newCount = 0;
-        _viewedCount = 0;
-        _quotedCount = 0;
+        if (_requests.isEmpty) {
+          _error = 'No pudimos cargar las solicitudes en este momento.';
+          _totalCount = 0;
+          _newCount = 0;
+          _viewedCount = 0;
+          _quotedCount = 0;
+        }
         _loading = false;
         _loadingMore = false;
-        _error = 'No pudimos cargar las solicitudes en este momento.';
       });
     }
   }
@@ -241,7 +248,13 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
         surfaceTintColor: YonkeColors.primaryNavy,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          tooltip: 'Volver al inicio',
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go(AppRoutes.yonkeHome),
+        ),
         title: const Text(
           'Solicitudes',
           style: TextStyle(
@@ -252,6 +265,22 @@ class _YonkeRequestsPageState extends ConsumerState<YonkeRequestsPage> {
           ),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Notificaciones',
+            onPressed: () => context.push(AppRoutes.yonkeNotifications),
+            icon: Badge(
+              isLabelVisible: _newCount > 0,
+              label: Text(
+                '$_newCount',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+              ),
+              backgroundColor: const Color(0xFFE53935),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                color: Colors.white,
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Filtrar solicitudes',
             onPressed: _loading ? null : _openFilters,

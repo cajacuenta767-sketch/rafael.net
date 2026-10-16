@@ -67,6 +67,35 @@ class ClientRequestSummary {
     closed: closed ?? this.closed,
     imageUrl: imageUrl ?? this.imageUrl,
   );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'part': part,
+    'status': status,
+    'quoteCount': quoteCount,
+    'brand': brand,
+    'model': model,
+    'year': year,
+    'folio': folio,
+    'createdAt': createdAt?.toIso8601String(),
+    'closed': closed,
+    'imageUrl': imageUrl,
+  };
+
+  factory ClientRequestSummary.fromJson(Map<String, dynamic> json) =>
+      ClientRequestSummary(
+        id: json['id']?.toString() ?? '',
+        part: json['part']?.toString() ?? '',
+        status: json['status']?.toString() ?? 'En proceso',
+        quoteCount: (json['quoteCount'] as num?)?.toInt() ?? 0,
+        brand: json['brand']?.toString(),
+        model: json['model']?.toString(),
+        year: (json['year'] as num?)?.toInt(),
+        folio: json['folio']?.toString(),
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
+        closed: json['closed'] == true,
+        imageUrl: json['imageUrl']?.toString(),
+      );
 }
 
 class ClientRequestDetail {
@@ -124,9 +153,30 @@ ClientRequestSummary? clientRequestSummaryFromJson(Map<dynamic, dynamic> json) {
   final quotes = json['solicitudYonkes'];
   final images = json['solicitudesImagenes'];
   final closed = json['cerrada'] == true;
+  final rawStatusId = json['estatusSolicitudId'] ??
+      json['EstatusSolicitudId'] ??
+      json['estatusId'] ??
+      json['EstatusId'];
+  final statusId = rawStatusId is num
+      ? rawStatusId.toInt()
+      : int.tryParse('$rawStatusId');
+  final mappedStatus = switch (statusId) {
+    1 => 'Pendiente',
+    2 => 'Enviada',
+    3 => 'Cotizada',
+    4 => 'Aceptada',
+    5 => 'Rechazada',
+    6 => 'Cancelada',
+    7 => 'Cerrada',
+    _ => null,
+  };
   final status =
       _text(json['estatusSolicitud']) ??
-      (statusRecord is Map ? _text(statusRecord['estatus']) : null) ??
+      (statusRecord is Map
+          ? _text(statusRecord['estatus']) ??
+              _text(statusRecord['descripcion'])
+          : null) ??
+      mappedStatus ??
       (closed ? 'Cerrada' : 'En proceso');
   return ClientRequestSummary(
     id: id,

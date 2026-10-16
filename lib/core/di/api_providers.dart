@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../features/auth/data/auth_api.dart';
 import '../../features/auth/domain/client_auth_repository.dart';
@@ -11,6 +12,7 @@ import '../../features/payments/data/payments_api.dart';
 import '../../features/profile/data/client_profile_repository.dart';
 import '../../features/quotes/data/quote_yonke_resolver.dart';
 import '../../features/quotes/data/quotes_api.dart';
+import '../../features/requests/data/client_requests_memory.dart';
 import '../../features/requests/data/requests_api.dart';
 import '../../features/requests/data/request_submission_repository.dart';
 import '../../features/ratings/data/client_ratings_repository.dart';
@@ -63,11 +65,15 @@ final dashboardApiProvider = Provider<DashboardApi>(
 final requestsApiProvider = Provider<RequestsApi>(
   (ref) => RequestsApi(ref.watch(apiClientProvider)),
 );
+final clientRequestsMemoryProvider = Provider<ClientRequestsMemory>(
+  (ref) => ClientRequestsMemory(),
+);
 final requestSubmissionRepositoryProvider =
     Provider<RequestSubmissionRepository>(
       (ref) => ApiRequestSubmissionRepository(
         ref.watch(requestsApiProvider),
         ref.watch(dashboardApiProvider),
+        ref.watch(clientRequestsMemoryProvider),
       ),
     );
 final quotesApiProvider = Provider<QuotesApi>(
@@ -98,7 +104,11 @@ final yonkeReputationRepositoryProvider = Provider<YonkeReputationRepository>(
   (ref) => ApiYonkeReputationRepository(ref.watch(yonkesApiProvider)),
 );
 final yonkeRequestsRepositoryProvider = Provider<YonkeRequestsRepository>(
-  (ref) => ApiYonkeRequestsRepository(ref.watch(requestsApiProvider)),
+  (ref) => ApiYonkeRequestsRepository(
+    ref.watch(requestsApiProvider),
+    const FlutterSecureStorage(),
+    ref.watch(tokenStoreProvider),
+  ),
 );
 final yonkeRequestDetailRepositoryProvider =
     Provider<YonkeRequestDetailRepository>(
@@ -113,6 +123,8 @@ final yonkeQuotesRepositoryProvider = Provider<YonkeQuotesRepository>(
     ref.watch(dashboardApiProvider),
     ref.watch(quotesApiProvider),
     ref.watch(yonkeQuoteRegistryProvider),
+    const FlutterSecureStorage(),
+    ref.watch(tokenStoreProvider),
   ),
 );
 final yonkeMessagesRepositoryProvider = Provider<YonkeMessagesRepository>(

@@ -169,6 +169,7 @@ class _StatusTag extends StatelessWidget {
       YonkeRequestStatus.newRequest => YonkeColors.accentGreen,
       YonkeRequestStatus.viewed => const Color(0xFF3F6EAE),
       YonkeRequestStatus.quoted => YonkeColors.primaryNavy,
+      YonkeRequestStatus.accepted => const Color(0xFF147A1D),
       YonkeRequestStatus.unavailable ||
       YonkeRequestStatus.closed => YonkeColors.textSecondary,
       YonkeRequestStatus.unknown => YonkeColors.textSecondary,

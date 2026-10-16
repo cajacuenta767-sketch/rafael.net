@@ -19,6 +19,8 @@ class PushNotice {
     required this.receivedAt,
     this.type,
     this.targetId,
+    this.imageUrl,
+    this.description,
   });
 
   final String title;
@@ -26,6 +28,8 @@ class PushNotice {
   final DateTime receivedAt;
   final String? type;
   final String? targetId;
+  final String? imageUrl;
+  final String? description;
 
   bool get isNewRequest => type?.toLowerCase() == 'nuevasolicitud';
   bool get isNewMessage => type?.toLowerCase() == 'nuevo_mensaje';
@@ -55,6 +59,8 @@ class PushNotice {
         'SolicitudGuidId',
         'solicitudGuidId',
       ]),
+      imageUrl: read(const ['imagen', 'imageUrl', 'foto', 'fotoUrl', 'FotoUrl']),
+      description: read(const ['descripcion', 'description', 'detalle', 'Detalle']),
     );
   }
 }
@@ -94,6 +100,7 @@ class PushService {
   /// Avisos recibidos en esta ejecución, del más reciente al más antiguo.
   final inbox = ValueNotifier<List<PushNotice>>(const []);
   final _opened = StreamController<PushNotice>.broadcast();
+  final _foreground = StreamController<PushNotice>.broadcast();
   final _subscriptions = <StreamSubscription<Object?>>[];
   Future<bool>? _ready;
   String? _registeredToken;
@@ -104,6 +111,9 @@ class PushService {
   /// Avisos que el usuario tocó; la app navega a su pantalla.
   Stream<PushNotice> get openedNotices => _opened.stream;
 
+  /// Avisos recibidos mientras la app está abierta en primer plano.
+  Stream<PushNotice> get foregroundNotices => _foreground.stream;
+
   Future<bool> _ensureReady() => _ready ??= _start();
 
   Future<bool> _start() async {
@@ -112,7 +122,12 @@ class PushService {
       return false;
     }
     _subscriptions
-      ..add(_platform.foregroundMessages.listen(_remember))
+      ..add(
+        _platform.foregroundMessages.listen((notice) {
+          _remember(notice);
+          _foreground.add(notice);
+        }),
+      )
       ..add(
         _platform.openedMessages.listen((notice) {
           _remember(notice);
@@ -191,6 +206,7 @@ class PushService {
       await subscription.cancel();
     }
     await _opened.close();
+    await _foreground.close();
   }
 }
 
@@ -214,19 +230,20 @@ class FirebasePushPlatform implements PushPlatform {
 
   @override
   Future<bool> initialize() async {
-    if (!AppConfig.pushConfigured || kIsWeb) return false;
+    if (kIsWeb) return false;
     try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: FirebaseOptions(
-            apiKey: AppConfig.firebaseApiKey,
-            appId: AppConfig.firebaseAppId,
-            messagingSenderId: AppConfig.firebaseSenderId,
-            projectId: AppConfig.firebaseProjectId,
-            iosBundleId: AppConfig.firebaseIosBundleId,
-          ),
-        );
-      }
+      if (Firebase.apps.isNotEmpty) return true;
+      if (!AppConfig.pushConfigured) return false;
+
+      await Firebase.initializeApp(
+        options: FirebaseOptions(
+          apiKey: AppConfig.firebaseApiKey,
+          appId: AppConfig.firebaseAppId,
+          messagingSenderId: AppConfig.firebaseSenderId,
+          projectId: AppConfig.firebaseProjectId,
+          iosBundleId: AppConfig.firebaseIosBundleId,
+        ),
+      );
       return true;
     } catch (error) {
       if (kDebugMode) debugPrint('[push] Firebase no inicializó: $error');
@@ -236,7 +253,20 @@ class FirebasePushPlatform implements PushPlatform {
 
   @override
   Future<String?> requestToken() async {
-    final settings = await _messaging.requestPermission();
+    final settings = await _messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       return null;
     }

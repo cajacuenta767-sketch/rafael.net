@@ -31,51 +31,80 @@ class _YonkeHomePageState extends ConsumerState<YonkeHomePage> {
   void initState() {
     super.initState();
     _future = widget.dataLoader?.call() ?? _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(pushServiceProvider).registerCurrentSession();
+      }
+    });
   }
 
   Future<YonkeHomeData> _load() async {
-    var partialError = false;
-    Future<T?> attempt<T>(Future<T> Function() action) async {
-      try {
-        return await action();
-      } catch (_) {
-        partialError = true;
-        return null;
-      }
-    }
-
     final requestsRepository = ref.read(yonkeRequestsRepositoryProvider);
     final quotesRepository = ref.read(yonkeQuotesRepositoryProvider);
     final messagesRepository = ref.read(yonkeMessagesRepositoryProvider);
     final profileRepository = ref.read(yonkeProfileRepositoryProvider);
+    final quotesApi = ref.read(quotesApiProvider);
 
-    final mostRecent = await attempt(requestsRepository.getMostRecentRequest);
-    final quotes = await attempt(
-      () => quotesRepository.getMyQuotes(page: 1, pageSize: 30),
-    );
-    final quoteTotal = await attempt(
-      () async => quoteTotalFromResponse(
-        await ref.read(quotesApiProvider).getYonkeTotal(),
-      ),
-    );
-    final newRequestsTotal = await attempt(
-      () async => quoteTotalFromResponse(
-        await ref.read(requestsApiProvider).getYonkeNewRequestsTotal(),
-      ),
-    );
-    final messages = await attempt(messagesRepository.getInbox);
-    final profile = await attempt(profileRepository.load);
+    final results = await Future.wait([
+      requestsRepository
+          .getAssignedRequests(page: 1, pageSize: 20)
+          .catchError(
+            (_) => const YonkeRequestsPageResult(
+              items: [],
+              page: 1,
+              hasMore: false,
+            ),
+          ),
+      quotesApi.getYonkeTotal().catchError((_) => null),
+      quotesRepository
+          .getMyQuotes(page: 1, pageSize: 1)
+          .then<dynamic>((v) => v, onError: (_) => null),
+      messagesRepository
+          .getInbox()
+          .then<dynamic>((v) => v, onError: (_) => null),
+      profileRepository
+          .load()
+          .then<dynamic>((v) => v, onError: (_) => null),
+    ]);
+
+    final assignedResult = results[0] as YonkeRequestsPageResult;
+    final quoteTotalRaw = results[1];
+    final quotesResult = results[2] as dynamic;
+    final messagesResult = results[3] as List<dynamic>?;
+    final profileResult = results[4] as dynamic;
+
+    final requests = assignedResult.items;
+    final mostRecent = requests.isNotEmpty ? requests.first : null;
+    final newCount = requests
+        .where((item) => item.status == YonkeRequestStatus.newRequest)
+        .length;
+
+    var quoteCount = 0;
+    if (quoteTotalRaw != null) {
+      quoteCount = quoteTotalFromResponse(quoteTotalRaw) ?? 0;
+    } else if (quotesResult != null) {
+      try {
+        quoteCount = quotesResult.totalCount ?? quotesResult.items?.length ?? 0;
+      } catch (_) {}
+    }
+
+    var unreadMessages = 0;
+    if (messagesResult != null) {
+      for (final m in messagesResult) {
+        try {
+          unreadMessages += (m.unreadCount as int? ?? 0);
+        } catch (_) {}
+      }
+    }
 
     return YonkeHomeData(
-      requests: mostRecent != null ? [mostRecent] : const [],
+      requests: requests.take(5).toList(),
       mostRecentRequest: mostRecent,
-      quoteCount: quoteTotal ?? quotes?.items.length ?? 0,
-      newRequestsTotal: newRequestsTotal,
-      unreadMessages:
-          messages?.fold<int>(0, (total, item) => total + item.unreadCount) ??
-          0,
-      businessName: profile?.profile?.name,
-      hasPartialError: partialError,
+      quoteCount: quoteCount,
+      newRequestsTotal: newCount,
+      unreadMessages: unreadMessages,
+      businessName: profileResult?.profile?.name,
+      hasPartialError: false,
     );
   }
 
@@ -238,10 +267,18 @@ class _Hero extends StatelessWidget {
         IconButton(
           tooltip: 'Notificaciones',
           onPressed: () => context.push(AppRoutes.yonkeNotifications),
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: Colors.white,
-            size: 28,
+          icon: Badge(
+            isLabelVisible: data.newRequests > 0,
+            label: Text(
+              '${data.newRequests}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            ),
+            backgroundColor: const Color(0xFFE53935),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         ),
       ],

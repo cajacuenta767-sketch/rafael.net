@@ -15,6 +15,7 @@ import '../../../app/router/app_router.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/session/session_events.dart';
 import '../domain/international_phone.dart';
 import 'client_login_controller.dart';
 import 'legal_document_page.dart';
@@ -140,6 +141,8 @@ class _ClientLoginPageState extends ConsumerState<ClientLoginPage> {
   /// Después de un login correcto: el cliente nuevo va directo al registro
   /// y el que ya se registró, al inicio.
   Future<void> _enterApp(ClientLoginHints hints) async {
+    SessionEvents.notifySignedIn();
+    unawaited(ref.read(pushServiceProvider).registerCurrentSession());
     if (mounted) setState(() => _enteringApp = true);
     final profiles = ref.read(clientProfileRepositoryProvider);
     var needsProfile = false;

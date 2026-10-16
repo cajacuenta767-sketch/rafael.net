@@ -241,7 +241,10 @@ class _AccountCard extends StatelessWidget {
     final path = profile.photoPath;
     if (path != null && File(path).existsSync()) return FileImage(File(path));
     final url = profile.photoUrl;
-    return url != null && url.startsWith('https://') ? NetworkImage(url) : null;
+    return url != null &&
+            (url.startsWith('https://') || url.startsWith('http://'))
+        ? NetworkImage(url)
+        : null;
   }
 
   @override

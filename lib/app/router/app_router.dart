@@ -75,6 +75,7 @@ abstract final class AppRoutes {
   static String clientRating(String quoteId) =>
       '/cliente/cotizaciones/${Uri.encodeComponent(quoteId)}/calificacion';
   static const yonkeHome = '/yonke';
+  static const yonkeDashboard = '/yonke/resumen';
   static const yonkeRequests = '/yonke/solicitudes';
   static const yonkeLogin = '/yonke/login';
   static const yonkeRegister = '/yonke/registro';
@@ -295,6 +296,11 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.yonkeHome,
+      builder: (context, state) =>
+          YonkeSessionGate(builder: (_) => const YonkeHomePage()),
+    ),
+    GoRoute(
+      path: AppRoutes.yonkeDashboard,
       builder: (context, state) =>
           YonkeSessionGate(builder: (_) => const YonkeHomePage()),
     ),

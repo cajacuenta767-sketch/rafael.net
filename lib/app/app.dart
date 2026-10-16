@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/di/api_providers.dart';
+import '../core/permissions/app_permissions.dart';
 import '../core/push/push_service.dart';
 import '../core/session/session_events.dart';
 import 'router/app_router.dart';
@@ -32,12 +34,51 @@ class _YonkeAppState extends ConsumerState<YonkeApp> {
       // El push y el tiempo real siguen a la sesión guardada.
       ..add(SessionEvents.signedIn.listen((_) => push.registerCurrentSession()))
       ..add(SessionEvents.signedOut.listen((_) => _onSignedOut()))
-      ..add(push.openedNotices.listen(_openNotice));
+      ..add(push.openedNotices.listen(_openNotice))
+      ..add(push.foregroundNotices.listen(_onForegroundNotice));
     // Un aviso de mensaje nuevo trae la cotización: el yonke la agrega a su
     // bandeja aunque la haya enviado desde otro teléfono.
     push.inbox.addListener(_rememberQuotesFromNotices);
     // Una sesión que sigue abierta desde la ejecución anterior.
     push.registerCurrentSession();
+    // Solicitar permisos nativos al iniciar la aplicación (notificaciones, micrófono, almacenamiento)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppPermissions.requestStartupPermissions();
+    });
+  }
+
+  OverlayEntry? _activeBanner;
+
+  void _onForegroundNotice(PushNotice notice) {
+    HapticFeedback.vibrate();
+    _showTopBanner(notice);
+  }
+
+  void _showTopBanner(PushNotice notice) {
+    _activeBanner?.remove();
+    _activeBanner = null;
+
+    final overlay = appRouter.routerDelegate.navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
+
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _TopNoticeBanner(
+        notice: notice,
+        onTap: () {
+          entry.remove();
+          _activeBanner = null;
+          _openNotice(notice);
+        },
+        onDismiss: () {
+          entry.remove();
+          _activeBanner = null;
+        },
+      ),
+    );
+
+    _activeBanner = entry;
+    overlay.insert(entry);
   }
 
   void _rememberQuotesFromNotices() {
@@ -52,6 +93,8 @@ class _YonkeAppState extends ConsumerState<YonkeApp> {
 
   @override
   void dispose() {
+    _activeBanner?.remove();
+    _activeBanner = null;
     _push.inbox.removeListener(_rememberQuotesFromNotices);
     for (final subscription in _subscriptions) {
       subscription.cancel();
@@ -71,9 +114,13 @@ class _YonkeAppState extends ConsumerState<YonkeApp> {
         true;
     final target = notice.targetId;
     if (isYonke) {
-      appRouter.go(
-        notice.isNewMessage ? AppRoutes.yonkeMessages : AppRoutes.yonkeRequests,
-      );
+      if (notice.isNewMessage) {
+        appRouter.go(AppRoutes.yonkeMessages);
+      } else if (target != null && target.isNotEmpty) {
+        appRouter.push(AppRoutes.yonkeRequestDetail(target));
+      } else {
+        appRouter.go(AppRoutes.yonkeRequests);
+      }
     } else if (notice.isNewMessage && target != null) {
       appRouter.go(AppRoutes.clientQuoteDetail(target));
     } else {
@@ -114,6 +161,163 @@ class _YonkeAppState extends ConsumerState<YonkeApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: appRouter,
+    );
+  }
+}
+
+class _TopNoticeBanner extends StatefulWidget {
+  const _TopNoticeBanner({
+    required this.notice,
+    required this.onTap,
+    required this.onDismiss,
+  });
+
+  final PushNotice notice;
+  final VoidCallback onTap;
+  final VoidCallback onDismiss;
+
+  @override
+  State<_TopNoticeBanner> createState() => _TopNoticeBannerState();
+}
+
+class _TopNoticeBannerState extends State<_TopNoticeBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _offsetAnimation;
+  Timer? _dismissTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _controller.forward();
+    _dismissTimer = Timer(const Duration(seconds: 5), _dismiss);
+  }
+
+  void _dismiss() {
+    if (!mounted) return;
+    _controller.reverse().then((_) {
+      widget.onDismiss();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dismissTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 10,
+      left: 16,
+      right: 16,
+      child: SlideTransition(
+        position: _offsetAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: GestureDetector(
+            onVerticalDragUpdate: (details) {
+              if (details.primaryDelta != null && details.primaryDelta! < -4) {
+                _dismiss();
+              }
+            },
+            onTap: widget.onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B3D),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF28A745), width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x40000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF28A745).withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active,
+                      color: Color(0xFF28A745),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.notice.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (widget.notice.body.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.notice.body,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFDDE8F8),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF28A745),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'VER',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

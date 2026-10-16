@@ -33,7 +33,7 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
   bool _hasMore = false;
   Object? _error;
   DateTime? _updatedAt;
-  bool _acceptedTab = false;
+  _YonkeQuotesTab _activeTab = _YonkeQuotesTab.all;
 
   @override
   void initState() {
@@ -245,6 +245,14 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       ),
       actions: [
         IconButton(
+          tooltip: 'Notificaciones',
+          onPressed: () => context.push(AppRoutes.yonkeNotifications),
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: Colors.white,
+          ),
+        ),
+        IconButton(
           tooltip: 'Actualizar cotizaciones',
           onPressed: _loading ? null : () => _load(refresh: true),
           icon: const Icon(Icons.refresh, color: Colors.white),
@@ -404,23 +412,35 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
       ];
     }
 
+    final total = _quotes.length;
     final accepted = _quotes
         .where((quote) => quote.status == YonkeQuoteStatus.accepted)
         .length;
-    // Una cotización aceptada también fue enviada. La primera pestaña conserva
-    // el historial completo y la segunda sirve como acceso rápido a aceptadas.
-    final sent = _quotes;
-    final visible = _acceptedTab
-        ? _quotes
-              .where((quote) => quote.status == YonkeQuoteStatus.accepted)
-              .toList(growable: false)
-        : sent;
+    final pending = _quotes
+        .where((quote) =>
+            quote.status == YonkeQuoteStatus.sent ||
+            quote.status == YonkeQuoteStatus.viewed)
+        .length;
+
+    final visible = switch (_activeTab) {
+      _YonkeQuotesTab.all => _quotes,
+      _YonkeQuotesTab.accepted => _quotes
+          .where((quote) => quote.status == YonkeQuoteStatus.accepted)
+          .toList(growable: false),
+      _YonkeQuotesTab.pending => _quotes
+          .where((quote) =>
+              quote.status == YonkeQuoteStatus.sent ||
+              quote.status == YonkeQuoteStatus.viewed)
+          .toList(growable: false),
+    };
+
     return [
       _QuoteTabs(
-        acceptedTab: _acceptedTab,
-        sentCount: sent.length,
+        activeTab: _activeTab,
+        totalCount: total,
         acceptedCount: accepted,
-        onChanged: (value) => setState(() => _acceptedTab = value),
+        pendingCount: pending,
+        onChanged: (value) => setState(() => _activeTab = value),
       ),
       const SizedBox(height: 14),
       if (visible.isEmpty)
@@ -454,33 +474,45 @@ class _YonkeQuotesPageState extends ConsumerState<YonkeQuotesPage> {
 
 class _QuoteTabs extends StatelessWidget {
   const _QuoteTabs({
-    required this.acceptedTab,
-    required this.sentCount,
+    required this.activeTab,
+    required this.totalCount,
     required this.acceptedCount,
+    required this.pendingCount,
     required this.onChanged,
   });
-  final bool acceptedTab;
-  final int sentCount;
+  final _YonkeQuotesTab activeTab;
+  final int totalCount;
   final int acceptedCount;
-  final ValueChanged<bool> onChanged;
+  final int pendingCount;
+  final ValueChanged<_YonkeQuotesTab> onChanged;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
       Expanded(
         child: _QuoteTab(
-          label: 'Enviadas',
-          count: sentCount,
-          selected: !acceptedTab,
-          onTap: () => onChanged(false),
+          label: 'Todas',
+          count: totalCount,
+          selected: activeTab == _YonkeQuotesTab.all,
+          onTap: () => onChanged(_YonkeQuotesTab.all),
         ),
       ),
+      const SizedBox(width: 6),
       Expanded(
         child: _QuoteTab(
           label: 'Aceptadas',
           count: acceptedCount,
-          selected: acceptedTab,
-          onTap: () => onChanged(true),
+          selected: activeTab == _YonkeQuotesTab.accepted,
+          onTap: () => onChanged(_YonkeQuotesTab.accepted),
+        ),
+      ),
+      const SizedBox(width: 6),
+      Expanded(
+        child: _QuoteTab(
+          label: 'En proceso',
+          count: pendingCount,
+          selected: activeTab == _YonkeQuotesTab.pending,
+          onTap: () => onChanged(_YonkeQuotesTab.pending),
         ),
       ),
     ],
@@ -730,9 +762,9 @@ class _StateCard extends StatelessWidget {
 
 Color _statusColor(YonkeQuoteStatus status) => switch (status) {
   YonkeQuoteStatus.sent => const Color(0xFF114EB0),
-  YonkeQuoteStatus.viewed => const Color(0xFF6D3BB6),
+  YonkeQuoteStatus.viewed => const Color(0xFF114EB0),
   YonkeQuoteStatus.accepted => const Color(0xFF147A1D),
-  YonkeQuoteStatus.rejected => const Color(0xFF9B1C1C),
+  YonkeQuoteStatus.rejected => const Color(0xFFB3261E),
   YonkeQuoteStatus.closed => const Color(0xFF596276),
   YonkeQuoteStatus.unknown => const Color(0xFF596276),
 };
@@ -742,3 +774,5 @@ String _date(DateTime value) =>
 
 String _time(DateTime value) =>
     '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+enum _YonkeQuotesTab { all, accepted, pending }

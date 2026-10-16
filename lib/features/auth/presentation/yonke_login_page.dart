@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import '../../../app/widgets/responsive_scaffold.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/session/session_events.dart';
 
 class YonkeLoginPage extends ConsumerStatefulWidget {
   const YonkeLoginPage({super.key});
@@ -82,6 +86,7 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
         });
         return;
       }
+      final cleanEmail = _emailController.text.trim().toLowerCase();
       await ref
           .read(tokenStoreProvider)
           .writeTokens(
@@ -90,6 +95,10 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
             expiresAt: result.expiresAt,
             yonkeGuidId: result.yonkeId,
           );
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'yonke.active_email', value: cleanEmail);
+      SessionEvents.notifySignedIn();
+      unawaited(ref.read(pushServiceProvider).registerCurrentSession());
       if (!mounted) return;
       context.go(AppRoutes.yonkeHome);
     } on ApiException catch (error) {
@@ -368,14 +377,6 @@ class _YonkeLoginPageState extends ConsumerState<YonkeLoginPage> {
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        key: const Key('yonke-go-register-button'),
-                        onPressed: _loading
-                            ? null
-                            : () => context.push(AppRoutes.yonkeRegister),
-                        child: const Text('Registra tu Yonke'),
                       ),
                     ],
                   ),

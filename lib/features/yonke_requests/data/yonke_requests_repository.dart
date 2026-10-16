@@ -1,3 +1,9 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../core/storage/token_store.dart';
+import '../../auth/domain/session_payload.dart';
 import '../../requests/data/requests_api.dart';
 import '../domain/yonke_request_summary.dart';
 
@@ -31,9 +37,67 @@ class AssignedRequestsEndpointPendingException implements Exception {
 /// ciudad y fecha se aplican en la app porque el endpoint solo recibe
 /// `Page`, `Search` y `CantidadRegistrosPorPagina`.
 class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
-  const ApiYonkeRequestsRepository(this._requestsApi);
+  const ApiYonkeRequestsRepository(
+    this._requestsApi, [
+    this._storage = const FlutterSecureStorage(),
+    this._tokens,
+  ]);
 
   final RequestsApi _requestsApi;
+  final FlutterSecureStorage? _storage;
+  final TokenStore? _tokens;
+
+  Future<String> _resolveHistoryKey() async {
+    final storage = _storage ?? const FlutterSecureStorage();
+    String? email = await storage.read(key: 'yonke.active_email');
+    if (email == null || email.trim().isEmpty) {
+      final token = await _tokens?.readAccessToken() ??
+          await storage.read(key: 'auth.access_token');
+      if (token != null && token.isNotEmpty) {
+        final claims = SessionResponseParser.decodeJwtClaims(token);
+        email = claims?['email']?.toString() ??
+            claims?['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress']
+                ?.toString();
+      }
+    }
+    if (email != null && email.trim().isNotEmpty) {
+      return 'yonke.requests.email.${email.trim().toLowerCase()}';
+    }
+    return 'yonke.requests.history';
+  }
+
+  Future<List<YonkeRequestSummary>> _loadCached() async {
+    final storage = _storage ?? const FlutterSecureStorage();
+    try {
+      final key = await _resolveHistoryKey();
+      var raw = await storage.read(key: key);
+      if ((raw == null || raw.isEmpty) && key != 'yonke.requests.history') {
+        raw = await storage.read(key: 'yonke.requests.history');
+      }
+      if (raw == null || raw.isEmpty) return const [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((m) =>
+              YonkeRequestSummary.fromStoredJson(Map<String, dynamic>.from(m)))
+          .where((item) => item.requestYonkeId.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _saveCached(List<YonkeRequestSummary> items) async {
+    final storage = _storage ?? const FlutterSecureStorage();
+    try {
+      final key = await _resolveHistoryKey();
+      await storage.write(
+        key: key,
+        value: jsonEncode(items.map((i) => i.toJson()).toList()),
+      );
+    } catch (_) {}
+  }
 
   @override
   Future<YonkeRequestsPageResult> getAssignedRequests({
@@ -46,18 +110,52 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
     final cleanSearch = search == null || search.trim().isEmpty
         ? null
         : search.trim();
-    // Un fallo de red, de sesión o de permisos se propaga: nunca se muestra
-    // como bandeja vacía.
-    final assigned = yonkeAssignedRequestsFromResponse(
-      await _requestsApi.getAssignedToYonke(),
-    );
-    if (assigned == null) {
+
+    final cached = await _loadCached();
+    List<YonkeRequestSummary>? assigned;
+
+    try {
+      final response = await _requestsApi.getAssignedToYonke();
+      assigned = yonkeAssignedRequestsFromResponse(response);
+    } catch (_) {
+      // Si la API falla, usamos el historial previamente guardado
+      if (cached.isEmpty) rethrow;
+    }
+
+    if (assigned == null && cached.isEmpty) {
       throw const AssignedRequestsEndpointPendingException();
     }
+
+    // Fusión de solicitudes: conservamos todas las solicitudes antiguas
+    final map = <String, YonkeRequestSummary>{};
+    for (final item in cached) {
+      map[item.requestYonkeId] = item;
+    }
+    if (assigned != null) {
+      for (final item in assigned) {
+        final prev = map[item.requestYonkeId];
+        if (prev != null && (item.imageUrl == null || item.imageUrl!.isEmpty)) {
+          map[item.requestYonkeId] = item.copyWith(
+            description: item.description ?? prev.description,
+            engine: item.engine ?? prev.engine,
+            transmission: item.transmission ?? prev.transmission,
+            clientId: item.clientId ?? prev.clientId,
+          );
+        } else {
+          map[item.requestYonkeId] = item;
+        }
+      }
+    }
+
+    final allItems = map.values.toList();
+    if (allItems.isNotEmpty) {
+      await _saveCached(allItems);
+    }
+
     // MisSolicitudes entrega la bandeja completa: la búsqueda, los filtros y
     // la paginación se resuelven aquí.
     final items =
-        assigned
+        allItems
             .where(
               (item) =>
                   (cleanSearch == null || _matchesSearch(item, cleanSearch)) &&
@@ -74,15 +172,34 @@ class ApiYonkeRequestsRepository implements YonkeRequestsRepository {
   }
 
   @override
-  Future<void> markAsViewed(String requestYonkeId) =>
-      _requestsApi.markAsViewedByYonke(requestYonkeId);
+  Future<void> markAsViewed(String requestYonkeId) async {
+    try {
+      await _requestsApi.markAsViewedByYonke(requestYonkeId);
+    } finally {
+      final cached = await _loadCached();
+      if (cached.isNotEmpty) {
+        final updated = cached.map((r) {
+          if (r.requestYonkeId == requestYonkeId &&
+              r.status == YonkeRequestStatus.newRequest) {
+            return r.copyWith(status: YonkeRequestStatus.viewed);
+          }
+          return r;
+        }).toList();
+        await _saveCached(updated);
+      }
+    }
+  }
 
   @override
   Future<YonkeRequestSummary?> getMostRecentRequest() async {
-    final response = await _requestsApi.getYonkeMostRecentRequest();
-    final data = response is Map ? response['data'] : response;
-    if (data == null || data is! Map) return null;
-    return yonkeRequestSummaryFromJson(data);
+    try {
+      final response = await _requestsApi.getYonkeMostRecentRequest();
+      final data = response is Map ? response['data'] : response;
+      if (data == null || data is! Map) return null;
+      return yonkeRequestSummaryFromJson(data);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -198,12 +315,16 @@ YonkeRequestSummary? yonkeRequestSummaryFromJson(Map<dynamic, dynamic> json) {
       _date(json['fechaCreacion']) ??
       DateTime.fromMillisecondsSinceEpoch(0);
 
+  final rawStatusId = json['estatusId'] ?? json['EstatusId'];
+  final statusId = rawStatusId is num ? rawStatusId.toInt() : int.tryParse('$rawStatusId');
+
   return YonkeRequestSummary(
     requestId: requestId,
     requestYonkeId: requestYonkeId,
     part: part,
     status: _status(
       statusText,
+      statusId: statusId,
       closed: closed,
       hasQuote: hasQuote,
       viewed: json['vista'] == true || _date(json['fechaVista']) != null,
@@ -274,20 +395,27 @@ String? _cityName(dynamic cities) {
 
 YonkeRequestStatus _status(
   String? text, {
+  int? statusId,
   required bool closed,
   required bool hasQuote,
   required bool viewed,
 }) {
+  if (statusId == 7) return YonkeRequestStatus.accepted;
+  if (statusId == 4) return YonkeRequestStatus.unavailable;
+  if (statusId == 5 || statusId == 6) return YonkeRequestStatus.closed;
+
   final normalized = text?.toLowerCase() ?? '';
   if (closed || normalized.contains('cerr') || normalized.contains('cancel')) {
     return YonkeRequestStatus.closed;
   }
+  if (normalized.contains('acept')) return YonkeRequestStatus.accepted;
   if (normalized.contains('no disp')) return YonkeRequestStatus.unavailable;
   if (normalized.contains('cotiz') || hasQuote) {
     return YonkeRequestStatus.quoted;
   }
-  if (normalized.contains('vista') || viewed) return YonkeRequestStatus.viewed;
-  if (normalized.contains('nueva') ||
+  if (statusId == 2 || normalized.contains('vista') || viewed) return YonkeRequestStatus.viewed;
+  if (statusId == 1 ||
+      normalized.contains('nueva') ||
       normalized.contains('envi') ||
       normalized.contains('pend') ||
       normalized.isEmpty) {

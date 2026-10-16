@@ -150,7 +150,7 @@ void main() {
     expect(find.text('¡Yonke registrado!'), findsOneWidget);
   });
 
-  testWidgets('renders YonkeLoginPage with cropped logo and register button', (
+  testWidgets('renders YonkeLoginPage with cropped logo and without register button', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -175,8 +175,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('yonke-go-register-button')), findsOneWidget);
-    expect(find.text('Registra tu Yonke'), findsOneWidget);
+    expect(find.byKey(const Key('yonke-go-register-button')), findsNothing);
+    expect(find.text('Registra tu Yonke'), findsNothing);
 
     await tester.runAsync(() async {
       final boundary =

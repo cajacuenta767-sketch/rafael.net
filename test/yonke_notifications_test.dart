@@ -1,6 +1,8 @@
 import 'package:app_yonke/core/di/api_providers.dart';
 import 'package:app_yonke/core/storage/token_store.dart';
 import 'package:app_yonke/features/yonke_notifications/presentation/yonke_notifications_page.dart';
+import 'package:app_yonke/features/yonke_requests/data/yonke_requests_repository.dart';
+import 'package:app_yonke/features/yonke_requests/domain/yonke_request_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +16,9 @@ void main() {
         overrides: [
           tokenStoreProvider.overrideWithValue(
             _MemoryTokenStore(accessToken: 'token', yonkeGuidId: 'yonke-1'),
+          ),
+          yonkeRequestsRepositoryProvider.overrideWithValue(
+            _FakeYonkeRequestsRepository(),
           ),
         ],
         child: const MaterialApp(home: YonkeNotificationsPage()),
@@ -77,4 +82,20 @@ class _MemoryTokenStore implements TokenStore {
     this.accessToken = accessToken;
     this.yonkeGuidId = yonkeGuidId;
   }
+}
+
+class _FakeYonkeRequestsRepository implements YonkeRequestsRepository {
+  @override
+  Future<YonkeRequestsPageResult> getAssignedRequests({
+    required int page,
+    required int pageSize,
+    String? search,
+    YonkeRequestFilters filters = const YonkeRequestFilters(),
+  }) async => const YonkeRequestsPageResult(items: [], page: 1, hasMore: false);
+
+  @override
+  Future<void> markAsViewed(String requestYonkeId) async {}
+
+  @override
+  Future<YonkeRequestSummary?> getMostRecentRequest() async => null;
 }

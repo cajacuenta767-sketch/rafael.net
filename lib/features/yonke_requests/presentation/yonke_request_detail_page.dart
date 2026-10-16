@@ -655,6 +655,7 @@ Color _statusColor(YonkeRequestStatus status) => switch (status) {
   YonkeRequestStatus.newRequest => const Color(0xFF147A1D),
   YonkeRequestStatus.viewed => const Color(0xFF114EB0),
   YonkeRequestStatus.quoted => const Color(0xFF6D3BB6),
+  YonkeRequestStatus.accepted => const Color(0xFF147A1D),
   YonkeRequestStatus.unavailable => const Color(0xFF9B1C1C),
   YonkeRequestStatus.closed => const Color(0xFF596276),
   YonkeRequestStatus.unknown => const Color(0xFF596276),

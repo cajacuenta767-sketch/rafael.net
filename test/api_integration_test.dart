@@ -481,7 +481,7 @@ void main() {
       });
     }
 
-    test('sin cotizaciones en el teléfono avisa en lugar de fallar', () async {
+    test('sin cotizaciones en el teléfono devuelve lista vacía sin error', () async {
       FlutterSecureStorage.setMockInitialValues({});
       final client = _RoutedClient({
         ApiEndpoints.yonkeQuotes: const ApiException(
@@ -494,15 +494,13 @@ void main() {
         ),
       });
 
-      await expectLater(
-        ApiYonkeMessagesRepository(
-          QuotesApi(client),
-          DashboardApi(client),
-          _YonkeTokens(),
-          YonkeQuoteRegistry(_YonkeTokens()),
-        ).getInbox(),
-        throwsA(isA<YonkeMessagesInboxContractPendingException>()),
-      );
+      final result = await ApiYonkeMessagesRepository(
+        QuotesApi(client),
+        DashboardApi(client),
+        _YonkeTokens(),
+        YonkeQuoteRegistry(_YonkeTokens()),
+      ).getInbox();
+      expect(result, isEmpty);
     });
   });
 

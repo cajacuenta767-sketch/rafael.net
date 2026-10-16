@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_file.dart';
 import '../../dashboard/data/dashboard_api.dart';
+import '../domain/client_request.dart';
 import '../domain/request_draft.dart';
 import '../domain/request_submission.dart';
+import 'client_requests_memory.dart';
 import 'requests_api.dart';
 
 abstract interface class RequestSubmissionRepository {
@@ -13,9 +17,14 @@ abstract interface class RequestSubmissionRepository {
 /// yonkes con cobertura. Cada paso que falla se informa tal cual: nunca se
 /// simula una solicitud creada.
 class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
-  const ApiRequestSubmissionRepository(this._requestsApi, [DashboardApi? _]);
+  const ApiRequestSubmissionRepository(
+    this._requestsApi, [
+    DashboardApi? _,
+    this.memory,
+  ]);
 
   final RequestsApi _requestsApi;
+  final ClientRequestsMemory? memory;
 
   @override
   Future<RequestSubmissionResult> submit(RequestDraft draft) async {
@@ -96,6 +105,21 @@ class ApiRequestSubmissionRepository implements RequestSubmissionRepository {
             'La solicitud fue creada, pero no se pudo enviar a los yonkes: '
             '${error.message}',
       );
+    }
+
+    if (memory != null) {
+      final summary = ClientRequestSummary(
+        id: requestId,
+        part: draft.part.trim(),
+        status: 'En proceso',
+        quoteCount: 0,
+        brand: draft.brandName,
+        model: draft.modelName,
+        year: draft.year,
+        createdAt: DateTime.now(),
+        closed: false,
+      );
+      unawaited(memory!.addSingleRequest(null, summary));
     }
 
     return RequestSubmissionResult(requestId: requestId);
