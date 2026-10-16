@@ -59,4 +59,7 @@ class QuotesApi {
 
   Future<dynamic> getUnreadCount(String quoteId) =>
       _client.get(ApiEndpoints.unreadQuoteMessages(quoteId));
+
+  Future<dynamic> markAsReceived(String quoteId) =>
+      _client.put(ApiEndpoints.markQuoteReceived(quoteId));
 }

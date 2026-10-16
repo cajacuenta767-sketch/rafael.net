@@ -10,6 +10,8 @@ import '../../../core/di/api_providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../quotes/domain/client_quote.dart';
 import '../../payments/data/payments_api.dart';
+import '../../messages/presentation/client_conversation_page.dart';
+import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_orders_repository.dart';
 import '../domain/client_order_creation.dart';
 import '../domain/client_order.dart';
@@ -708,6 +710,37 @@ class _TrackingContent extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(color: Color(0xFF596276)),
         ),
+      const SizedBox(height: 14),
+      OutlinedButton.icon(
+        key: const Key('client-order-chat-btn'),
+        onPressed: () => context.push(
+          AppRoutes.clientQuoteConversation(quote.id),
+          extra: ClientConversationArgs(quote: quote),
+        ),
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Abrir chat con el yonke'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+        ),
+      ),
+      if (!order.isCancelled &&
+          (order.status?.toLowerCase().contains('complet') == true ||
+              quote.status.toLowerCase().contains('recibid'))) ...[
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          key: const Key('client-order-rate-btn'),
+          onPressed: () => context.push(
+            AppRoutes.clientRating(quote.id),
+            extra: ClientRatingArgs(quote: quote),
+          ),
+          icon: const Icon(Icons.star_rounded),
+          label: const Text('Calificar al yonke'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            backgroundColor: const Color(0xFF00695C),
+          ),
+        ),
+      ],
     ],
   );
 }

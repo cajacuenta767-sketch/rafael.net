@@ -99,6 +99,35 @@ class ClientQuote {
     paymentStatus: paymentStatus,
   );
 
+  ClientQuote withStatus(String newStatus) => ClientQuote(
+    id: id,
+    requestId: requestId,
+    yonkeId: yonkeId,
+    yonkeName: yonkeName,
+    price: price,
+    available: available,
+    isNew: isNew,
+    hasWarranty: hasWarranty,
+    warrantyDays: warrantyDays,
+    shippingAvailable: shippingAvailable,
+    active: active,
+    status: newStatus,
+    imageUrls: imageUrls,
+    logoUrl: logoUrl,
+    requestFolio: requestFolio,
+    partName: partName,
+    brand: brand,
+    model: model,
+    year: year,
+    createdAt: createdAt,
+    phone: phone,
+    partNumber: partNumber,
+    comments: comments,
+    deliveryDays: deliveryDays,
+    shippingCost: shippingCost,
+    paymentStatus: paymentStatus,
+  );
+
   String get condition => isNew ? 'Nueva' : 'Usada';
   String get availability => available ? 'Disponible' : 'No disponible';
   String get warranty => hasWarranty

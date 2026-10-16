@@ -105,6 +105,9 @@ class _FakeRepository implements ClientMessagesRepository {
     required String quoteId,
     required String message,
   }) async {}
+
+  @override
+  Future<void> markAsReceived(String quoteId) async {}
 }
 
 const _quote = ClientQuote(

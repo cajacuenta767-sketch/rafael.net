@@ -17,6 +17,8 @@ abstract interface class ClientMessagesRepository {
   Future<List<ClientQuoteMessage>> getConversation(String quoteId);
 
   Future<void> sendMessage({required String quoteId, required String message});
+
+  Future<void> markAsReceived(String quoteId);
 }
 
 /// Conversación por cotización sobre `SolicitudCotizacionMensajes`.
@@ -156,6 +158,10 @@ class ApiClientMessagesRepository
     );
     if (share) _sharedContacts[quoteId] = contact;
   }
+
+  @override
+  Future<void> markAsReceived(String quoteId) =>
+      _quotesApi.markAsReceived(quoteId);
 
   Future<QuoteClient?> _profileContact() async {
     final repository = _profileRepository;

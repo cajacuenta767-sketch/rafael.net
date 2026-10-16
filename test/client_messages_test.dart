@@ -245,6 +245,9 @@ class _VisualMessagesRepository implements ClientMessagesRepository {
     required String quoteId,
     required String message,
   }) async {}
+
+  @override
+  Future<void> markAsReceived(String quoteId) async {}
 }
 
 Map<String, dynamic> _message({

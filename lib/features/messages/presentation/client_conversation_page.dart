@@ -11,9 +11,11 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/widgets/refanet_image.dart';
 import '../../../core/di/api_providers.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/realtime/realtime_service.dart';
 import '../../home/presentation/client_bottom_navigation.dart';
 import '../../quotes/domain/client_quote.dart';
+import '../../ratings/presentation/client_rating_page.dart';
 import '../data/client_messages_repository.dart';
 import '../domain/client_message.dart';
 
@@ -427,6 +429,71 @@ class _ClientConversationPageState
     });
   }
 
+  bool _isAcceptedOrReceived(ClientQuote q) {
+    final s = q.status.toLowerCase();
+    return s.contains('aceptad') || s.contains('recibid') || q.isPaid;
+  }
+
+  Future<void> _markAsReceived() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('¿Recibiste tu refacción?'),
+        content: Text(
+          'Confirma si ya tienes la pieza físicamente y en buen estado. '
+          'Al confirmar, podrás calificar el servicio de ${_quote.yonkeName}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Aún no'),
+          ),
+          FilledButton(
+            key: const Key('confirm-received-dialog-btn'),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF147A1D),
+            ),
+            child: const Text('Sí, la recibí'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await _repository.markAsReceived(_quote.id);
+      if (!mounted) return;
+      setState(() {
+        _quote = _quote.withStatus('Recibida');
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Excelente! Refacción confirmada como recibida.'),
+        ),
+      );
+      context.push(
+        AppRoutes.clientRating(_quote.id),
+        extra: ClientRatingArgs(quote: _quote),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException
+                ? e.message
+                : 'No se pudo actualizar el estado. Inténtalo de nuevo.',
+          ),
+        ),
+      );
+    }
+  }
+
   void _explainAttachments() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -473,6 +540,17 @@ class _ClientConversationPageState
                         _YonkeHeader(quote: quote),
                         const SizedBox(height: 8),
                         _QuoteHeader(quote: quote),
+                        if (_isAcceptedOrReceived(quote)) ...[
+                          const SizedBox(height: 8),
+                          _OrderReceiptBanner(
+                            quote: quote,
+                            onMarkReceived: _markAsReceived,
+                            onRate: () => context.push(
+                              AppRoutes.clientRating(quote.id),
+                              extra: ClientRatingArgs(quote: quote),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -989,3 +1067,95 @@ String _time(DateTime value) {
   final minute = value.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
 }
+
+class _OrderReceiptBanner extends StatelessWidget {
+  const _OrderReceiptBanner({
+    required this.quote,
+    required this.onMarkReceived,
+    required this.onRate,
+  });
+
+  final ClientQuote quote;
+  final VoidCallback onMarkReceived;
+  final VoidCallback onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final isReceived = quote.status.toLowerCase().contains('recibid');
+    final bg = isReceived ? const Color(0xFFE8F5E9) : const Color(0xFFFFF8E1);
+    final border = isReceived ? const Color(0xFFA5D6A7) : const Color(0xFFFFE082);
+    final iconColor = isReceived ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+    final btnColor = isReceived ? const Color(0xFF00695C) : const Color(0xFF147A1D);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                isReceived
+                    ? Icons.verified_outlined
+                    : Icons.local_shipping_outlined,
+                color: iconColor,
+                size: 26,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isReceived ? 'Refacción recibida' : 'Pedido en camino / Aceptado',
+                      style: TextStyle(
+                        color: iconColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isReceived
+                          ? '¿Qué tal tu experiencia con ${quote.yonkeName}? Califica para ayudar a otros clientes.'
+                          : '¿Ya recibiste la refacción físicamente? Confirma la entrega para cerrar tu pedido.',
+                      style: const TextStyle(
+                        color: Color(0xFF374151),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: Key(isReceived ? 'chat-rate-yonke-btn' : 'chat-mark-received-btn'),
+            onPressed: isReceived ? onRate : onMarkReceived,
+            style: FilledButton.styleFrom(
+              backgroundColor: btnColor,
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size.fromHeight(40),
+            ),
+            icon: Icon(
+              isReceived ? Icons.star_rounded : Icons.check_circle_outline,
+              size: 18,
+            ),
+            label: Text(
+              isReceived ? 'Calificar al yonke' : 'Confirmar que recibí la pieza',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

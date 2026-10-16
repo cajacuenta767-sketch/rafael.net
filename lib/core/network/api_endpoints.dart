@@ -72,6 +72,8 @@ abstract final class ApiEndpoints {
       '/api/SolicitudYonkes/solicitud/$requestId/destinatarios';
   static String markYonkeRequestViewed(String requestYonkeId) =>
       '/api/SolicitudYonkes/$requestYonkeId/vista';
+  static String markQuoteReceived(String quoteId) =>
+      '/api/SolicitudYonkes/cotizacion/$quoteId/recibida';
   static const yonkeAssignedRequests = '/api/SolicitudYonkes/MisSolicitudes';
   static const yonkeNewRequestsTotal =
       '/api/SolicitudYonkes/TotalSolicitudesNuevas';
